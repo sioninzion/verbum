@@ -20,7 +20,7 @@
 
 html {
   background: var(--bg);
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -31,7 +31,7 @@ body {
     linear-gradient(120deg, rgba(36, 132, 92, 0.1), transparent 34%),
     linear-gradient(250deg, rgba(193, 102, 46, 0.13), transparent 36%),
     var(--bg);
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
   font-family:
     "Pretendard",
     "Noto Sans KR",
