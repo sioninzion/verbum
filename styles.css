@@ -18,6 +18,11 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--bg);
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -26,6 +31,7 @@ body {
     linear-gradient(120deg, rgba(36, 132, 92, 0.1), transparent 34%),
     linear-gradient(250deg, rgba(193, 102, 46, 0.13), transparent 36%),
     var(--bg);
+  touch-action: manipulation;
   font-family:
     "Pretendard",
     "Noto Sans KR",
@@ -832,6 +838,7 @@ h3 {
 .quiz-topline {
   align-items: flex-start;
   justify-content: space-between;
+  margin-bottom: 14px;
 }
 
 .quiz-topline h3 {
@@ -1795,7 +1802,7 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: max(14px, calc(env(safe-area-inset-top) + 10px)) 12px max(18px, env(safe-area-inset-bottom));
+  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px max(18px, env(safe-area-inset-bottom));
   scrollbar-width: none;
 }
 
