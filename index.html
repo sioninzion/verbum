@@ -10,16 +10,18 @@
     <meta name="theme-color" content="#faf5ec" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Verbum</title>
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="icon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="icon-512.png" type="image/png" sizes="512x512" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260824-27" />
+    <link rel="stylesheet" href="styles.css?v=20260824-30" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -215,6 +217,10 @@
             <div>
               <span class="metric-label">연속 기록</span>
               <strong id="streakCount">0일</strong>
+            </div>
+            <div>
+              <span class="metric-label">최대 연속</span>
+              <strong id="longestStreakCount">0일</strong>
             </div>
             <div>
               <span class="metric-label">구약</span>
@@ -440,6 +446,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260824-27"></script>
+    <script src="app.js?v=20260824-30"></script>
   </body>
 </html>

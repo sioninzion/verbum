@@ -175,6 +175,7 @@ const elements = {
   remainingText: document.querySelector("#remainingText"),
   todayCount: document.querySelector("#todayCount"),
   streakCount: document.querySelector("#streakCount"),
+  longestStreakCount: document.querySelector("#longestStreakCount"),
   oldProgress: document.querySelector("#oldProgress"),
   newProgress: document.querySelector("#newProgress"),
   dailyTarget: document.querySelector("#dailyTarget"),
@@ -697,6 +698,7 @@ function updateOverview() {
   const newChapters = DATA.chapters.filter((chapter) => chapter.testament === "new");
   const todayDone = getTodayCompleted();
   const streak = calculateStreak();
+  const longestStreak = calculateLongestStreakFromDates(getUniqueSortedReadDates(state.progress));
   const target = Math.max(1, Number(state.progress.dailyTarget) || 3);
 
   elements.totalRing.style.background = `conic-gradient(var(--green) ${allPercent * 3.6}deg, #e7dfcf 0deg)`;
@@ -705,6 +707,7 @@ function updateOverview() {
   elements.remainingText.textContent = `남은 장 ${DATA.chapters.length - done}`;
   elements.todayCount.textContent = `${todayDone}장`;
   elements.streakCount.textContent = `${streak}일`;
+  elements.longestStreakCount.textContent = `${longestStreak}일`;
   elements.oldProgress.textContent = `${percent(getCompletedCount(oldChapters), oldChapters.length)}%`;
   elements.newProgress.textContent = `${percent(getCompletedCount(newChapters), newChapters.length)}%`;
   elements.dailyTarget.value = target;
