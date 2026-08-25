@@ -173,6 +173,11 @@ const elements = {
   installBannerBody: document.querySelector("#installBannerBody"),
   installActionBtn: document.querySelector("#installActionBtn"),
   installBannerCloseBtn: document.querySelector("#installBannerCloseBtn"),
+  tutorialModal: document.querySelector("#tutorialModal"),
+  tutorialSkipBtn: document.querySelector("#tutorialSkipBtn"),
+  tutorialNextBtn: document.querySelector("#tutorialNextBtn"),
+  tutorialSteps: document.querySelectorAll(".tutorial-step"),
+  tutorialDots: document.querySelectorAll(".tutorial-dot"),
   dashboard: document.querySelector("#dashboard"),
   viewTabs: document.querySelectorAll("[data-view-tab]"),
   viewPanels: document.querySelectorAll("[data-view-panel]"),
@@ -439,6 +444,7 @@ function getSignedOutUser() {
     titleAchievementId: null,
     phoneNumber: "",
     share: false,
+    hasSeenTutorial: false,
   };
 }
 
@@ -600,6 +606,7 @@ function buildProfilePayload() {
     titleAchievementId: state.user.titleAchievementId || null,
     phoneNumber: state.user.phoneNumber || state.firebaseUser.phoneNumber || "",
     share: Boolean(state.user.share),
+    hasSeenTutorial: Boolean(state.user.hasSeenTutorial),
     progress: state.progress,
     completedCount: done,
     streakDays: calculateStreak(),
@@ -631,6 +638,7 @@ async function loadUserProfile(firebaseUser) {
         titleAchievementId: null,
         phoneNumber: firebaseUser.phoneNumber || "",
         share: true,
+        hasSeenTutorial: false,
       },
       progress: loadLegacyProgress(),
     };
@@ -649,6 +657,7 @@ async function loadUserProfile(firebaseUser) {
         titleAchievementId,
         phoneNumber: data.phoneNumber || firebaseUser.phoneNumber || "",
         share: Boolean(data.share),
+        hasSeenTutorial: Boolean(data.hasSeenTutorial),
       },
       progress: { ...createProgress(), ...(data.progress || {}) },
     };
@@ -664,6 +673,7 @@ async function loadUserProfile(firebaseUser) {
     titleAchievementId: null,
     phoneNumber: firebaseUser.phoneNumber || "",
     share: true,
+    hasSeenTutorial: false,
   };
   const progress = loadLegacyProgress();
   try {
@@ -861,6 +871,36 @@ function openCalendarModal() {
 
 function closeCalendarModal() {
   elements.calendarModal.hidden = true;
+}
+
+let tutorialStepIndex = 0;
+
+function renderTutorialStep() {
+  elements.tutorialSteps.forEach((step, index) => {
+    step.hidden = index !== tutorialStepIndex;
+  });
+  elements.tutorialDots.forEach((dot, index) => {
+    dot.classList.toggle("active", index === tutorialStepIndex);
+  });
+  elements.tutorialNextBtn.textContent =
+    tutorialStepIndex === elements.tutorialSteps.length - 1 ? "시작하기" : "다음";
+}
+
+function showTutorial() {
+  tutorialStepIndex = 0;
+  renderTutorialStep();
+  elements.tutorialModal.hidden = false;
+}
+
+async function completeTutorial() {
+  elements.tutorialModal.hidden = true;
+  if (state.user.hasSeenTutorial) return;
+  state.user.hasSeenTutorial = true;
+  try {
+    await saveProgress();
+  } catch {
+    // Non-critical — worst case the tutorial reappears next login.
+  }
 }
 
 function renderStatusTable() {
@@ -1576,6 +1616,16 @@ elements.calendarNextBtn.addEventListener("click", () => {
   renderCalendarModal();
 });
 
+elements.tutorialSkipBtn.addEventListener("click", completeTutorial);
+elements.tutorialNextBtn.addEventListener("click", () => {
+  if (tutorialStepIndex === elements.tutorialSteps.length - 1) {
+    completeTutorial();
+  } else {
+    tutorialStepIndex += 1;
+    renderTutorialStep();
+  }
+});
+
 elements.authModeButtons.forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
 });
@@ -1667,6 +1717,9 @@ auth.onAuthStateChanged(async (firebaseUser) => {
     await refreshLeaderboard();
     setView("home");
     render();
+    if (!state.user.hasSeenTutorial) {
+      showTutorial();
+    }
   } catch (error) {
     setAuthBanner(getAuthErrorMessage(error));
     state.isAuthenticated = false;

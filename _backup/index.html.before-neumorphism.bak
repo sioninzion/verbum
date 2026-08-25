@@ -7,7 +7,7 @@
       name="description"
       content="성경 66권 1,189장을 읽고 장별 퀴즈로 통독 진행도를 기록하는 웹앱"
     />
-    <meta name="theme-color" content="#efe6d6" />
+    <meta name="theme-color" content="#faf5ec" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260825-16" />
+    <link rel="stylesheet" href="styles.css?v=20260825-9" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -171,6 +171,10 @@
             <div>
               <p class="eyebrow" id="homeTitle">성경 통독자</p>
               <h2 id="homeGreeting">방문자님, 오늘도 한 장씩 가볼까요?</h2>
+              <blockquote class="daily-verse">
+                <p id="homeVerseText"></p>
+                <cite id="homeVerseRef"></cite>
+              </blockquote>
             </div>
           </div>
 
@@ -192,11 +196,6 @@
               <strong id="homeRank">-</strong>
             </button>
           </div>
-
-          <blockquote class="daily-verse">
-            <p id="homeVerseText"></p>
-            <cite id="homeVerseRef"></cite>
-          </blockquote>
 
           <div class="next-card">
             <div>
@@ -520,6 +519,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260825-16"></script>
+    <script src="app.js?v=20260825-9"></script>
   </body>
 </html>
