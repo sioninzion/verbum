@@ -207,6 +207,7 @@ h3 {
 .overview-panel,
 .library-panel,
 .chapter-panel,
+.reading-panel,
 .quiz-panel,
 .home-panel,
 .profile-panel,
@@ -762,6 +763,46 @@ h3 {
 
 .quiz-card p {
   line-height: 1.62;
+}
+
+.reading-card {
+  margin-bottom: 14px;
+}
+
+.reading-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reading-heading {
+  margin: 16px 0 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.reading-heading:first-child {
+  margin-top: 0;
+}
+
+.reading-verse {
+  line-height: 1.8;
+  color: var(--ink);
+}
+
+.v-num {
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  vertical-align: super;
+}
+
+.reading-loading {
+  padding: 24px 0;
+  color: var(--muted);
+  text-align: center;
 }
 
 .text-link {
@@ -1802,6 +1843,7 @@ h3 {
   .overview-panel,
   .library-panel,
   .chapter-panel,
+  .reading-panel,
   .quiz-panel,
   .home-panel,
   .profile-panel,
@@ -2495,6 +2537,7 @@ body {
 .overview-panel,
 .library-panel,
 .chapter-panel,
+.reading-panel,
 .quiz-panel,
 .home-panel,
 .profile-panel,
@@ -2507,6 +2550,7 @@ body {
    on the taller/scrollable screens. */
 .library-panel,
 .chapter-panel,
+.reading-panel,
 .quiz-panel,
 .community-panel {
   padding-bottom: 104px;

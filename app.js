@@ -213,6 +213,10 @@ const elements = {
   bookPercent: document.querySelector("#bookPercent"),
   bookCount: document.querySelector("#bookCount"),
   chapterGrid: document.querySelector("#chapterGrid"),
+  readingBackBtn: document.querySelector("#readingBackBtn"),
+  readingKicker: document.querySelector("#readingKicker"),
+  readingText: document.querySelector("#readingText"),
+  startQuizBtn: document.querySelector("#startQuizBtn"),
   chapterKicker: document.querySelector("#chapterKicker"),
   chapterStatus: document.querySelector("#chapterStatus"),
   chapterLink: document.querySelector("#chapterLink"),
@@ -1338,13 +1342,95 @@ async function selectBook(bookName) {
   await saveProgress();
 }
 
+const bibleTextCache = {};
+
+function getBookCode(chapter) {
+  const match = /NKRV\/([A-Z0-9]+)\./.exec(chapter.link || "");
+  return match ? match[1] : null;
+}
+
+async function loadChapterVerses(chapter) {
+  const code = getBookCode(chapter);
+  if (!code) return [];
+  if (!bibleTextCache[chapter.id]) {
+    bibleTextCache[chapter.id] = fetch(`data/bible-text/${code}/${chapter.chapter}.json`).then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    });
+  }
+  try {
+    return (await bibleTextCache[chapter.id]) || [];
+  } catch (err) {
+    delete bibleTextCache[chapter.id];
+    throw err;
+  }
+}
+
+async function renderReading() {
+  const chapter = getCurrentChapter();
+  elements.readingKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
+  elements.readingText.replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "reading-loading";
+  loading.textContent = "본문을 불러오는 중...";
+  elements.readingText.append(loading);
+
+  const requestedChapterId = chapter.id;
+  let verses = [];
+  let failed = false;
+  try {
+    verses = await loadChapterVerses(chapter);
+  } catch (err) {
+    failed = true;
+  }
+  if (state.selectedChapterId !== requestedChapterId) return;
+
+  if (failed || !verses.length) {
+    elements.readingText.replaceChildren();
+    const empty = document.createElement("p");
+    empty.className = "reading-loading";
+    empty.textContent =
+      location.protocol === "file:"
+        ? "파일을 직접 열어서는 본문을 불러올 수 없어요. 웹 서버(또는 실제 배포된 주소)로 접속해 주세요."
+        : "본문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    elements.readingText.append(empty);
+    return;
+  }
+
+  elements.readingText.replaceChildren(
+    ...verses.flatMap((verse) => {
+      const nodes = [];
+      if (verse.h) {
+        const heading = document.createElement("p");
+        heading.className = "reading-heading";
+        heading.textContent = verse.h;
+        nodes.push(heading);
+      }
+      const line = document.createElement("p");
+      line.className = "reading-verse";
+      const num = document.createElement("span");
+      num.className = "v-num";
+      num.textContent = verse.v;
+      line.append(num, document.createTextNode(verse.t));
+      nodes.push(line);
+      return nodes;
+    })
+  );
+}
+
+function startQuiz() {
+  state.quizStep = "quiz";
+  renderQuizStep();
+}
+
 async function selectChapter(chapterId) {
   const chapter = DATA.chapters.find((item) => item.id === chapterId);
   state.selectedBook = chapter.book;
   state.selectedChapterId = chapter.id;
   state.progress.lastChapterId = chapter.id;
-  state.quizStep = "quiz";
+  state.quizStep = "reading";
   render();
+  renderReading();
   await saveProgress();
 }
 
@@ -1661,8 +1747,17 @@ elements.chapterBackBtn.addEventListener("click", () => {
   renderQuizStep();
 });
 
-elements.quizBackBtn.addEventListener("click", () => {
+elements.readingBackBtn.addEventListener("click", () => {
   state.quizStep = "chapters";
+  renderQuizStep();
+});
+
+elements.startQuizBtn.addEventListener("click", () => {
+  startQuiz();
+});
+
+elements.quizBackBtn.addEventListener("click", () => {
+  state.quizStep = "reading";
   renderQuizStep();
 });
 
