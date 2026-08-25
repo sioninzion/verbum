@@ -2639,7 +2639,7 @@ body {
 
   .app-shell {
     padding-inline: 10px;
-    padding-bottom: calc(78px + max(6px, env(safe-area-inset-bottom)));
+    padding-bottom: calc(90px + max(6px, env(safe-area-inset-bottom)));
   }
 
   /* position: sticky inside a flex column is unreliable in Safari on iOS, so
