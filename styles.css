@@ -26,7 +26,6 @@
 
 html {
   background: var(--bg);
-  touch-action: pan-x pan-y;
 }
 
 body {
@@ -34,7 +33,6 @@ body {
   min-width: 320px;
   color: var(--ink);
   background: var(--bg);
-  touch-action: pan-x pan-y;
   font-family:
     "Pretendard",
     "Noto Sans KR",
@@ -1635,6 +1633,7 @@ h3 {
   min-width: 0;
   max-height: min(640px, 90vh);
   overflow-y: auto;
+  touch-action: pan-y;
   border-radius: 18px;
   padding: 22px 20px;
   background: var(--paper);
@@ -2014,6 +2013,7 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px 0;
   scrollbar-width: none;
 }
@@ -2108,6 +2108,7 @@ body {
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   scrollbar-width: none;
   padding: max(24px, calc(env(safe-area-inset-top) + 16px)) 24px
     max(28px, calc(env(safe-area-inset-bottom) + 22px));
