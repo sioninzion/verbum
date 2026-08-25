@@ -2503,6 +2503,15 @@ body {
   padding: 14px;
 }
 
+/* Extra clearance so content isn't hidden behind the fixed bottom tab bar
+   on the taller/scrollable screens. */
+.library-panel,
+.chapter-panel,
+.quiz-panel,
+.community-panel {
+  padding-bottom: 104px;
+}
+
 .panel {
   border-radius: 26px;
   box-shadow: var(--neu-raised);
