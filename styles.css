@@ -2014,7 +2014,7 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px max(18px, env(safe-area-inset-bottom));
+  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px max(6px, env(safe-area-inset-bottom));
   scrollbar-width: none;
 }
 
@@ -2574,7 +2574,7 @@ body {
 
 .mobile-tabbar {
   position: sticky;
-  bottom: max(8px, env(safe-area-inset-bottom));
+  bottom: max(2px, env(safe-area-inset-bottom));
   z-index: 50;
   flex-shrink: 0;
   display: grid;
