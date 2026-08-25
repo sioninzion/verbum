@@ -368,6 +368,14 @@ h3 {
   padding: 12px;
 }
 
+.form-card {
+  margin-bottom: 16px;
+}
+
+.form-card:last-child {
+  margin-bottom: 0;
+}
+
 .target-box,
 .reading-card,
 .quiz-card {
