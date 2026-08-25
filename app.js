@@ -101,10 +101,23 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+db.enablePersistence().catch(() => {
+  // Multiple tabs open, or the browser doesn't support persistence — offline
+  // reads/writes just won't be queued locally, which is fine, not fatal.
+});
+
 try {
   firebase.analytics();
 } catch {
   // Analytics unsupported in this browser/environment; safe to skip.
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {
+      // Offline caching just won't be available; the app still works online.
+    });
+  });
 }
 
 const chaptersByBook = DATA.books.reduce((map, book) => {
@@ -155,6 +168,11 @@ const elements = {
   loginSubmitBtn: document.querySelector("#loginSubmitBtn"),
   signupSubmitBtn: document.querySelector("#signupSubmitBtn"),
   gateLoginMessage: document.querySelector("#gateLoginMessage"),
+  installBanner: document.querySelector("#installBanner"),
+  installBannerTitle: document.querySelector("#installBannerTitle"),
+  installBannerBody: document.querySelector("#installBannerBody"),
+  installActionBtn: document.querySelector("#installActionBtn"),
+  installBannerCloseBtn: document.querySelector("#installBannerCloseBtn"),
   dashboard: document.querySelector("#dashboard"),
   viewTabs: document.querySelectorAll("[data-view-tab]"),
   viewPanels: document.querySelectorAll("[data-view-panel]"),
@@ -1665,3 +1683,60 @@ setTimeout(() => {
 
 updateLeaderboardCountdown();
 setInterval(updateLeaderboardCountdown, 1000);
+
+// ── "Add to home screen" install banner (login screen only) ──────────────
+
+function isRunningStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function detectInstallPlatform() {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  return { isIOS, isAndroid };
+}
+
+let deferredInstallPrompt = null;
+
+function showInstallBanner(platform) {
+  if (isRunningStandalone()) return;
+  if (localStorage.getItem("installBannerDismissed") === "true") return;
+
+  if (platform === "android") {
+    elements.installBannerTitle.textContent = "홈 화면에 추가하기";
+    elements.installBannerBody.textContent = "앱처럼 더 빠르고 편하게 쓸 수 있어요.";
+    elements.installActionBtn.hidden = false;
+  } else if (platform === "ios") {
+    elements.installBannerTitle.textContent = "홈 화면에 추가하기";
+    elements.installBannerBody.textContent = '공유 버튼을 누른 뒤 "홈 화면에 추가"를 선택하세요.';
+    elements.installActionBtn.hidden = true;
+  } else {
+    return;
+  }
+  elements.installBanner.hidden = false;
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  showInstallBanner("android");
+});
+
+elements.installActionBtn.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  elements.installBanner.hidden = true;
+});
+
+elements.installBannerCloseBtn.addEventListener("click", () => {
+  elements.installBanner.hidden = true;
+  localStorage.setItem("installBannerDismissed", "true");
+});
+
+const { isIOS: isIOSDevice } = detectInstallPlatform();
+if (isIOSDevice) {
+  showInstallBanner("ios");
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Verbum",
+  "short_name": "Verbum",
+  "description": "성경 66권 1,189장을 읽고 장별 퀴즈로 통독 진행도를 기록하는 웹앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf5ec",
+  "theme_color": "#faf5ec",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

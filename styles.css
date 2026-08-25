@@ -2084,6 +2084,65 @@ body {
   gap: 4px;
 }
 
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(193, 102, 46, 0.08);
+}
+
+.install-banner[hidden] {
+  display: none;
+}
+
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner-text strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+.install-banner-text p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#installActionBtn {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.install-banner-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  border-radius: 999px;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.install-banner-close:hover {
+  background: rgba(74, 55, 38, 0.08);
+  color: var(--ink);
+}
+
 .login-card h1 {
   font-size: 30px;
 }

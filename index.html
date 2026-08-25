@@ -15,13 +15,14 @@
     <link rel="icon" href="icon-32.png" type="image/png" sizes="32x32" />
     <link rel="icon" href="icon-512.png" type="image/png" sizes="512x512" />
     <link rel="apple-touch-icon" href="icon-180.png" />
+    <link rel="manifest" href="manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260825-6" />
+    <link rel="stylesheet" href="styles.css?v=20260825-7" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -38,6 +39,15 @@
             <h1>말씀 통독을 시작해요</h1>
             <p>아이디로 로그인하거나 새 계정을 만들어 진행도를 저장합니다.</p>
           </header>
+
+          <div class="install-banner" id="installBanner" hidden>
+            <div class="install-banner-text">
+              <strong id="installBannerTitle">홈 화면에 추가하기</strong>
+              <p id="installBannerBody">앱처럼 더 빠르고 편하게 쓸 수 있어요.</p>
+            </div>
+            <button class="ghost-button" id="installActionBtn" type="button" hidden>설치</button>
+            <button class="install-banner-close" id="installBannerCloseBtn" type="button" aria-label="닫기">✕</button>
+          </div>
 
           <div class="auth-switch" role="tablist" aria-label="로그인 방식">
             <button class="active" data-auth-mode="login" type="button" role="tab" aria-selected="true">로그인</button>
@@ -474,6 +484,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260825-6"></script>
+    <script src="app.js?v=20260825-7"></script>
   </body>
 </html>
