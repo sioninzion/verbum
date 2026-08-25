@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260825-26" />
+    <link rel="stylesheet" href="styles.css?v=20260826-1" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -37,7 +37,7 @@
           <header class="login-header">
             <p class="eyebrow">Verbum</p>
             <h1>말씀 통독을 시작해요</h1>
-            <p>아이디로 로그인하거나 새 계정을 만들어 진행도를 저장합니다.</p>
+            <p>이메일로 로그인하거나 새 계정을 만들어 진행도를 저장합니다.</p>
           </header>
 
           <div class="install-banner" id="installBanner" hidden>
@@ -58,11 +58,11 @@
 
           <form class="gate-form" id="gateLoginForm" novalidate>
             <div class="field">
-              <label for="gateLoginId">아이디</label>
-              <input id="gateLoginId" autocomplete="username" required />
+              <label for="gateLoginEmail">이메일</label>
+              <input id="gateLoginEmail" type="email" autocomplete="email" required />
             </div>
             <div class="field">
-              <label for="gateLoginPassword">비밀번호</label>
+              <label for="gateLoginPassword">비밀번호 <span class="label-note">(비밀번호는 웹앱 창작자에게 공개되지 않습니다)</span></label>
               <span class="password-field">
                 <input id="gateLoginPassword" type="password" autocomplete="current-password" required />
                 <button
@@ -73,6 +73,7 @@
                   aria-pressed="false"
                 >보기</button>
               </span>
+              <button class="text-link forgot-password-link" type="button" id="forgotPasswordBtn">비밀번호를 잊으셨나요?</button>
             </div>
             <button class="primary-button submit-button" type="submit" id="loginSubmitBtn">
               <span class="btn-label">로그인</span>
@@ -83,13 +84,13 @@
             <fieldset class="field-group">
               <legend>계정 정보</legend>
               <div class="field">
-                <label for="gateSignupId">아이디</label>
-                <input id="gateSignupId" autocomplete="username" required />
-                <p class="field-hint">영문 소문자, 숫자, ., _, - 조합 3~24자</p>
-                <p class="field-error" id="signupIdError" aria-live="polite"></p>
+                <label for="gateSignupEmail">이메일</label>
+                <input id="gateSignupEmail" type="email" autocomplete="email" required />
+                <p class="field-hint">비밀번호를 잊었을 때 재설정 메일을 받을 주소예요.</p>
+                <p class="field-error" id="signupEmailError" aria-live="polite"></p>
               </div>
               <div class="field">
-                <label for="gateSignupPassword">비밀번호</label>
+                <label for="gateSignupPassword">비밀번호 <span class="label-note">(비밀번호는 웹앱 창작자에게 공개되지 않습니다)</span></label>
                 <span class="password-field">
                   <input id="gateSignupPassword" type="password" autocomplete="new-password" required />
                   <button
@@ -135,24 +136,6 @@
                   <label for="gateSignupNickname">닉네임</label>
                   <input id="gateSignupNickname" required />
                 </div>
-              </div>
-            </fieldset>
-
-            <fieldset class="field-group">
-              <legend>연락처</legend>
-              <div class="field">
-                <label for="gateSignupPhone">전화번호</label>
-                <input
-                  id="gateSignupPhone"
-                  type="tel"
-                  inputmode="numeric"
-                  autocomplete="tel"
-                  placeholder="01012345678"
-                  maxlength="11"
-                  required
-                />
-                <p class="field-hint">숫자만 입력하세요 (예: 01012345678)</p>
-                <p class="field-error" id="signupPhoneError" aria-live="polite"></p>
               </div>
             </fieldset>
 
@@ -378,8 +361,8 @@
             <h3>로그인 계정</h3>
             <dl>
               <div>
-                <dt>아이디</dt>
-                <dd id="accountUserId">-</dd>
+                <dt>이메일</dt>
+                <dd id="accountEmail">-</dd>
               </div>
               <div>
                 <dt>이름</dt>
@@ -540,6 +523,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260825-26"></script>
+    <script src="app.js?v=20260826-1"></script>
   </body>
 </html>

@@ -2,7 +2,6 @@ const DATA = BIBLE_APP_DATA;
 const LEGACY_PROGRESS_KEY = "bible-reading-quiz-progress-v1";
 const TODAY = new Date().toISOString().slice(0, 10);
 const OPTION_MARKS = ["①", "②", "③", "④"];
-const USER_DOMAIN = "jybible.local";
 const DEFAULT_TITLE = "성경 통독자";
 
 const SHORT_BOOK_NAMES = {
@@ -152,19 +151,18 @@ const elements = {
   loginGate: document.querySelector("#loginGate"),
   authModeButtons: document.querySelectorAll("[data-auth-mode]"),
   gateLoginForm: document.querySelector("#gateLoginForm"),
-  gateLoginId: document.querySelector("#gateLoginId"),
+  gateLoginEmail: document.querySelector("#gateLoginEmail"),
   gateLoginPassword: document.querySelector("#gateLoginPassword"),
+  forgotPasswordBtn: document.querySelector("#forgotPasswordBtn"),
   gateSignupForm: document.querySelector("#gateSignupForm"),
-  gateSignupId: document.querySelector("#gateSignupId"),
+  gateSignupEmail: document.querySelector("#gateSignupEmail"),
   gateSignupPassword: document.querySelector("#gateSignupPassword"),
   gateSignupPasswordConfirm: document.querySelector("#gateSignupPasswordConfirm"),
   passwordMatchMessage: document.querySelector("#passwordMatchMessage"),
   passwordToggleButtons: document.querySelectorAll("[data-password-target]"),
   gateSignupName: document.querySelector("#gateSignupName"),
   gateSignupNickname: document.querySelector("#gateSignupNickname"),
-  gateSignupPhone: document.querySelector("#gateSignupPhone"),
-  signupIdError: document.querySelector("#signupIdError"),
-  signupPhoneError: document.querySelector("#signupPhoneError"),
+  signupEmailError: document.querySelector("#signupEmailError"),
   loginSubmitBtn: document.querySelector("#loginSubmitBtn"),
   signupSubmitBtn: document.querySelector("#signupSubmitBtn"),
   gateLoginMessage: document.querySelector("#gateLoginMessage"),
@@ -229,7 +227,7 @@ const elements = {
   undoBtn: document.querySelector("#undoBtn"),
   resetBtn: document.querySelector("#resetBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
-  accountUserId: document.querySelector("#accountUserId"),
+  accountEmail: document.querySelector("#accountEmail"),
   accountName: document.querySelector("#accountName"),
   profileForm: document.querySelector("#profileForm"),
   profileNickname: document.querySelector("#profileNickname"),
@@ -441,59 +439,32 @@ function computeDisplayTitle(titleAchievementId) {
 function getSignedOutUser() {
   return {
     uid: "",
-    userId: "",
+    email: "",
     name: "방문자",
     nickname: "방문자",
     title: DEFAULT_TITLE,
     titleAchievementId: null,
-    phoneNumber: "",
     share: false,
     hasSeenTutorial: false,
   };
 }
 
-function normalizeUserId(value) {
-  return value.trim().replace(/\s+/g, "").toLowerCase();
+function normalizeEmail(value) {
+  return value.trim().toLowerCase();
 }
 
-function userIdToEmail(userId) {
-  return `${normalizeUserId(userId)}@${USER_DOMAIN}`;
-}
-
-function normalizePhoneNumber(value) {
-  const compact = value.trim().replace(/[^\d+]/g, "");
-  if (compact.startsWith("+")) return compact;
-  if (compact.startsWith("0")) return `+82${compact.slice(1)}`;
-  return compact;
-}
-
-function validatePhoneNumber(value) {
-  return /^\+[1-9]\d{7,14}$/.test(normalizePhoneNumber(value));
-}
-
-function getPhoneKey(phoneNumber) {
-  return normalizePhoneNumber(phoneNumber).replace(/[^\d]/g, "");
-}
-
-function getPhoneInputMessage() {
-  return "전화번호는 01012345678 형식으로 입력해 주세요.";
-}
-
-function validateUserId(userId) {
-  return /^[a-z0-9._-]{3,24}$/.test(normalizeUserId(userId));
+function validateEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 }
 
 function getAuthErrorMessage(error) {
   const code = error?.code || "";
-  if (code.includes("email-already-in-use")) return "이미 사용 중인 아이디입니다.";
+  if (code.includes("email-already-in-use")) return "이미 가입된 이메일입니다.";
   if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) {
-    return "아이디 또는 비밀번호를 확인해 주세요.";
+    return "이메일 또는 비밀번호를 확인해 주세요.";
   }
+  if (code.includes("invalid-email")) return "올바른 이메일 형식으로 입력해 주세요.";
   if (code.includes("weak-password")) return "비밀번호는 6자 이상으로 입력해 주세요.";
-  if (code.includes("invalid-phone-number")) return getPhoneInputMessage();
-  if (code.includes("credential-already-in-use") || code.includes("phone-number-already-exists")) {
-    return "이미 다른 계정에 연결된 전화번호입니다.";
-  }
   if (code.includes("operation-not-allowed")) {
     return "Firebase Authentication에서 Email/Password 로그인을 활성화해 주세요.";
   }
@@ -585,30 +556,15 @@ function getUserDocRef(uid = state.firebaseUser?.uid) {
   return db.collection("users").doc(uid);
 }
 
-function getPhoneDocRef(phoneNumber) {
-  return db.collection("phoneNumbers").doc(getPhoneKey(phoneNumber));
-}
-
-async function isPhoneNumberTaken(phoneNumber) {
-  try {
-    const snapshot = await getPhoneDocRef(phoneNumber).get();
-    return snapshot.exists;
-  } catch {
-    return false;
-  }
-}
-
 function buildProfilePayload() {
   const done = getCompletedCount(DATA.chapters);
   return {
     uid: state.firebaseUser.uid,
-    userId: state.user.userId,
     email: state.firebaseUser.email,
     name: state.user.name,
     nickname: state.user.nickname,
     title: state.user.title,
     titleAchievementId: state.user.titleAchievementId || null,
-    phoneNumber: state.user.phoneNumber || state.firebaseUser.phoneNumber || "",
     share: Boolean(state.user.share),
     hasSeenTutorial: Boolean(state.user.hasSeenTutorial),
     progress: state.progress,
@@ -631,16 +587,14 @@ async function loadUserProfile(firebaseUser) {
   try {
     snapshot = await getUserDocRef(firebaseUser.uid).get();
   } catch {
-    const userId = firebaseUser.email.split("@")[0];
     return {
       user: {
         uid: firebaseUser.uid,
-        userId,
-        name: firebaseUser.displayName || userId,
-        nickname: firebaseUser.displayName || userId,
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || "통독자",
+        nickname: firebaseUser.displayName || "통독자",
         title: DEFAULT_TITLE,
         titleAchievementId: null,
-        phoneNumber: firebaseUser.phoneNumber || "",
         share: true,
         hasSeenTutorial: false,
       },
@@ -654,12 +608,11 @@ async function loadUserProfile(firebaseUser) {
     return {
       user: {
         uid: firebaseUser.uid,
-        userId: data.userId || firebaseUser.email.split("@")[0],
+        email: firebaseUser.email,
         name: data.name || firebaseUser.displayName || "통독자",
         nickname: data.nickname || data.name || "통독자",
         title: computeDisplayTitle(titleAchievementId),
         titleAchievementId,
-        phoneNumber: data.phoneNumber || firebaseUser.phoneNumber || "",
         share: Boolean(data.share),
         hasSeenTutorial: Boolean(data.hasSeenTutorial),
       },
@@ -667,15 +620,13 @@ async function loadUserProfile(firebaseUser) {
     };
   }
 
-  const userId = firebaseUser.email.split("@")[0];
   const user = {
     uid: firebaseUser.uid,
-    userId,
-    name: firebaseUser.displayName || userId,
-    nickname: firebaseUser.displayName || userId,
+    email: firebaseUser.email,
+    name: firebaseUser.displayName || "통독자",
+    nickname: firebaseUser.displayName || "통독자",
     title: DEFAULT_TITLE,
     titleAchievementId: null,
-    phoneNumber: firebaseUser.phoneNumber || "",
     share: true,
     hasSeenTutorial: false,
   };
@@ -730,7 +681,7 @@ async function refreshLeaderboard() {
       const done = data.completedCount ?? getCompletedCount(DATA.chapters, progress);
       return {
         uid: item.id,
-        name: data.nickname || data.name || data.userId || "통독자",
+        name: data.nickname || data.name || "통독자",
         title: data.title || DEFAULT_TITLE,
         done,
         weeklyCount: getWeeklyChapterCount(progress, weekBoundary),
@@ -1022,7 +973,7 @@ function renderQuiz() {
 
 function renderProfile() {
   elements.logoutBtn.hidden = !state.isAuthenticated;
-  elements.accountUserId.textContent = state.user.userId || "-";
+  elements.accountEmail.textContent = state.user.email || "-";
   elements.accountName.textContent = state.user.name || "-";
   elements.profileNickname.value = state.user.nickname;
   elements.profileDailyTarget.value = state.progress.dailyTarget || 3;
@@ -1260,10 +1211,8 @@ function setSubmitLoading(button, loading) {
 }
 
 function clearSignupFieldErrors() {
-  setFieldError(elements.signupIdError, "");
-  setFieldError(elements.signupPhoneError, "");
-  elements.gateSignupId.classList.remove("field-invalid");
-  elements.gateSignupPhone.classList.remove("field-invalid");
+  setFieldError(elements.signupEmailError, "");
+  elements.gateSignupEmail.classList.remove("field-invalid");
 }
 
 function setAuthMode(mode) {
@@ -1318,18 +1267,11 @@ function updatePasswordMatchStatus() {
   }`;
 }
 
-function updateSignupIdStatus() {
-  const value = elements.gateSignupId.value.trim();
-  const valid = !value || validateUserId(value);
-  elements.gateSignupId.classList.toggle("field-invalid", !valid);
-  setFieldError(elements.signupIdError, valid ? "" : "영문 소문자, 숫자, ., _, - 조합 3~24자로 입력해 주세요.");
-}
-
-function updateSignupPhoneStatus() {
-  const value = elements.gateSignupPhone.value.trim();
-  const valid = !value || validatePhoneNumber(value);
-  elements.gateSignupPhone.classList.toggle("field-invalid", !valid);
-  setFieldError(elements.signupPhoneError, valid ? "" : getPhoneInputMessage());
+function updateSignupEmailStatus() {
+  const value = elements.gateSignupEmail.value.trim();
+  const valid = !value || validateEmail(value);
+  elements.gateSignupEmail.classList.toggle("field-invalid", !valid);
+  setFieldError(elements.signupEmailError, valid ? "" : "올바른 이메일 형식으로 입력해 주세요.");
 }
 
 async function selectBook(bookName) {
@@ -1485,23 +1427,23 @@ function goToNextIncomplete() {
 
 async function handleLogin(event) {
   event.preventDefault();
-  const userId = normalizeUserId(elements.gateLoginId.value);
+  const email = normalizeEmail(elements.gateLoginEmail.value);
   const password = elements.gateLoginPassword.value;
 
-  if (!userId || !password) {
-    setAuthBanner("아이디와 비밀번호를 모두 입력해 주세요.");
+  if (!email || !password) {
+    setAuthBanner("이메일과 비밀번호를 모두 입력해 주세요.");
     return;
   }
 
-  if (!validateUserId(userId)) {
-    setAuthBanner("아이디는 영문 소문자, 숫자, ., _, - 조합 3~24자로 입력해 주세요.");
+  if (!validateEmail(email)) {
+    setAuthBanner("올바른 이메일 형식으로 입력해 주세요.");
     return;
   }
 
   setAuthBanner("로그인 중입니다.", "success");
   setSubmitLoading(elements.loginSubmitBtn, true);
   try {
-    await auth.signInWithEmailAndPassword(userIdToEmail(userId), password);
+    await auth.signInWithEmailAndPassword(email, password);
     elements.gateLoginForm.reset();
     setAuthBanner("");
   } catch (error) {
@@ -1511,23 +1453,36 @@ async function handleLogin(event) {
   }
 }
 
+async function handleForgotPassword() {
+  const email = normalizeEmail(elements.gateLoginEmail.value);
+  if (!validateEmail(email)) {
+    setAuthBanner("비밀번호를 재설정할 이메일을 먼저 입력해 주세요.");
+    return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    setAuthBanner("비밀번호 재설정 메일을 보냈습니다. 받은 편지함을 확인해 주세요.", "success");
+  } catch (error) {
+    setAuthBanner(getAuthErrorMessage(error));
+  }
+}
+
 async function handleSignup(event) {
   event.preventDefault();
   clearSignupFieldErrors();
   setAuthBanner("");
 
-  const userId = normalizeUserId(elements.gateSignupId.value);
+  const email = normalizeEmail(elements.gateSignupEmail.value);
   const password = elements.gateSignupPassword.value;
   const passwordConfirm = elements.gateSignupPasswordConfirm.value;
   const name = elements.gateSignupName.value.trim();
   const nickname = elements.gateSignupNickname.value.trim();
-  const phoneNumber = normalizePhoneNumber(elements.gateSignupPhone.value);
 
   let hasFieldError = false;
 
-  if (!validateUserId(userId)) {
-    elements.gateSignupId.classList.add("field-invalid");
-    setFieldError(elements.signupIdError, "영문 소문자, 숫자, ., _, - 조합 3~24자로 입력해 주세요.");
+  if (!validateEmail(email)) {
+    elements.gateSignupEmail.classList.add("field-invalid");
+    setFieldError(elements.signupEmailError, "올바른 이메일 형식으로 입력해 주세요.");
     hasFieldError = true;
   }
 
@@ -1544,28 +1499,14 @@ async function handleSignup(event) {
     hasFieldError = true;
   }
 
-  if (!validatePhoneNumber(phoneNumber)) {
-    elements.gateSignupPhone.classList.add("field-invalid");
-    setFieldError(elements.signupPhoneError, getPhoneInputMessage());
-    hasFieldError = true;
-  }
-
   if (hasFieldError) return;
 
   setSubmitLoading(elements.signupSubmitBtn, true);
-
-  if (await isPhoneNumberTaken(phoneNumber)) {
-    elements.gateSignupPhone.classList.add("field-invalid");
-    setFieldError(elements.signupPhoneError, "이미 사용 중인 전화번호입니다.");
-    setSubmitLoading(elements.signupSubmitBtn, false);
-    return;
-  }
-
   setAuthBanner("계정을 만드는 중입니다.", "success");
   let credential;
   state.creatingAccount = true;
   try {
-    credential = await auth.createUserWithEmailAndPassword(userIdToEmail(userId), password);
+    credential = await auth.createUserWithEmailAndPassword(email, password);
     await credential.user.updateProfile({ displayName: nickname || name });
   } catch (error) {
     state.creatingAccount = false;
@@ -1577,12 +1518,11 @@ async function handleSignup(event) {
   const progress = loadLegacyProgress();
   const user = {
     uid: credential.user.uid,
-    userId,
+    email: credential.user.email,
     name,
     nickname: nickname || name,
     title: DEFAULT_TITLE,
     titleAchievementId: null,
-    phoneNumber,
     share: true,
   };
   state.firebaseUser = credential.user;
@@ -1591,8 +1531,6 @@ async function handleSignup(event) {
   let signupNotice = "";
   const profilePayload = {
     ...user,
-    email: credential.user.email,
-    phoneNumber,
     progress,
     completedCount: getCompletedCount(DATA.chapters, progress),
     streakDays: calculateStreak(progress),
@@ -1603,33 +1541,9 @@ async function handleSignup(event) {
   };
 
   try {
-    const batch = db.batch();
-    batch.set(getUserDocRef(credential.user.uid), profilePayload);
-    batch.set(getPhoneDocRef(phoneNumber), {
-      uid: credential.user.uid,
-      phoneNumber,
-      userId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    await batch.commit();
-  } catch (error) {
-    try {
-      await getUserDocRef(credential.user.uid).set({
-        ...user,
-        email: credential.user.email,
-        phoneNumber,
-      progress,
-      completedCount: getCompletedCount(DATA.chapters, progress),
-      streakDays: calculateStreak(progress),
-      dailyTarget: progress.dailyTarget || 3,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        lastActive: TODAY,
-      });
-      signupNotice = "계정은 만들어졌습니다. 전화번호 중복 방지는 Firestore 규칙 배포 후 적용됩니다.";
-    } catch {
-      signupNotice = "계정은 만들어졌습니다. 다만 Firestore 프로필 저장은 규칙 배포 후 다시 동기화됩니다.";
-    }
+    await getUserDocRef(credential.user.uid).set(profilePayload);
+  } catch {
+    signupNotice = "계정은 만들어졌습니다. 다만 Firestore 프로필 저장은 규칙 배포 후 다시 동기화됩니다.";
   }
 
   elements.gateSignupForm.reset();
@@ -1648,7 +1562,6 @@ async function handleProfileSave(event) {
 
   state.progress.dailyTarget = Math.max(1, Number(elements.profileDailyTarget.value) || 3);
   state.user.nickname = elements.profileNickname.value.trim() || state.user.nickname;
-  state.user.phoneNumber = state.user.phoneNumber || state.firebaseUser?.phoneNumber || "";
   state.user.share = elements.shareProfile.checked;
   state.user.titleAchievementId = elements.representativeTitleSelect.value || null;
   state.user.title = computeDisplayTitle(state.user.titleAchievementId);
@@ -1722,8 +1635,8 @@ elements.passwordToggleButtons.forEach((button) => {
 
 elements.gateSignupPassword.addEventListener("input", updatePasswordMatchStatus);
 elements.gateSignupPasswordConfirm.addEventListener("input", updatePasswordMatchStatus);
-elements.gateSignupId.addEventListener("input", updateSignupIdStatus);
-elements.gateSignupPhone.addEventListener("input", updateSignupPhoneStatus);
+elements.gateSignupEmail.addEventListener("input", updateSignupEmailStatus);
+elements.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
 elements.gateSignupForm.addEventListener("reset", () => {
   requestAnimationFrame(() => {
     updatePasswordMatchStatus();

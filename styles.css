@@ -2404,6 +2404,24 @@ body {
   font-weight: 700;
 }
 
+.label-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.forgot-password-link {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
 .reset-countdown {
   margin: 2px 0 0;
   color: var(--muted);
