@@ -2014,7 +2014,7 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px max(6px, env(safe-area-inset-bottom));
+  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px 0;
   scrollbar-width: none;
 }
 
