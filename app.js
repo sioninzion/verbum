@@ -210,6 +210,7 @@ const elements = {
   shareProfile: document.querySelector("#shareProfile"),
   profileMessage: document.querySelector("#profileMessage"),
   leaderboard: document.querySelector("#leaderboard"),
+  leaderboardCountdown: document.querySelector("#leaderboardCountdown"),
   achievementCount: document.querySelector("#achievementCount"),
   achievementGroups: document.querySelector("#achievementGroups"),
   representativeTitleSelect: document.querySelector("#representativeTitleSelect"),
@@ -218,6 +219,13 @@ const elements = {
   achievementModalName: document.querySelector("#achievementModalName"),
   achievementModalCondition: document.querySelector("#achievementModalCondition"),
   achievementModalCloseBtn: document.querySelector("#achievementModalCloseBtn"),
+  viewRecordsBtn: document.querySelector("#viewRecordsBtn"),
+  calendarModal: document.querySelector("#calendarModal"),
+  calendarMonthLabel: document.querySelector("#calendarMonthLabel"),
+  calendarGrid: document.querySelector("#calendarGrid"),
+  calendarPrevBtn: document.querySelector("#calendarPrevBtn"),
+  calendarNextBtn: document.querySelector("#calendarNextBtn"),
+  calendarCloseBtn: document.querySelector("#calendarCloseBtn"),
 };
 
 function createProgress() {
@@ -494,6 +502,44 @@ function getTodayCompleted(progress = state.progress) {
   return Object.values(progress.completed || {}).filter((entry) => entry.date === TODAY).length;
 }
 
+// Weekly leaderboard window resets every Sunday at 5:30 PM local time.
+function getCurrentWeekBoundary(now = new Date()) {
+  const boundary = new Date(now);
+  boundary.setHours(17, 30, 0, 0);
+  boundary.setDate(boundary.getDate() - boundary.getDay());
+  if (now < boundary) {
+    boundary.setDate(boundary.getDate() - 7);
+  }
+  return boundary;
+}
+
+function getWeeklyChapterCount(progress, boundary = getCurrentWeekBoundary()) {
+  const boundaryDate = boundary.toISOString().slice(0, 10);
+  return Object.values(progress.completed || {}).filter((entry) => {
+    if (!entry) return false;
+    if (entry.completedAt) return new Date(entry.completedAt) >= boundary;
+    return Boolean(entry.date) && entry.date >= boundaryDate;
+  }).length;
+}
+
+function updateLeaderboardCountdown() {
+  const now = new Date();
+  const nextReset = getCurrentWeekBoundary(now);
+  nextReset.setDate(nextReset.getDate() + 7);
+
+  let remaining = Math.max(0, nextReset - now);
+  const day = Math.floor(remaining / 86400000);
+  remaining -= day * 86400000;
+  const hour = Math.floor(remaining / 3600000);
+  remaining -= hour * 3600000;
+  const minute = Math.floor(remaining / 60000);
+  remaining -= minute * 60000;
+  const second = Math.floor(remaining / 1000);
+
+  const pad = (value) => String(value).padStart(2, "0");
+  elements.leaderboardCountdown.textContent = `${day}일 ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+}
+
 function calculateStreak(progress = state.progress) {
   const days = new Set(Object.values(progress.completed || {}).map((entry) => entry.date));
   let count = 0;
@@ -643,6 +689,7 @@ async function refreshLeaderboard() {
     return;
   }
 
+  const weekBoundary = getCurrentWeekBoundary();
   const snapshot = await db.collection("users").where("share", "==", true).get();
   state.leaderboard = snapshot.docs
     .map((item) => {
@@ -654,13 +701,16 @@ async function refreshLeaderboard() {
         name: data.nickname || data.name || data.userId || "통독자",
         title: data.title || DEFAULT_TITLE,
         done,
+        weeklyCount: getWeeklyChapterCount(progress, weekBoundary),
         totalPercent: percent(done, DATA.chapters.length),
         today: getTodayCompleted(progress),
         streak: data.streakDays ?? calculateStreak(progress),
         target: data.dailyTarget || progress.dailyTarget || 3,
       };
     })
-    .sort((a, b) => b.done - a.done || b.streak - a.streak || a.name.localeCompare(b.name, "ko"));
+    .sort(
+      (a, b) => b.weeklyCount - a.weeklyCount || b.done - a.done || a.name.localeCompare(b.name, "ko")
+    );
 }
 
 function getMyRank() {
@@ -713,6 +763,86 @@ function updateOverview() {
   elements.dailyTarget.value = target;
   elements.targetBar.style.width = `${Math.min(100, percent(todayDone, target))}%`;
   elements.targetText.textContent = `오늘 ${target}장 중 ${todayDone}장 완료`;
+}
+
+function getReadCountsByDate(progress) {
+  const counts = new Map();
+  Object.values(progress.completed || {}).forEach((entry) => {
+    if (!entry?.date) return;
+    counts.set(entry.date, (counts.get(entry.date) || 0) + 1);
+  });
+  return counts;
+}
+
+function getCalendarLevel(count) {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count <= 3) return 2;
+  if (count <= 6) return 3;
+  return 4;
+}
+
+function renderCalendarModal() {
+  const viewDate = state.calendarViewDate;
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  elements.calendarMonthLabel.textContent = `${year}년 ${month + 1}월`;
+
+  const counts = getReadCountsByDate(state.progress);
+  const startWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) {
+    const empty = document.createElement("div");
+    empty.className = "calendar-day calendar-day-empty";
+    cells.push(empty);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const count = counts.get(dateStr) || 0;
+    const cell = document.createElement("div");
+    cell.className = "calendar-day";
+    cell.dataset.level = String(getCalendarLevel(count));
+    if (dateStr === TODAY) cell.classList.add("calendar-day-today");
+    cell.setAttribute("aria-label", `${month + 1}월 ${day}일, ${count}장 통독`);
+
+    const dayLabel = document.createElement("span");
+    dayLabel.textContent = day;
+    cell.appendChild(dayLabel);
+
+    if (count > 0) {
+      const countLabel = document.createElement("span");
+      countLabel.className = "calendar-day-count";
+      countLabel.textContent = `${count}장`;
+      cell.appendChild(countLabel);
+    }
+    cells.push(cell);
+  }
+  while (cells.length < 42) {
+    const trailing = document.createElement("div");
+    trailing.className = "calendar-day calendar-day-empty";
+    cells.push(trailing);
+  }
+
+  elements.calendarGrid.replaceChildren(...cells);
+
+  const now = new Date();
+  const currentMonthIndex = now.getFullYear() * 12 + now.getMonth();
+  const viewMonthIndex = year * 12 + month;
+  elements.calendarNextBtn.disabled = viewMonthIndex >= currentMonthIndex + 1;
+}
+
+function openCalendarModal() {
+  if (!state.calendarViewDate) {
+    state.calendarViewDate = new Date();
+  }
+  renderCalendarModal();
+  elements.calendarModal.hidden = false;
+}
+
+function closeCalendarModal() {
+  elements.calendarModal.hidden = true;
 }
 
 function renderStatusTable() {
@@ -857,7 +987,7 @@ function renderLeaderboard() {
           <span>${row.title}</span>
         </div>
         <div class="leader-stats">
-          <span>${row.done}장</span>
+          <span>이번 주 ${row.weeklyCount}장</span>
           <span>${row.totalPercent}%</span>
           <span>${row.streak}일 연속</span>
         </div>
@@ -1174,6 +1304,7 @@ async function answerQuiz(selected) {
     state.progress.completed[chapter.id] = {
       date: TODAY,
       answer: selected,
+      completedAt: new Date().toISOString(),
     };
     state.progress.totalChaptersRead = (state.progress.totalChaptersRead || 0) + 1;
     const hour = new Date().getHours();
@@ -1416,6 +1547,17 @@ async function resetProgress() {
 
 elements.achievementModalCloseBtn.addEventListener("click", showNextAchievementModal);
 
+elements.viewRecordsBtn.addEventListener("click", openCalendarModal);
+elements.calendarCloseBtn.addEventListener("click", closeCalendarModal);
+elements.calendarPrevBtn.addEventListener("click", () => {
+  state.calendarViewDate.setMonth(state.calendarViewDate.getMonth() - 1);
+  renderCalendarModal();
+});
+elements.calendarNextBtn.addEventListener("click", () => {
+  state.calendarViewDate.setMonth(state.calendarViewDate.getMonth() + 1);
+  renderCalendarModal();
+});
+
 elements.authModeButtons.forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
 });
@@ -1520,3 +1662,6 @@ document.documentElement.dataset.appReady = "true";
 setTimeout(() => {
   elements.splashScreen.classList.add("splash-hidden");
 }, 2000);
+
+updateLeaderboardCountdown();
+setInterval(updateLeaderboardCountdown, 1000);

@@ -1541,9 +1541,180 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .achievement-modal-card {
+  .achievement-modal-card,
+  .calendar-modal-card {
     animation: none;
   }
+}
+
+.record-cell {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fdfaf4;
+  color: var(--ink);
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.record-cell:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.record-cell:active {
+  transform: scale(0.97);
+}
+
+.calendar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(43, 32, 22, 0.58);
+}
+
+.calendar-modal-overlay[hidden] {
+  display: none;
+}
+
+.calendar-modal-card {
+  display: grid;
+  gap: 14px;
+  width: min(400px, 100%);
+  min-width: 0;
+  max-height: min(640px, 90vh);
+  overflow-y: auto;
+  border-radius: 18px;
+  padding: 22px 20px;
+  background: var(--paper);
+  box-shadow: 0 30px 70px rgba(43, 32, 22, 0.35);
+  animation: achievementPop 320ms ease;
+}
+
+.calendar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: #f3ece0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.calendar-day.calendar-day-empty {
+  background: transparent;
+}
+
+.calendar-day.calendar-day-today {
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+
+.calendar-day-count {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--green);
+}
+
+.calendar-day[data-level="1"] {
+  background: #dcefe4;
+}
+
+.calendar-day[data-level="2"] {
+  background: #a9dcc0;
+}
+
+.calendar-day[data-level="3"] {
+  background: #5cb98a;
+  color: white;
+}
+
+.calendar-day[data-level="4"] {
+  background: var(--green);
+  color: white;
+}
+
+.calendar-day[data-level="3"] .calendar-day-count,
+.calendar-day[data-level="4"] .calendar-day-count {
+  color: white;
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.calendar-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #f3ece0;
+}
+
+.calendar-legend-swatch[data-level="1"] {
+  background: #dcefe4;
+}
+
+.calendar-legend-swatch[data-level="2"] {
+  background: #a9dcc0;
+}
+
+.calendar-legend-swatch[data-level="3"] {
+  background: #5cb98a;
+}
+
+.calendar-legend-swatch[data-level="4"] {
+  background: var(--green);
+}
+
+.calendar-modal-card .ghost-button {
+  width: 100%;
 }
 
 @media (max-width: 1260px) {
@@ -2142,6 +2313,19 @@ body {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.reset-countdown {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reset-countdown strong {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
 }
 
 .field-error,

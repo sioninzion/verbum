@@ -21,7 +21,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260824-30" />
+    <link rel="stylesheet" href="styles.css?v=20260825-6" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -214,6 +214,10 @@
               <span class="metric-label">오늘 완료</span>
               <strong id="todayCount">0장</strong>
             </div>
+            <button class="record-cell" id="viewRecordsBtn" type="button">
+              <span class="metric-label">통독 기록</span>
+              <strong>기록 보기 →</strong>
+            </button>
             <div>
               <span class="metric-label">연속 기록</span>
               <strong id="streakCount">0일</strong>
@@ -389,6 +393,7 @@
             <div>
               <p class="eyebrow">함께 통독</p>
               <h2>성취도 공유</h2>
+              <p class="reset-countdown">순위 초기화까지 <strong id="leaderboardCountdown">0일 00:00:00</strong></p>
             </div>
           </div>
           <div class="leaderboard" id="leaderboard"></div>
@@ -429,6 +434,29 @@
       </nav>
     </div>
 
+    <div class="calendar-modal-overlay" id="calendarModal" hidden>
+      <div class="calendar-modal-card">
+        <div class="calendar-modal-header">
+          <button class="back-button" id="calendarPrevBtn" type="button" aria-label="이전 달">‹</button>
+          <h2 id="calendarMonthLabel">2026년 8월</h2>
+          <button class="back-button" id="calendarNextBtn" type="button" aria-label="다음 달">›</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <p class="calendar-legend">
+          <span class="calendar-legend-swatch" data-level="0"></span>
+          <span class="calendar-legend-swatch" data-level="1"></span>
+          <span class="calendar-legend-swatch" data-level="2"></span>
+          <span class="calendar-legend-swatch" data-level="3"></span>
+          <span class="calendar-legend-swatch" data-level="4"></span>
+          적음 → 많음
+        </p>
+        <button class="ghost-button" id="calendarCloseBtn" type="button">닫기</button>
+      </div>
+    </div>
+
     <div class="achievement-modal-overlay" id="achievementModal" hidden>
       <div class="achievement-modal-card">
         <p class="achievement-modal-eyebrow">새로운 칭호 획득!</p>
@@ -446,6 +474,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260824-30"></script>
+    <script src="app.js?v=20260825-6"></script>
   </body>
 </html>
