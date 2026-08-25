@@ -2638,6 +2638,17 @@ body {
 
   .app-shell {
     padding-inline: 10px;
+    padding-bottom: calc(78px + max(6px, env(safe-area-inset-bottom)));
   }
 
+  /* position: sticky inside a flex column is unreliable in Safari on iOS, so
+     pin the tab bar with position: fixed once the frame fills the real
+     viewport edge-to-edge (this breakpoint) — no 16:9-frame overflow risk here. */
+  .mobile-tabbar {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: max(2px, env(safe-area-inset-bottom));
+    margin-top: 0;
+  }
 }
