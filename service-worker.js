@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v14";
+const CACHE_VERSION = "v15";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -12,7 +12,9 @@ const PRECACHE_URLS = [
   "./data/verses.js",
   "./icon-32.png",
   "./icon-180.png",
+  "./icon-192.png",
   "./icon-512.png",
+  "./icon-512-maskable.png",
 ];
 
 self.addEventListener("install", (event) => {

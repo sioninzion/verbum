@@ -1766,7 +1766,8 @@ function showInstallBanner(platform) {
 
   if (platform === "android") {
     elements.installBannerTitle.textContent = "홈 화면에 추가하기";
-    elements.installBannerBody.textContent = "앱처럼 더 빠르고 편하게 쓸 수 있어요.";
+    elements.installBannerBody.textContent =
+      "앱처럼 더 빠르고 편하게 쓸 수 있어요. 설치 중 경고 문구가 떠도 무시하고 설치를 눌러주세요.";
     elements.installActionBtn.hidden = false;
   } else if (platform === "ios") {
     elements.installBannerTitle.textContent = "홈 화면에 추가하기";
