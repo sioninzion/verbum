@@ -2732,3 +2732,85 @@ body {
     margin-top: 0;
   }
 }
+
+/* Tablet: same phone-card look, but wider and no longer locked to a 9:16
+   phone aspect ratio. The bottom tab bar stays exactly as on mobile
+   (position: sticky, unaffected below 768px). */
+@media (min-width: 768px) {
+  .app-shell,
+  .login-card {
+    width: min(680px, calc(100vw - 64px));
+    height: min(920px, calc(100dvh - 64px));
+    max-height: calc(100dvh - 64px);
+  }
+
+  .library-panel,
+  .chapter-panel,
+  .reading-panel,
+  .quiz-panel,
+  .community-panel {
+    padding-bottom: 14px;
+  }
+}
+
+/* Desktop: fixed left sidebar (the same tab-bar buttons, just re-flowed)
+   plus a centered, reading-width content column. No new markup — the
+   existing #dashboard and .mobile-tabbar elements are simply reflowed. */
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .app-shell {
+    width: 100%;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: row;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .dashboard,
+  .dashboard[data-view] {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 24px;
+    grid-template-columns: minmax(0, 760px);
+    justify-content: center;
+    align-content: start;
+  }
+
+  .mobile-tabbar {
+    order: -1;
+    position: static;
+    flex: 0 0 240px;
+    width: 240px;
+    height: 100%;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 28px 14px;
+    border-radius: 0;
+    box-shadow: none;
+    border-right: 1px solid var(--line);
+  }
+
+  .mobile-tabbar button {
+    place-items: center start;
+    padding: 0 16px;
+    min-height: 48px;
+    border-radius: 14px;
+  }
+
+  .mobile-tabbar span {
+    font-size: 15px;
+  }
+}
