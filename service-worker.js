@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v15";
+const CACHE_VERSION = "v16";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [

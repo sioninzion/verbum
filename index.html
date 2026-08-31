@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260826-6" />
+    <link rel="stylesheet" href="styles.css?v=20260826-7" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -308,6 +308,17 @@
             </div>
           </div>
 
+          <div class="reading-settings">
+            <div class="reading-size-toggle" role="group" aria-label="글씨 크기">
+              <button type="button" data-font-size="small">소</button>
+              <button type="button" data-font-size="medium">중</button>
+              <button type="button" data-font-size="large">대</button>
+            </div>
+            <button type="button" class="reading-bold-toggle" id="readingBoldBtn" aria-pressed="false">
+              <b>가</b> 굵게
+            </button>
+          </div>
+
           <div class="reading-card">
             <div class="reading-text" id="readingText"></div>
           </div>
@@ -523,6 +534,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260826-6"></script>
+    <script src="app.js?v=20260826-7"></script>
   </body>
 </html>

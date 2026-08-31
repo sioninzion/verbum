@@ -126,6 +126,20 @@ const chaptersByBook = DATA.books.reduce((map, book) => {
 
 const chaptersById = new Map(DATA.chapters.map((chapter) => [chapter.id, chapter]));
 
+const READING_PREFS_KEY = "readingPrefs";
+
+function loadReadingPrefs() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(READING_PREFS_KEY));
+    return {
+      size: ["small", "medium", "large"].includes(parsed?.size) ? parsed.size : "medium",
+      bold: Boolean(parsed?.bold),
+    };
+  } catch {
+    return { size: "medium", bold: false };
+  }
+}
+
 const state = {
   activeView: "home",
   quizStep: "books",
@@ -140,6 +154,7 @@ const state = {
   achievementQueue: [],
   currentAchievementModal: null,
   dailyVerse: pickRandomVerse(),
+  readingPrefs: loadReadingPrefs(),
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -214,6 +229,8 @@ const elements = {
   readingBackBtn: document.querySelector("#readingBackBtn"),
   readingKicker: document.querySelector("#readingKicker"),
   readingText: document.querySelector("#readingText"),
+  readingSizeButtons: document.querySelectorAll("[data-font-size]"),
+  readingBoldBtn: document.querySelector("#readingBoldBtn"),
   startQuizBtn: document.querySelector("#startQuizBtn"),
   chapterKicker: document.querySelector("#chapterKicker"),
   chapterStatus: document.querySelector("#chapterStatus"),
@@ -1308,7 +1325,38 @@ async function loadChapterVerses(chapter) {
   }
 }
 
+function saveReadingPrefs() {
+  try {
+    localStorage.setItem(READING_PREFS_KEY, JSON.stringify(state.readingPrefs));
+  } catch {
+    // ignore storage errors (private mode, quota, etc.)
+  }
+}
+
+function applyReadingPrefs() {
+  const { size, bold } = state.readingPrefs;
+  elements.readingText.dataset.fontSize = size;
+  elements.readingText.classList.toggle("bold", bold);
+  elements.readingSizeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.fontSize === size);
+  });
+  elements.readingBoldBtn.setAttribute("aria-pressed", String(bold));
+}
+
+function setReadingFontSize(size) {
+  state.readingPrefs.size = size;
+  saveReadingPrefs();
+  applyReadingPrefs();
+}
+
+function toggleReadingBold() {
+  state.readingPrefs.bold = !state.readingPrefs.bold;
+  saveReadingPrefs();
+  applyReadingPrefs();
+}
+
 async function renderReading() {
+  applyReadingPrefs();
   const chapter = getCurrentChapter();
   elements.readingKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
   elements.readingText.replaceChildren();
@@ -1668,6 +1716,12 @@ elements.readingBackBtn.addEventListener("click", () => {
 elements.startQuizBtn.addEventListener("click", () => {
   startQuiz();
 });
+
+elements.readingSizeButtons.forEach((button) => {
+  button.addEventListener("click", () => setReadingFontSize(button.dataset.fontSize));
+});
+
+elements.readingBoldBtn.addEventListener("click", toggleReadingBold);
 
 elements.quizBackBtn.addEventListener("click", () => {
   state.quizStep = "reading";
