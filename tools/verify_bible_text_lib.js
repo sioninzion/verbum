@@ -80,16 +80,28 @@ function findSpilloverSplit(newHeadingText, oldHeadingTexts) {
   return { title: best.old, spill };
 }
 
-function buildRemoteModel(items, localHeadingTexts) {
+function buildRemoteModel(items, localHeadingTexts, code, chapterNum) {
   const verses = {};
   const headingBeforeVerse = {};
+  const seenVerseNums = new Set();
   let pendingHeadings = [];
   let lastVerseNum = null;
   for (const item of items) {
     if (item.type === 'heading') {
       pendingHeadings.push(item.text);
     } else {
-      const verseNum = Number(item.id.split('.').pop());
+      // Same guard as regenerate-bible-text.js: skip verses that bled in
+      // from a neighboring chapter, or that repeat a verse number already
+      // seen on this page (a rare duplicated-render glitch).
+      const [, idBook, idChapter, idVerse] = item.id.split('.');
+      const verseNum = Number(idVerse);
+      const belongsHere = idBook === code && Number(idChapter) === chapterNum;
+      if (!belongsHere || seenVerseNums.has(verseNum)) {
+        pendingHeadings = [];
+        continue;
+      }
+      seenVerseNums.add(verseNum);
+
       let text = item.text;
       if (pendingHeadings.length) {
         const joined = pendingHeadings.join(' ');
@@ -111,15 +123,22 @@ function buildRemoteModel(items, localHeadingTexts) {
 function buildLocalModel(localVerses) {
   const verses = {};
   const headingBeforeVerse = {};
+  const duplicateVerseNums = [];
+  const seen = new Set();
   for (const v of localVerses) {
+    if (seen.has(v.v)) duplicateVerseNums.push(v.v);
+    seen.add(v.v);
     verses[v.v] = v.t;
     if (v.h) headingBeforeVerse[v.v] = [v.h];
   }
-  return { verses, headingBeforeVerse };
+  return { verses, headingBeforeVerse, duplicateVerseNums };
 }
 
 function compareChapter(remote, local) {
   const issues = [];
+  if (local.duplicateVerseNums.length) {
+    issues.push({ kind: 'duplicate_verse', verses: [...new Set(local.duplicateVerseNums)] });
+  }
   const remoteVerseNums = Object.keys(remote.verses).map(Number).sort((a, b) => a - b);
   const localVerseNums = Object.keys(local.verses).map(Number).sort((a, b) => a - b);
 
@@ -172,7 +191,7 @@ async function processChapter(page, chapter) {
       if (!items.length) throw new Error('no_verse_spans_found');
       const localModel = buildLocalModel(local);
       const localHeadingTexts = local.filter((v) => v.h).map((v) => v.h);
-      const remote = buildRemoteModel(items, localHeadingTexts);
+      const remote = buildRemoteModel(items, localHeadingTexts, code, chapter.chapter);
       const issues = compareChapter(remote, localModel);
       return { chapter: summary, code, issues };
     } catch (err) {

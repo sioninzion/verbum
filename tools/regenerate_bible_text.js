@@ -68,18 +68,36 @@ function findSpilloverSplit(newHeadingText, oldHeadingTexts) {
 
 async function buildNewVerses(page, chapter, oldVerses) {
   const oldHeadingTexts = oldVerses.filter((v) => v.h).map((v) => v.h);
+  const code = getBookCode(chapter);
 
   await page.goto(chapter.link, { waitUntil: 'networkidle', timeout: 30000 });
   const items = await extractFromPage(page);
   if (!items.length) throw new Error('no_verse_spans_found');
 
   const newVerses = [];
+  const seenVerseNums = new Set();
   let pendingHeadings = [];
   for (const item of items) {
     if (item.type === 'heading') {
       pendingHeadings.push(item.text);
     } else {
-      const verseNum = Number(item.id.split('.').pop());
+      // Verse span ids look like "NKRV.GEN.31.1". bskorea's page for one
+      // chapter sometimes bleeds in a verse or two from the *next* chapter
+      // (a Masoretic-vs-English boundary quirk), and — rarely, seemingly
+      // after a slow/retried load — repeats the whole chapter a second
+      // time. Both show up as an id that doesn't belong here: either a
+      // different book/chapter than the one we're fetching, or a verse
+      // number we've already recorded on this page. Drop those rather than
+      // letting them collide with (or duplicate) the real verse.
+      const [, idBook, idChapter, idVerse] = item.id.split('.');
+      const verseNum = Number(idVerse);
+      const belongsHere = idBook === code && Number(idChapter) === chapter.chapter;
+      if (!belongsHere || seenVerseNums.has(verseNum)) {
+        pendingHeadings = [];
+        continue;
+      }
+      seenVerseNums.add(verseNum);
+
       let text = item.text;
       let headingOut;
       if (pendingHeadings.length) {
@@ -143,18 +161,28 @@ async function regenerateChapter(page, chapter) {
 async function main() {
   const allChapters = loadChapters();
 
-  const done = new Map();
-  if (fs.existsSync(LOG_PATH)) {
-    const lines = fs.readFileSync(LOG_PATH, 'utf-8').split('\n').filter(Boolean);
-    for (const line of lines) {
-      try {
-        const obj = JSON.parse(line);
-        if (obj.chapter?.id && obj.status === 'ok') done.set(obj.chapter.id, obj);
-      } catch {}
+  // TARGET_IDS=1,2,3 re-processes exactly those chapter ids, bypassing the
+  // resume log entirely (used to re-fix a known subset without re-running
+  // all 1189 chapters).
+  let todo;
+  if (process.env.TARGET_IDS) {
+    const ids = new Set(process.env.TARGET_IDS.split(',').map(Number));
+    todo = allChapters.filter((c) => ids.has(c.id));
+    console.log(`Targeted run: ${todo.length}/${ids.size} requested chapters found.`);
+  } else {
+    const done = new Map();
+    if (fs.existsSync(LOG_PATH)) {
+      const lines = fs.readFileSync(LOG_PATH, 'utf-8').split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.chapter?.id && obj.status === 'ok') done.set(obj.chapter.id, obj);
+        } catch {}
+      }
     }
+    todo = allChapters.filter((c) => !done.has(c.id));
+    console.log(`Total chapters: ${allChapters.length}, already done: ${done.size}, remaining: ${todo.length}`);
   }
-  const todo = allChapters.filter((c) => !done.has(c.id));
-  console.log(`Total chapters: ${allChapters.length}, already done: ${done.size}, remaining: ${todo.length}`);
 
   const browser = await chromium.launch();
   const out = fs.createWriteStream(LOG_PATH, { flags: 'a' });
