@@ -2294,11 +2294,18 @@ body {
 }
 
 #installActionBtn,
-#installTutorialBtn {
+#installTutorialBtn,
+#homeInstallActionBtn,
+#homeInstallTutorialBtn {
   flex: 0 0 auto;
   min-height: 34px;
   padding: 0 14px;
   font-size: 13px;
+}
+
+.home-install-banner {
+  margin-top: 0;
+  margin-bottom: 16px;
 }
 
 .install-banner-close {

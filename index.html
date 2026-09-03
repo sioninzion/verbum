@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260904-4" />
+    <link rel="stylesheet" href="styles.css?v=20260904-5" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -152,6 +152,16 @@
     <div class="app-shell app-locked" id="appShell" aria-hidden="true">
       <main class="dashboard" id="dashboard" data-view="home">
         <section class="panel home-panel view-active" data-view-panel="home" aria-label="메인 화면">
+          <div class="install-banner home-install-banner" id="homeInstallBanner" hidden>
+            <div class="install-banner-text">
+              <strong id="homeInstallBannerTitle">홈 화면에 추가하기</strong>
+              <p id="homeInstallBannerBody">앱처럼 더 빠르고 편하게 쓸 수 있어요.</p>
+            </div>
+            <button class="ghost-button" id="homeInstallActionBtn" type="button" hidden>설치</button>
+            <button class="ghost-button" id="homeInstallTutorialBtn" type="button" hidden>튜토리얼 보기</button>
+            <button class="install-banner-close" id="homeInstallBannerCloseBtn" type="button" aria-label="닫기">✕</button>
+          </div>
+
           <div class="home-hero">
             <div>
               <p class="eyebrow" id="homeTitle">성경 통독자</p>
@@ -577,6 +587,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260904-4"></script>
+    <script src="app.js?v=20260904-5"></script>
   </body>
 </html>

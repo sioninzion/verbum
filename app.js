@@ -187,6 +187,12 @@ const elements = {
   installActionBtn: document.querySelector("#installActionBtn"),
   installTutorialBtn: document.querySelector("#installTutorialBtn"),
   installBannerCloseBtn: document.querySelector("#installBannerCloseBtn"),
+  homeInstallBanner: document.querySelector("#homeInstallBanner"),
+  homeInstallBannerTitle: document.querySelector("#homeInstallBannerTitle"),
+  homeInstallBannerBody: document.querySelector("#homeInstallBannerBody"),
+  homeInstallActionBtn: document.querySelector("#homeInstallActionBtn"),
+  homeInstallTutorialBtn: document.querySelector("#homeInstallTutorialBtn"),
+  homeInstallBannerCloseBtn: document.querySelector("#homeInstallBannerCloseBtn"),
   tutorialModal: document.querySelector("#tutorialModal"),
   tutorialSkipBtn: document.querySelector("#tutorialSkipBtn"),
   tutorialNextBtn: document.querySelector("#tutorialNextBtn"),
@@ -1703,6 +1709,7 @@ elements.tutorialNextBtn.addEventListener("click", () => {
 });
 
 elements.installTutorialBtn.addEventListener("click", showInstallTutorial);
+elements.homeInstallTutorialBtn.addEventListener("click", showInstallTutorial);
 elements.installTutorialSkipBtn.addEventListener("click", closeInstallTutorial);
 elements.installTutorialNextBtn.addEventListener("click", () => {
   if (installTutorialStepIndex === elements.installTutorialSteps.length - 1) {
@@ -1839,7 +1846,7 @@ setTimeout(() => {
 updateLeaderboardCountdown();
 setInterval(updateLeaderboardCountdown, 1000);
 
-// ── "Add to home screen" install banner (login screen only) ──────────────
+// ── "Add to home screen" install banner (login screen + home screen) ─────
 
 function isRunningStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
@@ -1854,25 +1861,57 @@ function detectInstallPlatform() {
 
 let deferredInstallPrompt = null;
 
+const installBannerGroups = [
+  {
+    banner: elements.installBanner,
+    title: elements.installBannerTitle,
+    body: elements.installBannerBody,
+    actionBtn: elements.installActionBtn,
+    tutorialBtn: elements.installTutorialBtn,
+  },
+  {
+    banner: elements.homeInstallBanner,
+    title: elements.homeInstallBannerTitle,
+    body: elements.homeInstallBannerBody,
+    actionBtn: elements.homeInstallActionBtn,
+    tutorialBtn: elements.homeInstallTutorialBtn,
+  },
+];
+
+function hideInstallBanners() {
+  installBannerGroups.forEach((group) => {
+    group.banner.hidden = true;
+  });
+}
+
 function showInstallBanner(platform) {
   if (isRunningStandalone()) return;
   if (localStorage.getItem("installBannerDismissed") === "true") return;
 
+  let title = "";
+  let body = "";
+  let showAction = false;
+  let showTutorial = false;
+
   if (platform === "android") {
-    elements.installBannerTitle.textContent = "홈 화면에 추가하기";
-    elements.installBannerBody.textContent =
-      "앱처럼 더 빠르고 편하게 쓸 수 있어요. 설치 중 경고 문구가 떠도 무시하고 설치를 눌러주세요.";
-    elements.installActionBtn.hidden = false;
-    elements.installTutorialBtn.hidden = true;
+    title = "홈 화면에 추가하기";
+    body = "앱처럼 더 빠르고 편하게 쓸 수 있어요. 설치 중 경고 문구가 떠도 무시하고 설치를 눌러주세요.";
+    showAction = true;
   } else if (platform === "ios") {
-    elements.installBannerTitle.textContent = "홈 화면에 추가하기";
-    elements.installBannerBody.textContent = '공유 버튼을 누른 뒤 "홈 화면에 추가"를 선택하세요.';
-    elements.installActionBtn.hidden = true;
-    elements.installTutorialBtn.hidden = false;
+    title = "홈 화면에 추가하기";
+    body = '공유 버튼을 누른 뒤 "홈 화면에 추가"를 선택하세요.';
+    showTutorial = true;
   } else {
     return;
   }
-  elements.installBanner.hidden = false;
+
+  installBannerGroups.forEach((group) => {
+    group.title.textContent = title;
+    group.body.textContent = body;
+    group.actionBtn.hidden = !showAction;
+    group.tutorialBtn.hidden = !showTutorial;
+    group.banner.hidden = false;
+  });
 }
 
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -1886,11 +1925,24 @@ elements.installActionBtn.addEventListener("click", async () => {
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
-  elements.installBanner.hidden = true;
+  hideInstallBanners();
+});
+
+elements.homeInstallActionBtn.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  hideInstallBanners();
 });
 
 elements.installBannerCloseBtn.addEventListener("click", () => {
-  elements.installBanner.hidden = true;
+  hideInstallBanners();
+  localStorage.setItem("installBannerDismissed", "true");
+});
+
+elements.homeInstallBannerCloseBtn.addEventListener("click", () => {
+  hideInstallBanners();
   localStorage.setItem("installBannerDismissed", "true");
 });
 
