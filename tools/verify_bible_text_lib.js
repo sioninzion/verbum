@@ -80,7 +80,37 @@ function findSpilloverSplit(newHeadingText, oldHeadingTexts) {
   return { title: best.old, spill };
 }
 
-function buildRemoteModel(items, localHeadingTexts, code, chapterNum) {
+function extractTrailingBleed(prevPageItems, code, chapterNum) {
+  // Mirrors regenerate_bible_text.js exactly: bskorea sometimes tags the
+  // tail of the *previous* chapter's page with verse ids that genuinely
+  // belong to this chapter — that content exists only there.
+  let startIdx = -1;
+  for (let i = 0; i < prevPageItems.length; i++) {
+    const item = prevPageItems[i];
+    if (item.type !== 'verse') continue;
+    const [, idBook, idChapter] = item.id.split(' ')[0].split('.');
+    if (idBook === code && Number(idChapter) === chapterNum) {
+      startIdx = i;
+      break;
+    }
+  }
+  if (startIdx === -1) return [];
+  let headingStart = startIdx;
+  while (headingStart > 0 && prevPageItems[headingStart - 1].type === 'heading') headingStart--;
+  return prevPageItems.slice(headingStart);
+}
+
+function buildRemoteModel(ownItems, bleedItems, localHeadingTexts, code, chapterNum) {
+  const ownHasAnyMatch = ownItems.some((item) => {
+    if (item.type !== 'verse') return false;
+    const [, idBook, idChapter] = item.id.split(' ')[0].split('.');
+    return idBook === code && Number(idChapter) === chapterNum;
+  });
+  const items = [
+    ...bleedItems.map((item) => ({ ...item, fromOwn: false })),
+    ...ownItems.map((item) => ({ ...item, fromOwn: true })),
+  ];
+
   const verses = {};
   const headingBeforeVerse = {};
   const seenVerseNums = new Set();
@@ -92,11 +122,14 @@ function buildRemoteModel(items, localHeadingTexts, code, chapterNum) {
     } else {
       // Same guard as regenerate-bible-text.js: skip verses that bled in
       // from a neighboring chapter, or that repeat a verse number already
-      // seen on this page (a rare duplicated-render glitch).
-      const [, idBook, idChapter, idVerse] = item.id.split('.');
+      // seen on this page (a rare duplicated-render glitch) — unless this
+      // is the whole-page Malachi-style renumbering, in which case the own
+      // page's verses are trusted regardless of their id's chapter.
+      const [, idBook, idChapter, idVerse] = item.id.split(' ')[0].split('.');
       const verseNum = Number(idVerse);
       const belongsHere = idBook === code && Number(idChapter) === chapterNum;
-      if (!belongsHere || seenVerseNums.has(verseNum)) {
+      const trustAnyway = item.fromOwn && !ownHasAnyMatch && idBook === code;
+      if ((!belongsHere && !trustAnyway) || seenVerseNums.has(verseNum)) {
         pendingHeadings = [];
         continue;
       }
@@ -187,11 +220,20 @@ async function processChapter(page, chapter) {
   for (let attempt = 1; attempt <= RETRY_LIMIT; attempt++) {
     try {
       await page.goto(chapter.link, { waitUntil: 'networkidle', timeout: 30000 });
-      const items = await extractFromPage(page);
-      if (!items.length) throw new Error('no_verse_spans_found');
+      const ownItems = await extractFromPage(page);
+      if (!ownItems.length) throw new Error('no_verse_spans_found');
+
+      let bleedItems = [];
+      if (chapter.chapter > 1) {
+        const prevLink = chapter.link.replace(/\.(\d+)$/, `.${chapter.chapter - 1}`);
+        await page.goto(prevLink, { waitUntil: 'networkidle', timeout: 30000 });
+        const prevItems = await extractFromPage(page);
+        bleedItems = extractTrailingBleed(prevItems, code, chapter.chapter);
+      }
+
       const localModel = buildLocalModel(local);
       const localHeadingTexts = local.filter((v) => v.h).map((v) => v.h);
-      const remote = buildRemoteModel(items, localHeadingTexts, code, chapter.chapter);
+      const remote = buildRemoteModel(ownItems, bleedItems, localHeadingTexts, code, chapter.chapter);
       const issues = compareChapter(remote, localModel);
       return { chapter: summary, code, issues };
     } catch (err) {

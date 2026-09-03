@@ -66,13 +66,61 @@ function findSpilloverSplit(newHeadingText, oldHeadingTexts) {
   return { title: best.old, spill };
 }
 
+function extractTrailingBleed(prevPageItems, code, chapterNum) {
+  // bskorea sometimes tags the tail of the *previous* chapter's page with
+  // verse ids that genuinely belong to this chapter (a Masoretic-vs-English
+  // chapter-boundary quirk) — and that content exists ONLY there; this
+  // chapter's own page starts partway through. Find where that block
+  // starts (including any heading immediately introducing it) and pull it
+  // forward so it isn't lost.
+  let startIdx = -1;
+  for (let i = 0; i < prevPageItems.length; i++) {
+    const item = prevPageItems[i];
+    if (item.type !== 'verse') continue;
+    const [, idBook, idChapter] = item.id.split(' ')[0].split('.');
+    if (idBook === code && Number(idChapter) === chapterNum) {
+      startIdx = i;
+      break;
+    }
+  }
+  if (startIdx === -1) return [];
+  let headingStart = startIdx;
+  while (headingStart > 0 && prevPageItems[headingStart - 1].type === 'heading') headingStart--;
+  return prevPageItems.slice(headingStart);
+}
+
 async function buildNewVerses(page, chapter, oldVerses) {
   const oldHeadingTexts = oldVerses.filter((v) => v.h).map((v) => v.h);
   const code = getBookCode(chapter);
 
   await page.goto(chapter.link, { waitUntil: 'networkidle', timeout: 30000 });
-  const items = await extractFromPage(page);
-  if (!items.length) throw new Error('no_verse_spans_found');
+  const ownItems = await extractFromPage(page);
+  if (!ownItems.length) throw new Error('no_verse_spans_found');
+
+  // Malachi is the one book where Hebrew numbering has *fewer* chapters
+  // than the English convention the rest of this app follows: bskorea's
+  // own "MAL.4" page renders real content, but every verse id on it says
+  // chapter 3 (there is no chapter 4 in their scheme). That's different
+  // from a bleed — the *whole* own page disagrees, not just a tail end —
+  // so detect it and trust the own page's verses at face value in that
+  // case, rather than filtering all of them out as "not ours".
+  const ownHasAnyMatch = ownItems.some((item) => {
+    if (item.type !== 'verse') return false;
+    const [, idBook, idChapter] = item.id.split(' ')[0].split('.');
+    return idBook === code && Number(idChapter) === chapter.chapter;
+  });
+
+  let bleedItems = [];
+  if (chapter.chapter > 1) {
+    const prevLink = chapter.link.replace(/\.(\d+)$/, `.${chapter.chapter - 1}`);
+    await page.goto(prevLink, { waitUntil: 'networkidle', timeout: 30000 });
+    const prevItems = await extractFromPage(page);
+    bleedItems = extractTrailingBleed(prevItems, code, chapter.chapter);
+  }
+  const items = [
+    ...bleedItems.map((item) => ({ ...item, fromOwn: false })),
+    ...ownItems.map((item) => ({ ...item, fromOwn: true })),
+  ];
 
   const newVerses = [];
   const seenVerseNums = new Set();
@@ -88,11 +136,19 @@ async function buildNewVerses(page, chapter, oldVerses) {
       // time. Both show up as an id that doesn't belong here: either a
       // different book/chapter than the one we're fetching, or a verse
       // number we've already recorded on this page. Drop those rather than
-      // letting them collide with (or duplicate) the real verse.
-      const [, idBook, idChapter, idVerse] = item.id.split('.');
+      // letting them collide with (or duplicate) the real verse — unless
+      // this is the whole-page Malachi-style renumbering, in which case the
+      // own page's verses are trusted regardless of their id's chapter.
+      //
+      // A combined verse (printed as e.g. "1-2") occasionally renders as a
+      // single span whose id attribute holds multiple space-separated ids
+      // ("NKRV.ROM.9.1 NKRV.ROM.9.2") rather than one — take the first, so
+      // the verse is filed under its opening number with its full text.
+      const [, idBook, idChapter, idVerse] = item.id.split(' ')[0].split('.');
       const verseNum = Number(idVerse);
       const belongsHere = idBook === code && Number(idChapter) === chapter.chapter;
-      if (!belongsHere || seenVerseNums.has(verseNum)) {
+      const trustAnyway = item.fromOwn && !ownHasAnyMatch && idBook === code;
+      if ((!belongsHere && !trustAnyway) || seenVerseNums.has(verseNum)) {
         pendingHeadings = [];
         continue;
       }
