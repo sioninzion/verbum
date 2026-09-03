@@ -254,6 +254,7 @@ const elements = {
   feedback: document.querySelector("#feedback"),
   nextBtn: document.querySelector("#nextBtn"),
   undoBtn: document.querySelector("#undoBtn"),
+  quizExitBtn: document.querySelector("#quizExitBtn"),
   resetBtn: document.querySelector("#resetBtn"),
   logoutBtn: document.querySelector("#logoutBtn"),
   accountEmail: document.querySelector("#accountEmail"),
@@ -988,8 +989,6 @@ function renderQuiz() {
   elements.chapterKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
   elements.chapterStatus.textContent = complete ? "완료" : "미완료";
   elements.chapterStatus.classList.toggle("done", complete);
-  elements.chapterLink.href = chapter.link || "#";
-  elements.chapterLink.hidden = !chapter.link;
   elements.questionText.textContent = chapter.question;
   elements.hintText.textContent = chapter.hint;
   elements.hintText.hidden = true;
@@ -1773,6 +1772,16 @@ elements.readingBoldBtn.addEventListener("click", toggleReadingBold);
 elements.quizBackBtn.addEventListener("click", () => {
   state.quizStep = "reading";
   renderQuizStep();
+});
+
+elements.chapterLink.addEventListener("click", () => {
+  state.quizStep = "reading";
+  renderQuizStep();
+});
+
+elements.quizExitBtn.addEventListener("click", () => {
+  state.quizStep = "books";
+  setView("quiz");
 });
 
 elements.dailyTarget.addEventListener("change", async (event) => {

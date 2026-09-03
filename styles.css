@@ -2258,6 +2258,10 @@ body {
   gap: 4px;
 }
 
+#quizExitBtn {
+  margin-left: auto;
+}
+
 .install-banner {
   display: flex;
   flex-wrap: wrap;

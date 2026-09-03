@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260904-5" />
+    <link rel="stylesheet" href="styles.css?v=20260904-6" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -357,7 +357,7 @@
               <h3 id="questionText"></h3>
               <div class="quiz-topline-actions">
                 <button id="hintBtn" class="mini-button" type="button">힌트 보기</button>
-                <a id="chapterLink" class="mini-button" href="#" target="_blank" rel="noreferrer">성경 본문</a>
+                <button id="chapterLink" class="mini-button" type="button">성경 본문</button>
               </div>
             </div>
             <p class="hint" id="hintText" hidden></p>
@@ -368,6 +368,7 @@
           <div class="quiz-actions">
             <button class="primary-button" id="nextBtn" type="button">다음 장</button>
             <button class="ghost-button" id="undoBtn" type="button">완료 취소</button>
+            <button class="ghost-button" id="quizExitBtn" type="button">나가기</button>
           </div>
         </section>
 
@@ -587,6 +588,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260904-5"></script>
+    <script src="app.js?v=20260904-6"></script>
   </body>
 </html>
