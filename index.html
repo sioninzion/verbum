@@ -22,7 +22,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260826-7" />
+    <link rel="stylesheet" href="styles.css?v=20260826-9" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -49,11 +49,6 @@
             <button class="install-banner-close" id="installBannerCloseBtn" type="button" aria-label="닫기">✕</button>
           </div>
 
-          <div class="auth-switch" role="tablist" aria-label="로그인 방식">
-            <button class="active" data-auth-mode="login" type="button" role="tab" aria-selected="true">로그인</button>
-            <button data-auth-mode="signup" type="button" role="tab" aria-selected="false">회원가입</button>
-          </div>
-
           <p class="auth-banner" id="gateLoginMessage" aria-live="polite" hidden></p>
 
           <form class="gate-form" id="gateLoginForm" novalidate>
@@ -73,7 +68,10 @@
                   aria-pressed="false"
                 >보기</button>
               </span>
-              <button class="text-link forgot-password-link" type="button" id="forgotPasswordBtn">비밀번호를 잊으셨나요?</button>
+              <div class="auth-link-row">
+                <button class="text-link gate-link" type="button" id="forgotPasswordBtn">비밀번호를 잊으셨나요?</button>
+                <button class="text-link gate-link" type="button" data-auth-mode="signup">회원가입</button>
+              </div>
             </div>
             <button class="primary-button submit-button" type="submit" id="loginSubmitBtn">
               <span class="btn-label">로그인</span>
@@ -81,6 +79,9 @@
           </form>
 
           <form class="gate-form hidden" id="gateSignupForm" novalidate>
+            <div class="auth-link-row auth-link-row-end">
+              <button class="text-link gate-link" type="button" data-auth-mode="login">로그인</button>
+            </div>
             <fieldset class="field-group">
               <legend>계정 정보</legend>
               <div class="field">
@@ -534,6 +535,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260824-2"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260826-7"></script>
+    <script src="app.js?v=20260826-9"></script>
   </body>
 </html>

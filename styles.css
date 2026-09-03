@@ -2218,6 +2218,12 @@ body {
   position: relative;
   overflow: hidden;
   padding: 0;
+  /* Deepen only the pressed-in (inset) neumorphic effect on the login/
+     signup screen — raised elements keep the app-wide token untouched.
+     Descendants referencing var(--neu-pressed[-sm]) pick this up via
+     inheritance with no other selectors needing to change. */
+  --neu-pressed: inset 12px 12px 22px var(--shadow-d), inset -12px -12px 22px var(--shadow-l);
+  --neu-pressed-sm: inset 7px 7px 14px var(--shadow-d), inset -7px -7px 14px var(--shadow-l);
 }
 
 .login-scroll {
@@ -2319,32 +2325,18 @@ body {
   font-weight: 900;
 }
 
-.auth-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  padding: 5px;
-  border: none;
-  border-radius: 18px;
-  background: var(--bg);
-  box-shadow: var(--neu-pressed-sm);
+.auth-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
 }
 
-.auth-switch button {
-  position: relative;
-  min-height: 40px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 900;
-  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
-}
-
-.auth-switch button.active {
-  background: var(--bg);
-  color: var(--blue);
-  box-shadow: var(--neu-raised-sm);
+.auth-link-row-end {
+  justify-content: flex-end;
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 
 .auth-banner {
@@ -2487,9 +2479,7 @@ body {
   font-weight: 600;
 }
 
-.forgot-password-link {
-  justify-self: start;
-  margin-top: 6px;
+.gate-link {
   padding: 0;
   background: none;
   border: none;
