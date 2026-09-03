@@ -185,12 +185,18 @@ const elements = {
   installBannerTitle: document.querySelector("#installBannerTitle"),
   installBannerBody: document.querySelector("#installBannerBody"),
   installActionBtn: document.querySelector("#installActionBtn"),
+  installTutorialBtn: document.querySelector("#installTutorialBtn"),
   installBannerCloseBtn: document.querySelector("#installBannerCloseBtn"),
   tutorialModal: document.querySelector("#tutorialModal"),
   tutorialSkipBtn: document.querySelector("#tutorialSkipBtn"),
   tutorialNextBtn: document.querySelector("#tutorialNextBtn"),
-  tutorialSteps: document.querySelectorAll(".tutorial-step"),
-  tutorialDots: document.querySelectorAll(".tutorial-dot"),
+  tutorialSteps: document.querySelectorAll("#tutorialModal .tutorial-step"),
+  tutorialDots: document.querySelectorAll("#tutorialDots .tutorial-dot"),
+  installTutorialModal: document.querySelector("#installTutorialModal"),
+  installTutorialSkipBtn: document.querySelector("#installTutorialSkipBtn"),
+  installTutorialNextBtn: document.querySelector("#installTutorialNextBtn"),
+  installTutorialSteps: document.querySelectorAll("#installTutorialModal .tutorial-step"),
+  installTutorialDots: document.querySelectorAll("#installTutorialDots .tutorial-dot"),
   dashboard: document.querySelector("#dashboard"),
   viewTabs: document.querySelectorAll("[data-view-tab]"),
   viewPanels: document.querySelectorAll("[data-view-panel]"),
@@ -873,6 +879,29 @@ async function completeTutorial() {
   } catch {
     // Non-critical — worst case the tutorial reappears next login.
   }
+}
+
+let installTutorialStepIndex = 0;
+
+function renderInstallTutorialStep() {
+  elements.installTutorialSteps.forEach((step, index) => {
+    step.hidden = index !== installTutorialStepIndex;
+  });
+  elements.installTutorialDots.forEach((dot, index) => {
+    dot.classList.toggle("active", index === installTutorialStepIndex);
+  });
+  elements.installTutorialNextBtn.textContent =
+    installTutorialStepIndex === elements.installTutorialSteps.length - 1 ? "완료" : "다음";
+}
+
+function showInstallTutorial() {
+  installTutorialStepIndex = 0;
+  renderInstallTutorialStep();
+  elements.installTutorialModal.hidden = false;
+}
+
+function closeInstallTutorial() {
+  elements.installTutorialModal.hidden = true;
 }
 
 function renderStatusTable() {
@@ -1673,6 +1702,17 @@ elements.tutorialNextBtn.addEventListener("click", () => {
   }
 });
 
+elements.installTutorialBtn.addEventListener("click", showInstallTutorial);
+elements.installTutorialSkipBtn.addEventListener("click", closeInstallTutorial);
+elements.installTutorialNextBtn.addEventListener("click", () => {
+  if (installTutorialStepIndex === elements.installTutorialSteps.length - 1) {
+    closeInstallTutorial();
+  } else {
+    installTutorialStepIndex += 1;
+    renderInstallTutorialStep();
+  }
+});
+
 elements.authModeButtons.forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
 });
@@ -1823,10 +1863,12 @@ function showInstallBanner(platform) {
     elements.installBannerBody.textContent =
       "앱처럼 더 빠르고 편하게 쓸 수 있어요. 설치 중 경고 문구가 떠도 무시하고 설치를 눌러주세요.";
     elements.installActionBtn.hidden = false;
+    elements.installTutorialBtn.hidden = true;
   } else if (platform === "ios") {
     elements.installBannerTitle.textContent = "홈 화면에 추가하기";
     elements.installBannerBody.textContent = '공유 버튼을 누른 뒤 "홈 화면에 추가"를 선택하세요.';
     elements.installActionBtn.hidden = true;
+    elements.installTutorialBtn.hidden = false;
   } else {
     return;
   }
