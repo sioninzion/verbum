@@ -1,2 +1,8 @@
 *.xlsx
 !README.md
+
+# Cloud Functions
+functions/node_modules
+functions/.env
+.firebase/
+firebase-debug.log

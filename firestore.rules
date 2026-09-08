@@ -16,6 +16,21 @@ service cloud.firestore {
 
       allow get, list: if request.auth != null
         && (request.auth.uid == userId || resource.data.share == true);
+
+      // FCM registration tokens, one document per device. Fully private —
+      // no `share`-style public read, since these are just push targets.
+      match /notificationDevices/{deviceId} {
+        allow create, update, delete: if request.auth != null
+          && request.auth.uid == userId;
+
+        allow get, list: if request.auth != null
+          && request.auth.uid == userId;
+      }
     }
+
+    // notificationDailyPlans/{uid}_{date} ("순간의 말씀" scheduling) is
+    // written and read only by Cloud Functions via the Admin SDK, which
+    // bypasses these rules entirely — no match block here means the client
+    // is correctly denied all access to it, by default.
   }
 }

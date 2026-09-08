@@ -1,0 +1,11 @@
+{
+  "name": "verbum-functions",
+  "description": "Verbum server-side push: daily moment-verse plan + send",
+  "private": true,
+  "engines": { "node": "22" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^14.3.0",
+    "firebase-functions": "^7.3.2"
+  }
+}

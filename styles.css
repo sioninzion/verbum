@@ -1,23 +1,35 @@
 :root {
-  --bg: #efe6d6;
-  --paper: #efe6d6;
-  --ink: #463a29;
-  --muted: #a3906e;
-  --line: #d9cbab;
-  --red: #b64036;
-  --red-soft: #f8dedb;
-  --green: #24845c;
-  --green-soft: #dff3e9;
+  /* Flat, light theme (replaces the old neumorphic parchment palette). */
+  /* Also used by the reading panel's sticky header to know exactly how much
+     of .app-shell's own top padding it needs to pull up and re-cover. */
+  --app-shell-pad-top: max(24px, calc(env(safe-area-inset-top) + 18px));
+  --bg: #fbf9f4;
+  --paper: #ffffff;
+  --ink: #211c16;
+  --muted: #8f8778;
+  --line: #eae2d2;
+  --red: #e2574c;
+  --red-soft: #fde6e4;
+  --green: #2fae6c;
+  --green-soft: #e2f6ec;
   --blue: #c1662e;
   --blue-soft: #f7e3ce;
-  --gold: #a16b18;
-  --shadow: 0 18px 44px rgba(74, 55, 38, 0.12);
-  --shadow-d: #cbbc9e;
+  --purple: #8b7cf6;
+  --purple-soft: #ece7fd;
+  --orange: #f0935a;
+  --orange-soft: #fdead9;
+  --orange-pale: #fdf3e9;
+  --cool-gray: #eef0f3;
+  --gray-soft: #f5f5f3;
+  --gold: #b8860b;
+  --shadow: 0 20px 44px rgba(33, 28, 22, 0.12);
+  --shadow-d: #e9e1d0;
   --shadow-l: #ffffff;
-  --neu-raised: 10px 10px 20px var(--shadow-d), -10px -10px 20px var(--shadow-l);
-  --neu-raised-sm: 6px 6px 12px var(--shadow-d), -6px -6px 12px var(--shadow-l);
-  --neu-pressed: inset 7px 7px 14px var(--shadow-d), inset -7px -7px 14px var(--shadow-l);
-  --neu-pressed-sm: inset 4px 4px 8px var(--shadow-d), inset -4px -4px 8px var(--shadow-l);
+  --hero-gradient: linear-gradient(135deg, #c7b8f9 0%, #f3a97b 100%);
+  --neu-raised: 0 10px 24px rgba(33, 28, 22, 0.08);
+  --neu-raised-sm: 0 6px 14px rgba(33, 28, 22, 0.07);
+  --neu-pressed: inset 0 3px 9px rgba(33, 28, 22, 0.12);
+  --neu-pressed-sm: inset 0 2px 6px rgba(33, 28, 22, 0.1);
 }
 
 * {
@@ -98,6 +110,28 @@ h3 {
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.reading-panel .quiz-heading {
+  position: sticky;
+  top: calc(-1 * var(--app-shell-pad-top));
+  z-index: 5;
+  padding-top: var(--app-shell-pad-top);
+  padding-bottom: 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.reading-panel .quiz-heading h2 {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.eyebrow.reading-chapter-label {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: 900;
 }
 
 .view-tabs {
@@ -216,6 +250,18 @@ h3 {
   padding: 18px;
 }
 
+.panel.home-panel,
+.panel.achievements-panel,
+.panel.community-panel,
+.panel.profile-panel,
+.panel.library-panel,
+.panel.chapter-panel,
+.panel.reading-panel,
+.panel.quiz-panel {
+  background: transparent;
+  box-shadow: none;
+}
+
 .panel-heading {
   display: flex;
   align-items: flex-start;
@@ -268,7 +314,6 @@ h3 {
 }
 
 .home-hero p:last-child,
-.next-card p,
 .danger-zone-card p,
 .form-message,
 .empty-state {
@@ -276,11 +321,65 @@ h3 {
   line-height: 1.58;
 }
 
-.home-metrics {
+.home-calendar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 35px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 14px;
+  background: #f5f1eb;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.home-calendar-btn-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.home-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.3fr 1fr;
+  grid-template-rows: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.home-stats-grid .total-progress-card {
+  grid-row: 1 / 3;
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.home-stats-grid .metric-card {
+  margin-bottom: 0;
+}
+
+.metric-card.metric-card-streak {
+  background: var(--orange-pale);
+  box-shadow: none;
+}
+
+.total-progress-card.metric-card-plain {
+  background: var(--gray-soft);
+  box-shadow: none;
+}
+
+.metric-card.metric-card-cool {
+  background: var(--cool-gray);
+  box-shadow: none;
+}
+
+.metric-card-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
 }
 
 .ring-card {
@@ -351,7 +450,6 @@ h3 {
 .target-box,
 .quiz-card,
 .form-card,
-.next-card,
 .metric-card,
 .leader-row {
   border: none;
@@ -362,10 +460,316 @@ h3 {
 
 .stats-grid div,
 .form-card,
-.next-card,
 .metric-card,
 .leader-row {
   padding: 12px;
+}
+
+.next-card {
+  border: none;
+  border-radius: 22px;
+  padding: 14px 16px;
+  aspect-ratio: 1672 / 941;
+  background-image: url("today_card.png");
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--neu-raised);
+}
+
+.next-card .eyebrow {
+  margin-bottom: 5px;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.next-card h3 {
+  margin-top: 10px;
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: clamp(32px, 9vw, 42px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.next-card p.next-card-book-en {
+  margin: 0 0 20px;
+  padding-left: 0.9em;
+  color: var(--ink);
+  opacity: 0.5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.next-card p {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.hero-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.hero-progress-percent {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hero-progress-row .next-card-progress {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.next-card-progress {
+  overflow: hidden;
+  height: 13px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: rgba(33, 28, 22, 0.15);
+}
+
+.next-card-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+  transition: width 240ms ease;
+}
+
+.next-card-cta {
+  margin-top: 13px;
+  border: none;
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 18px;
+  background: var(--ink);
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 10px 20px rgba(33, 28, 22, 0.25);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.next-card-cta:hover {
+  transform: translateY(-1px);
+}
+
+.next-card-cta:active {
+  transform: scale(0.98);
+}
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin: 14px 0 16px;
+}
+
+.week-day {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  border: 1px solid #e3e3e3;
+  border-radius: 14px;
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.week-day-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.week-day-date {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.week-day-count {
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.week-day.today {
+  background: var(--green-soft);
+}
+
+
+.total-progress-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+  border: none;
+  border-radius: 20px;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--neu-raised-sm);
+  text-align: left;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.total-progress-card:hover {
+  transform: translateY(-1px);
+}
+
+.total-progress-card:active {
+  transform: scale(0.99);
+  box-shadow: var(--neu-pressed-sm);
+}
+
+.total-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.total-progress-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.total-progress-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.total-progress-value {
+  display: block;
+  white-space: nowrap;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.total-progress-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-total-bar {
+  flex: 1;
+  min-width: 0;
+  height: 12px;
+  margin: 0;
+  background: var(--line);
+}
+
+.home-total-bar span {
+  background: var(--blue);
+}
+
+.total-progress-percent {
+  flex: 0 0 auto;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.testament-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.testament-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  border: none;
+  border-radius: 18px;
+  padding: 12px 30px 12px 14px;
+  font-weight: 800;
+  text-align: left;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.testament-card::after {
+  content: "";
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  filter: blur(16px);
+  pointer-events: none;
+}
+
+.testament-card:active {
+  transform: scale(0.98);
+}
+
+.testament-card-label {
+  position: relative;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.testament-card-stats {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.testament-card-stats strong {
+  font-size: 22px;
+}
+
+.testament-card-percent {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+
+.testament-card.tier-purple {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.testament-card.tier-orange {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+
+.testament-card-arrow {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  opacity: 0.6;
 }
 
 .form-card {
@@ -424,9 +828,6 @@ h3 {
 
 .metric-card {
   min-height: 40px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: var(--paper);
   color: var(--ink);
   font-weight: 800;
   transition:
@@ -477,21 +878,31 @@ h3 {
 }
 
 .metric-card {
-  display: grid;
-  align-content: center;
-  gap: 5px;
-  min-height: 94px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px;
   text-align: left;
 }
 
-.metric-card span {
+.metric-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.metric-card-text span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
-.metric-card strong {
-  font-size: 24px;
+.metric-card-text strong {
+  white-space: nowrap;
+  font-size: 20px;
+  line-height: 1.1;
 }
 
 .primary-button,
@@ -504,16 +915,41 @@ h3 {
   color: var(--green);
 }
 
+.start-quiz-btn {
+  width: 100%;
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.profile-save-btn {
+  width: 100%;
+  background: var(--green);
+  color: #ffffff;
+}
+
 .ghost-button.danger {
+  width: 100%;
+  border: 1.8px solid var(--red);
+  color: var(--red);
+  box-shadow: none;
+}
+
+.ghost-button.danger:active {
+  box-shadow: none;
+}
+
+.ghost-button.logout-btn {
+  border: 2.4px solid var(--red);
+  color: var(--red);
+  box-shadow: none;
+}
+
+.ghost-button.logout-btn:hover {
   color: var(--red);
 }
 
-.next-card {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 16px;
+.ghost-button.logout-btn:active {
+  box-shadow: none;
 }
 
 .compact-heading {
@@ -565,41 +1001,190 @@ h3 {
   background: var(--green);
 }
 
+.library-heading {
+  align-items: flex-start;
+}
+
+.library-heading h2 {
+  font-size: clamp(25px, 6vw, 32px);
+}
+
+.library-subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.achievements-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.achievements-heading-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.book-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--bg);
+  box-shadow: var(--neu-pressed-sm);
+}
+
+.book-search-icon {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  opacity: 0.6;
+}
+
+.book-search {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.book-search::placeholder {
+  color: var(--muted);
+}
+
+.testament-toggle {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg);
+  box-shadow: var(--neu-pressed-sm);
+}
+
+.testament-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 6px);
+  height: calc(100% - 8px);
+  border-radius: 10px;
+  background: var(--ink);
+  box-shadow: var(--neu-raised-sm);
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.testament-toggle-thumb.position-new {
+  transform: translateX(calc(100% + 4px));
+}
+
+.testament-toggle-btn {
+  position: relative;
+  z-index: 1;
+  min-height: 38px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  transition: color 160ms ease;
+}
+
+.testament-toggle-btn.active {
+  color: #ffffff;
+}
+
+.library-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.library-section-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.library-section-heading #librarySectionLabel {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.library-section-heading #librarySectionCount {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.library-section-arrow {
+  width: 18px;
+  height: 18px;
+  opacity: 0.5;
+}
+
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .book-tile {
   position: relative;
-  aspect-ratio: 1;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  place-items: center;
   overflow: hidden;
   border: 0;
-  border-radius: 9px;
-  background: #f2ece1;
+  border-radius: 16px;
+  padding: 12px 10px 10px;
+  background: var(--orange-soft);
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 900;
-  box-shadow: inset 0 -2px 0 rgba(74, 55, 38, 0.08);
+  text-align: left;
   transition:
     transform 140ms ease,
     box-shadow 140ms ease,
     background-color 200ms ease;
 }
 
+.book-tile.tier-orange {
+  background: var(--orange-soft);
+}
+
+.book-tile.tier-purple {
+  background: var(--purple-soft);
+}
+
+.book-tile.tier-complete {
+  background: var(--green-soft);
+}
+
+.book-tile.tier-empty {
+  background: #f5f1eb;
+}
+
 .book-tile:hover {
   transform: translateY(-2px);
-  box-shadow:
-    inset 0 -2px 0 rgba(74, 55, 38, 0.08),
-    0 8px 16px rgba(74, 55, 38, 0.2);
+  box-shadow: 0 8px 16px rgba(33, 28, 22, 0.15);
 }
 
 .book-tile:active {
-  transform: translateY(0) scale(0.94);
+  transform: translateY(0) scale(0.96);
 }
 
 .book-tile.active {
@@ -607,26 +1192,60 @@ h3 {
   outline-offset: 2px;
 }
 
-.book-tile-fill {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 0%;
-  border-top: 2px solid var(--green);
-  background: var(--green-soft);
-  transition: height 420ms ease;
+.book-tile-code {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: keep-all;
 }
 
-.book-tile-label {
-  position: relative;
-  z-index: 1;
+.book-tile-name {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .book-tile-fill {
-    transition: none;
-  }
+.book-tile-meta {
+  margin-top: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+
+.book-tile-bar {
+  overflow: hidden;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(33, 28, 22, 0.12);
+}
+
+.book-tile-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.book-tile.tier-orange .book-tile-bar i {
+  background: var(--orange);
+}
+
+.book-tile.tier-purple .book-tile-bar i {
+  background: var(--purple);
+}
+
+.book-tile.tier-complete .book-tile-bar i {
+  background: var(--green);
+}
+
+.book-tile.tier-empty .book-tile-bar i {
+  background: var(--muted);
 }
 
 .heading-lead {
@@ -634,6 +1253,22 @@ h3 {
   align-items: center;
   gap: 10px;
   min-width: 0;
+}
+
+/* Icon images whose color must follow the surrounding button state (hover,
+   active, tab-selected) are rendered as a CSS mask filled with currentColor
+   instead of a plain <img>, so a single PNG can be recolored like a font icon. */
+.icon-mask {
+  display: inline-block;
+  -webkit-mask-image: var(--icon-src);
+  mask-image: var(--icon-src);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  background-color: currentColor;
 }
 
 .back-button {
@@ -654,6 +1289,24 @@ h3 {
     transform 140ms ease,
     box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
     color 140ms ease;
+}
+
+.back-button .icon-mask {
+  width: 16px;
+  height: 16px;
+}
+
+/* chevron-left/right.png already render as a complete white circular badge
+   (not a transparent line icon), so the wrapping button drops its own
+   background/shadow instead of doubling up the circle. */
+.back-button-plain {
+  background: transparent;
+  box-shadow: none;
+}
+
+.back-button-plain img {
+  width: 36px;
+  height: 36px;
 }
 
 .back-button:hover {
@@ -723,7 +1376,7 @@ h3 {
   background: var(--red);
   font-size: 15px;
   font-weight: 900;
-  box-shadow: inset 0 -2px 0 rgba(74, 55, 38, 0.16);
+  box-shadow: inset 0 -2px 0 rgba(33, 28, 22, 0.16);
   transition:
     transform 140ms ease,
     box-shadow 140ms ease,
@@ -733,8 +1386,8 @@ h3 {
 .chapter-btn:hover {
   transform: translateY(-2px);
   box-shadow:
-    inset 0 -2px 0 rgba(74, 55, 38, 0.16),
-    0 8px 16px rgba(74, 55, 38, 0.22);
+    inset 0 -2px 0 rgba(33, 28, 22, 0.16),
+    0 8px 16px rgba(33, 28, 22, 0.22);
 }
 
 .chapter-btn:active {
@@ -785,15 +1438,38 @@ h3 {
 }
 
 .reading-size-toggle {
-  display: flex;
-  gap: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 4px;
+  border: 2.1px solid var(--ink);
   border-radius: 14px;
   background: var(--bg);
-  box-shadow: var(--neu-pressed-sm);
+  box-shadow: none;
+}
+
+.reading-size-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 3);
+  height: calc(100% - 8px);
+  border-radius: 10px;
+  background: var(--ink);
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reading-size-toggle-thumb.position-medium {
+  transform: translateX(100%);
+}
+
+.reading-size-toggle-thumb.position-large {
+  transform: translateX(200%);
 }
 
 .reading-size-toggle button {
+  position: relative;
+  z-index: 1;
   min-width: 34px;
   min-height: 30px;
   border: none;
@@ -802,13 +1478,11 @@ h3 {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
-  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  transition: color 160ms ease;
 }
 
 .reading-size-toggle button.active {
-  background: var(--bg);
-  color: var(--blue);
-  box-shadow: var(--neu-raised-sm);
+  color: #ffffff;
 }
 
 .reading-bold-toggle {
@@ -817,19 +1491,19 @@ h3 {
   gap: 5px;
   min-height: 38px;
   padding: 0 12px;
-  border: none;
+  border: 2.1px solid var(--ink);
   border-radius: 14px;
   background: var(--bg);
-  color: var(--muted);
+  color: var(--ink);
   font-size: 13px;
   font-weight: 800;
-  box-shadow: var(--neu-pressed-sm);
-  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  box-shadow: none;
+  transition: background-color 280ms ease, color 280ms ease;
 }
 
 .reading-bold-toggle[aria-pressed="true"] {
-  color: var(--blue);
-  box-shadow: var(--neu-raised-sm);
+  background: var(--ink);
+  color: #ffffff;
 }
 
 .reading-text {
@@ -866,6 +1540,16 @@ h3 {
 
 .reading-text.bold .reading-verse {
   font-weight: 700;
+}
+
+/* Briefly marks the verse a "순간의 말씀" notification click jumped to. */
+.reading-verse.verse-highlight {
+  background: var(--gold);
+  color: #2a1e05;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: 0 -6px;
+  transition: background 400ms ease, color 400ms ease;
 }
 
 .v-num {
@@ -938,11 +1622,12 @@ h3 {
   position: relative;
   width: 100%;
   min-height: 48px;
-  border: 1px solid transparent;
+  border: 1.5px solid var(--ink);
   border-radius: 18px;
   padding: 12px 40px 12px 16px;
   background: var(--bg);
-  box-shadow: var(--neu-raised-sm);
+  color: var(--ink);
+  box-shadow: none;
   text-align: left;
   line-height: 1.45;
   transition:
@@ -995,6 +1680,19 @@ h3 {
 .option-button.wrong::after {
   content: "✕";
   color: var(--red);
+}
+
+.quiz-panel .quiz-topline-actions .mini-button,
+.quiz-panel .quiz-actions .primary-button,
+.quiz-panel .quiz-actions .ghost-button {
+  border: 1.5px solid var(--ink);
+  box-shadow: none;
+}
+
+.quiz-panel .quiz-topline-actions .mini-button:active,
+.quiz-panel .quiz-actions .primary-button:active,
+.quiz-panel .quiz-actions .ghost-button:active {
+  box-shadow: none;
 }
 
 @keyframes optionCorrectPop {
@@ -1065,11 +1763,11 @@ h3 {
 .form-card select {
   width: 100%;
   min-height: 42px;
-  border: none;
+  border: 1.2px solid #e3e3e3;
   border-radius: 14px;
   padding: 0 11px;
   background: var(--bg);
-  box-shadow: var(--neu-pressed-sm);
+  box-shadow: inset 0 2px 5px rgba(33, 28, 22, 0.1);
   color: var(--ink);
 }
 
@@ -1109,7 +1807,7 @@ h3 {
   width: var(--button-width);
   height: var(--button-height);
   outline: none;
-  filter: drop-shadow(0 2px 4px rgba(74, 55, 38, 0.15));
+  filter: drop-shadow(0 2px 4px rgba(33, 28, 22, 0.15));
 }
 
 .switch:focus-within {
@@ -1338,10 +2036,16 @@ h3 {
   gap: 10px;
 }
 
+.leaderboard .leader-row {
+  border: 2.4px solid var(--ink);
+  box-shadow: none;
+  padding: 9px 12px;
+}
+
 .leader-row {
   display: grid;
   grid-template-columns: 42px 1fr auto;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1350,13 +2054,31 @@ h3 {
 }
 
 .leader-row:hover {
-  box-shadow: 0 8px 18px rgba(74, 55, 38, 0.1);
+  box-shadow: 0 8px 18px rgba(33, 28, 22, 0.1);
   transform: translateY(-1px);
 }
 
 .leader-row.mine {
   border-color: var(--green);
   background: var(--green-soft);
+  box-shadow: 0 4px 10px rgba(33, 28, 22, 0.12);
+}
+
+/* Top-3 medal borders take priority over the "mine" green border even when
+   the current user is also ranked in the top 3. */
+.leader-row.rank-1 {
+  border-color: #d4af37;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+}
+
+.leader-row.rank-2 {
+  border-color: #a8a8a8;
+  box-shadow: 0 0 14px rgba(168, 168, 168, 0.4);
+}
+
+.leader-row.rank-3 {
+  border-color: #cd7f32;
+  box-shadow: 0 0 14px rgba(205, 127, 50, 0.4);
 }
 
 .rank {
@@ -1364,15 +2086,35 @@ h3 {
   width: 34px;
   height: 34px;
   place-items: center;
+  border: 2.1px solid var(--ink);
   border-radius: 50%;
-  background: var(--blue);
-  color: white;
+  background: transparent;
+  color: var(--ink);
   font-weight: 900;
+}
+
+.leader-row.rank-1 .rank {
+  border-color: #d4af37;
+  color: #d4af37;
+  text-shadow: 0 0 6px rgba(212, 175, 55, 0.35);
+}
+
+.leader-row.rank-2 .rank {
+  border-color: #a8a8a8;
+  color: #a8a8a8;
+  text-shadow: 0 0 6px rgba(168, 168, 168, 0.35);
+}
+
+.leader-row.rank-3 .rank {
+  border-color: #cd7f32;
+  color: #cd7f32;
+  text-shadow: 0 0 6px rgba(205, 127, 50, 0.35);
 }
 
 .leader-row strong,
 .leader-row span {
   display: block;
+  line-height: 1.3;
 }
 
 .leader-row span {
@@ -1389,7 +2131,7 @@ h3 {
 
 .leader-stats span {
   border-radius: 999px;
-  padding: 5px 8px;
+  padding: 3px 8px;
   background: rgba(255, 255, 255, 0.7);
   color: var(--ink);
   font-weight: 800;
@@ -1411,8 +2153,8 @@ h3 {
 }
 
 .rarity-badge.rarity-rare {
-  background: var(--blue-soft);
-  color: #174d83;
+  background: #e2ecfd;
+  color: #1d5bbf;
 }
 
 .rarity-badge.rarity-epic {
@@ -1423,6 +2165,11 @@ h3 {
 .rarity-badge.rarity-legendary {
   background: #f5e6c8;
   color: #8a5a10;
+}
+
+.rarity-badge.rarity-hidden {
+  background: var(--ink);
+  color: #ffffff;
 }
 
 .achievement-rarity-group {
@@ -1457,17 +2204,18 @@ h3 {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: none;
+  border: 2px solid var(--ink);
   border-radius: 16px;
   padding: 11px 12px;
   background: var(--bg);
-  box-shadow: var(--neu-raised-sm);
+  box-shadow: none;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .achievement-card.locked {
   background: var(--bg);
-  box-shadow: var(--neu-pressed-sm);
+  border-color: var(--muted);
+  box-shadow: none;
   opacity: 0.68;
 }
 
@@ -1483,14 +2231,19 @@ h3 {
   color: #a89a89;
 }
 
+.achievement-lock-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .achievement-card.unlocked .achievement-card-icon.rarity-common {
   background: #eee7dc;
   color: #6b6055;
 }
 
 .achievement-card.unlocked .achievement-card-icon.rarity-rare {
-  background: var(--blue-soft);
-  color: #174d83;
+  background: #e2ecfd;
+  color: #1d5bbf;
 }
 
 .achievement-card.unlocked .achievement-card-icon.rarity-epic {
@@ -1501,6 +2254,11 @@ h3 {
 .achievement-card.unlocked .achievement-card-icon.rarity-legendary {
   background: #f5e6c8;
   color: #8a5a10;
+}
+
+.achievement-card.unlocked .achievement-card-icon.rarity-hidden {
+  background: var(--ink);
+  color: #ffffff;
 }
 
 .achievement-card-body {
@@ -1652,9 +2410,12 @@ h3 {
 }
 
 .tutorial-icon {
-  font-size: 40px;
-  line-height: 1;
   margin-bottom: 4px;
+}
+
+.tutorial-icon img {
+  width: 64px;
+  height: 64px;
 }
 
 .tutorial-img {
@@ -1713,6 +2474,12 @@ h3 {
   .calendar-modal-card {
     animation: none;
   }
+}
+
+.record-cell-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
 }
 
 .record-cell {
@@ -1941,13 +2708,12 @@ h3 {
 
   .panel {
     border-radius: 10px;
-    box-shadow: 0 12px 30px rgba(74, 55, 38, 0.1);
+    box-shadow: 0 12px 30px rgba(33, 28, 22, 0.1);
   }
 
   .panel-heading,
   .quiz-topline,
-  .home-hero,
-  .next-card {
+  .home-hero {
     display: grid;
   }
 
@@ -1984,7 +2750,6 @@ h3 {
   .target-box,
   .quiz-card,
   .form-card,
-  .next-card,
   .metric-card,
   .leader-row {
     padding: 12px;
@@ -2057,7 +2822,7 @@ h3 {
     border: 1px solid rgba(231, 217, 195, 0.9);
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 38px rgba(74, 55, 38, 0.2);
+    box-shadow: 0 18px 38px rgba(33, 28, 22, 0.2);
     backdrop-filter: blur(16px);
   }
 
@@ -2131,9 +2896,9 @@ body {
   height: min(932px, calc(100dvh - 28px), calc((100vw - 28px) * 16 / 9));
   max-height: calc(100dvh - 28px);
   border: none;
-  border-radius: 34px;
+  border-radius: 0;
   background: var(--bg);
-  box-shadow: var(--neu-raised);
+  box-shadow: none;
 }
 
 .app-shell {
@@ -2143,7 +2908,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: max(24px, calc(env(safe-area-inset-top) + 18px)) 12px 0;
+  padding: var(--app-shell-pad-top) 12px 0;
   scrollbar-width: none;
 }
 
@@ -2228,12 +2993,12 @@ body {
   position: relative;
   overflow: hidden;
   padding: 0;
-  /* Deepen only the pressed-in (inset) neumorphic effect on the login/
-     signup screen — raised elements keep the app-wide token untouched.
-     Descendants referencing var(--neu-pressed[-sm]) pick this up via
-     inheritance with no other selectors needing to change. */
-  --neu-pressed: inset 12px 12px 22px var(--shadow-d), inset -12px -12px 22px var(--shadow-l);
-  --neu-pressed-sm: inset 7px 7px 14px var(--shadow-d), inset -7px -7px 14px var(--shadow-l);
+  /* Deepen only the pressed-in (inset) effect on the login/signup screen —
+     raised elements keep the app-wide token untouched. Descendants
+     referencing var(--neu-pressed[-sm]) pick this up via inheritance with
+     no other selectors needing to change. */
+  --neu-pressed: inset 0 5px 14px rgba(33, 28, 22, 0.16);
+  --neu-pressed-sm: inset 0 3px 9px rgba(33, 28, 22, 0.14);
 }
 
 .login-scroll {
@@ -2256,6 +3021,25 @@ body {
 .login-header {
   display: grid;
   gap: 4px;
+  justify-items: center;
+  text-align: center;
+  margin-top: 135px;
+  padding: 12px 0 4px;
+}
+
+.login-wordmark {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(36px, 10vw, 48px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+/* The signup form is much taller than the login form, so it doesn't get the
+   same large top margin used to center the short login form — the back-link
+   row above the logo already gives it a little breathing room on its own. */
+.login-scroll.signup-mode .login-header {
+  margin-top: 0;
 }
 
 #quizExitBtn {
@@ -2328,7 +3112,7 @@ body {
 }
 
 .install-banner-close:hover {
-  background: rgba(74, 55, 38, 0.08);
+  background: rgba(33, 28, 22, 0.08);
   color: var(--ink);
 }
 
@@ -2369,7 +3153,7 @@ body {
   border-radius: 10px;
   padding: 10px 12px;
   background: var(--blue-soft);
-  color: #174d83;
+  color: #5b4bc4;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.5;
@@ -2398,6 +3182,63 @@ body {
 
 .gate-form.hidden {
   display: none;
+}
+
+#backToLoginRow.hidden {
+  display: none;
+}
+
+.social-login-row {
+  display: grid;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.social-login-row.hidden {
+  display: none;
+}
+
+.social-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.social-login-divider::before,
+.social-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.social-login-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.social-login-btn {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1.2px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: var(--neu-raised-sm);
+}
+
+.social-login-btn:active {
+  box-shadow: var(--neu-pressed-sm);
+}
+
+.social-login-btn img {
+  width: 26px;
+  height: 26px;
 }
 
 .field-group {
@@ -2432,18 +3273,18 @@ body {
 .login-card input {
   width: 100%;
   min-height: 48px;
-  border: none;
+  border: 1.8px solid rgba(33, 28, 22, 0.14);
   border-radius: 16px;
   padding: 0 13px;
   background: var(--bg);
   color: var(--ink);
-  box-shadow: var(--neu-pressed-sm);
-  transition: box-shadow 140ms ease;
+  box-shadow: inset 0 2px 5px rgba(33, 28, 22, 0.1);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .login-card input:focus-visible {
   outline: none;
-  box-shadow: var(--neu-pressed-sm), 0 0 0 3px rgba(193, 102, 46, 0.28);
+  box-shadow: inset 0 2px 5px rgba(33, 28, 22, 0.1), 0 0 0 3px rgba(193, 102, 46, 0.28);
 }
 
 .password-field {
@@ -2452,28 +3293,33 @@ body {
 }
 
 .login-card .password-field input {
-  padding-right: 80px;
+  padding-right: 46px;
 }
 
 .login-card .password-toggle {
   position: absolute;
   top: 50%;
-  right: 5px;
-  width: 68px;
-  min-height: 38px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px;
   border: none;
   border-radius: 999px;
   transform: translateY(-50%);
-  background: var(--bg);
-  color: var(--blue);
-  font-size: 13px;
-  font-weight: 900;
-  box-shadow: var(--neu-raised-sm);
-  transition: box-shadow 180ms ease, background-color 180ms ease;
+  background: transparent;
+  color: #4a4a4a;
+  box-shadow: none;
+  transition: opacity 140ms ease;
+}
+
+.password-toggle-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .login-card .password-toggle:active {
-  box-shadow: var(--neu-pressed-sm);
+  opacity: 0.6;
 }
 
 .login-card .password-toggle:focus-visible {
@@ -2482,12 +3328,12 @@ body {
 }
 
 .login-card input.password-valid {
-  box-shadow: var(--neu-pressed-sm), 0 0 0 3px rgba(36, 132, 92, 0.25);
+  box-shadow: inset 0 2px 5px rgba(33, 28, 22, 0.1), 0 0 0 3px rgba(36, 132, 92, 0.25);
 }
 
 .login-card input.password-invalid,
 .login-card input.field-invalid {
-  box-shadow: var(--neu-pressed-sm), 0 0 0 3px rgba(196, 65, 65, 0.22);
+  box-shadow: inset 0 2px 5px rgba(33, 28, 22, 0.1), 0 0 0 3px rgba(196, 65, 65, 0.22);
 }
 
 .field-hint {
@@ -2567,6 +3413,12 @@ body {
 
 .submit-button.loading .btn-label {
   visibility: hidden;
+}
+
+/* 로그인/회원가입 제출 버튼만: 공용 .primary-button 그림자보다 살짝 더 강하게
+   (앱 전역 버튼에는 영향 없도록 .login-card 안에서만 재정의). */
+.login-card .submit-button {
+  box-shadow: 0 10px 22px rgba(33, 28, 22, 0.22);
 }
 
 .submit-button.loading::after {
@@ -2661,8 +3513,9 @@ body {
 .chapter-panel,
 .reading-panel,
 .quiz-panel,
-.community-panel {
-  padding-bottom: 104px;
+.community-panel,
+.home-panel {
+  padding-bottom: 124px;
 }
 
 .panel {
@@ -2672,8 +3525,7 @@ body {
 
 .panel-heading,
 .quiz-topline,
-.home-hero,
-.next-card {
+.home-hero {
   display: grid;
 }
 
@@ -2741,28 +3593,35 @@ body {
   z-index: 50;
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 5px;
   margin-top: 14px;
-  padding: 8px;
+  padding: 6px 8px 10px;
   border: none;
   border-radius: 24px;
   background: var(--bg);
   box-shadow: var(--neu-raised);
+  overflow: visible;
 }
 
 .mobile-tabbar button {
   position: relative;
   display: grid;
   place-items: center;
+  gap: 3px;
   min-width: 0;
-  min-height: 52px;
+  min-height: 44px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
   font-weight: 900;
   transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 140ms ease;
+}
+
+.tabbar-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .mobile-tabbar button.active {
@@ -2776,6 +3635,40 @@ body {
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mobile-tabbar button.tabbar-fab {
+  transform: translateY(-12px);
+  width: 50px;
+  height: 50px;
+  min-height: 50px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 12px 22px rgba(33, 28, 22, 0.32);
+  color: #ffffff;
+}
+
+.mobile-tabbar button.tabbar-fab:active {
+  transform: translateY(-12px) scale(0.94);
+}
+
+.mobile-tabbar button.tabbar-fab.active {
+  background: var(--ink);
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(33, 28, 22, 0.32);
+}
+
+.tabbar-fab-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.mobile-tabbar button.tabbar-fab span:not(.tabbar-fab-icon) {
+  position: absolute;
+  bottom: -18px;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 @media (max-width: 520px) {
@@ -2801,7 +3694,7 @@ body {
 
   .app-shell {
     padding-inline: 10px;
-    padding-bottom: calc(90px + max(6px, env(safe-area-inset-bottom)));
+    padding-bottom: calc(110px + max(6px, env(safe-area-inset-bottom)));
   }
 
   /* position: sticky inside a flex column is unreliable in Safari on iOS, so
@@ -2816,84 +3709,225 @@ body {
   }
 }
 
-/* Tablet: same phone-card look, but wider and no longer locked to a 9:16
-   phone aspect ratio. The bottom tab bar stays exactly as on mobile
-   (position: sticky, unaffected below 768px). */
-@media (min-width: 768px) {
-  .app-shell,
-  .login-card {
-    width: min(680px, calc(100vw - 64px));
-    height: min(920px, calc(100dvh - 64px));
-    max-height: calc(100dvh - 64px);
-  }
+/* Tablet/desktop responsive layout paused for now — see
+   tools/tablet-desktop-layout.paused.css to restore it later. Every screen
+   width ≥ 521px falls back to the phone-shaped 16:9 card below. */
 
-  .library-panel,
-  .chapter-panel,
-  .reading-panel,
-  .quiz-panel,
-  .community-panel {
-    padding-bottom: 14px;
-  }
+
+/* ============================================================
+   DARK MODE — everything below is scoped to :root[data-theme="dark"]
+   and only affects the app once that attribute is set on <html>.
+   Toggled from 내정보 > 화면 테마; see app.js applyThemePreference().
+   ============================================================ */
+
+:root[data-theme="dark"] {
+  --bg: #17150f;
+  --paper: #201d17;
+  --ink: #f3efe6;
+  --muted: #a89f8f;
+  --line: #322d22;
+  --red: #ff7a6e;
+  --red-soft: #3a2220;
+  --green: #4cd08a;
+  --green-soft: #163227;
+  --blue: #e8823f;
+  --blue-soft: #3a2b1c;
+  --purple: #a79bff;
+  --purple-soft: #2b2740;
+  --orange: #ffab74;
+  --orange-soft: #3d2a1a;
+  --orange-pale: #2e2620;
+  --cool-gray: #23262b;
+  --gray-soft: #201f1d;
+  --gold: #e0ac3a;
+  --shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+  --shadow-d: #000000;
+  --shadow-l: #2a261d;
+  --neu-raised: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --neu-raised-sm: 0 6px 14px rgba(0, 0, 0, 0.3);
+  --neu-pressed: inset 0 3px 9px rgba(0, 0, 0, 0.4);
+  --neu-pressed-sm: inset 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-/* Desktop: fixed left sidebar (the same tab-bar buttons, just re-flowed)
-   plus a centered, reading-width content column. No new markup — the
-   existing #dashboard and .mobile-tabbar elements are simply reflowed. */
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    align-items: stretch;
-    justify-content: flex-start;
-    padding: 0;
-    overflow: hidden;
-  }
+/* Solid "accent fill" chips (CTA pills, FAB, active toggle thumbs) were
+   built around var(--ink) doubling as "the solid black accent," with
+   hardcoded white text on top. Flipping --ink to a light color for dark
+   mode is correct for TEXT, but would turn these into light chips with
+   now-invisible white text — so they're pinned to a fixed dark fill in
+   both themes instead, just like solid black CTAs stay solid in most
+   dark-mode apps. */
+:root[data-theme="dark"] .next-card-cta,
+:root[data-theme="dark"] .start-quiz-btn,
+:root[data-theme="dark"] .reading-bold-toggle[aria-pressed="true"],
+:root[data-theme="dark"] .testament-toggle-thumb,
+:root[data-theme="dark"] .reading-size-toggle-thumb,
+:root[data-theme="dark"] .mobile-tabbar button.tabbar-fab,
+:root[data-theme="dark"] .mobile-tabbar button.tabbar-fab.active {
+  background: #2b2820;
+}
 
-  .app-shell {
-    width: 100%;
-    height: 100vh;
-    max-height: none;
-    border-radius: 0;
-    box-shadow: none;
-    flex-direction: row;
-    padding: 0;
-    overflow: hidden;
-  }
+/* Dark mode swaps in a dedicated dark hero image (today_card_dark.png), so
+   its own text switches back to following --ink (light in dark mode)
+   instead of being pinned dark like it is against the light card art. */
+:root[data-theme="dark"] .next-card {
+  background-image: url('today_card_dark.png') !important;
+}
 
-  .dashboard,
-  .dashboard[data-view] {
-    flex: 1;
-    overflow-y: auto;
-    padding: 32px 24px;
-    grid-template-columns: minmax(0, 760px);
-    justify-content: center;
-    align-content: start;
-  }
+:root[data-theme="dark"] .home-calendar-btn {
+  background: #201d16;
+}
 
-  .mobile-tabbar {
-    order: -1;
-    position: static;
-    flex: 0 0 240px;
-    width: 240px;
-    height: 100%;
-    margin-top: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 6px;
-    padding: 28px 14px;
-    border-radius: 0;
-    box-shadow: none;
-    border-right: 1px solid var(--line);
-  }
+:root[data-theme="dark"] .testament-card::after {
+  display: none;
+}
 
-  .mobile-tabbar button {
-    place-items: center start;
-    padding: 0 16px;
-    min-height: 48px;
-    border-radius: 14px;
-  }
+:root[data-theme="dark"] .leader-row.mine {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
 
-  .mobile-tabbar span {
-    font-size: 15px;
-  }
+:root[data-theme="dark"] .leader-stats span {
+  background: transparent;
+  padding: 3px 0;
+}
+
+:root[data-theme="dark"] .leader-stats {
+  justify-content: space-between;
+  width: 100%;
+}
+
+:root[data-theme="dark"] .book-tile:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .book-tile.tier-empty {
+  background: #201d16;
+}
+
+:root[data-theme="dark"] .week-day {
+  border-color: #35301f;
+}
+
+:root[data-theme="dark"] .form-card input,
+:root[data-theme="dark"] .form-card select {
+  border-color: #3a352a;
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="dark"] .login-card input {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="dark"] .login-card input.password-valid {
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.15), 0 0 0 3px rgba(76, 208, 138, 0.35);
+}
+
+:root[data-theme="dark"] .login-card input.password-invalid,
+:root[data-theme="dark"] .login-card input.field-invalid {
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.15), 0 0 0 3px rgba(255, 122, 110, 0.35);
+}
+
+:root[data-theme="dark"] .login-card input:focus-visible {
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.15), 0 0 0 3px rgba(232, 130, 63, 0.35);
+}
+
+:root[data-theme="dark"] .password-toggle {
+  color: #c9c4ba;
+}
+
+:root[data-theme="dark"] .small-bar,
+:root[data-theme="dark"] .book-bar,
+:root[data-theme="dark"] .table-bar {
+  background: #2c2820;
+}
+
+:root[data-theme="dark"] .status-table tr:hover {
+  background: #241f16;
+}
+
+:root[data-theme="dark"] .hint {
+  color: #e3c98f;
+}
+
+:root[data-theme="dark"] .option-button:hover:not(:disabled):not(.correct):not(.wrong) {
+  background: #2a2419;
+}
+
+:root[data-theme="dark"] .achievement-card-icon {
+  background: #2a2620;
+  color: #8c8272;
+}
+
+:root[data-theme="dark"] .rarity-badge.rarity-common,
+:root[data-theme="dark"] .achievement-card.unlocked .achievement-card-icon.rarity-common {
+  background: #2a2620;
+  color: #c9c0b0;
+}
+
+:root[data-theme="dark"] .rarity-badge.rarity-rare,
+:root[data-theme="dark"] .achievement-card.unlocked .achievement-card-icon.rarity-rare {
+  background: #1c2740;
+  color: #8fb4f5;
+}
+
+:root[data-theme="dark"] .rarity-badge.rarity-epic,
+:root[data-theme="dark"] .achievement-card.unlocked .achievement-card-icon.rarity-epic {
+  background: #2a2140;
+  color: #c3a8f7;
+}
+
+:root[data-theme="dark"] .rarity-badge.rarity-legendary,
+:root[data-theme="dark"] .achievement-card.unlocked .achievement-card-icon.rarity-legendary {
+  background: #3a2e14;
+  color: #e8c374;
+}
+
+:root[data-theme="dark"] .rarity-badge.rarity-hidden,
+:root[data-theme="dark"] .achievement-card.unlocked .achievement-card-icon.rarity-hidden {
+  background: #f3efe6;
+  color: #17150f;
+}
+
+:root[data-theme="dark"] .calendar-legend-swatch[data-level="0"],
+:root[data-theme="dark"] .calendar-day[data-level="0"] {
+  background: #221f18;
+}
+
+:root[data-theme="dark"] .auth-banner {
+  color: #ffd9b3;
+}
+
+:root[data-theme="dark"] .auth-banner.error {
+  color: #ffb3ac;
+}
+
+/* This solid-black glyph is a plain <img> (not the mask+currentColor
+   technique the other icons use), so it needs an explicit flip. */
+:root[data-theme="dark"] .book-search-icon {
+  filter: invert(1);
+}
+
+/* Bottom tab bar: a dark drop shadow reads as nothing against a dark page,
+   so dark mode gets a faint white glow instead to keep it visually lifted. */
+:root[data-theme="dark"] .mobile-tabbar {
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.4), 0 6px 24px rgba(255, 255, 255, 0.1);
+}
+
+/* Same reasoning for the login/signup submit button — a dark shadow is
+   invisible against the dark page, so it becomes a white glow instead. */
+:root[data-theme="dark"] .login-card .submit-button {
+  box-shadow: 0 10px 24px rgba(255, 255, 255, 0.25);
+}
+
+/* 빌보드/칭호 화면: 순수 흰색 대신 아주 밝은 회색 텍스트(및 그와 짝을 이루는
+   테두리)를 쓰도록 이 두 패널 안에서만 --ink를 낮은 채도로 재정의한다. */
+:root[data-theme="dark"] .community-panel,
+:root[data-theme="dark"] .achievements-panel {
+  --ink: #d9d9d9;
+}
+
+/* Body background follows --bg automatically via the token flip above;
+   this just keeps the outer page from flashing white behind the frame. */
+:root[data-theme="dark"] body {
+  background: var(--bg);
 }

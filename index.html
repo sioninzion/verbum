@@ -7,7 +7,7 @@
       name="description"
       content="성경 66권 1,189장을 읽고 장별 퀴즈로 통독 진행도를 기록하는 웹앱"
     />
-    <meta name="theme-color" content="#efe6d6" />
+    <meta name="theme-color" content="#fbf9f4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260904-6" />
+    <link rel="stylesheet" href="styles.css?v=20260909-85" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -34,11 +34,13 @@
 
     <section class="login-gate" id="loginGate" aria-label="로그인">
       <div class="login-card">
-        <div class="login-scroll">
+        <div class="login-scroll" id="loginScroll">
+          <div class="auth-link-row auth-link-row-end hidden" id="backToLoginRow">
+            <button class="text-link gate-link" type="button" data-auth-mode="login">로그인으로 돌아가기</button>
+          </div>
+
           <header class="login-header">
-            <p class="eyebrow">Verbum</p>
-            <h1>말씀 통독을 시작해요</h1>
-            <p>이메일로 로그인하거나 새 계정을 만들어 진행도를 저장합니다.</p>
+            <h1 class="login-wordmark">VERBUM</h1>
           </header>
 
           <div class="install-banner" id="installBanner" hidden>
@@ -68,7 +70,7 @@
                   data-password-target="gateLoginPassword"
                   aria-label="로그인 비밀번호 보기"
                   aria-pressed="false"
-                >보기</button>
+                ><span class="icon-mask password-toggle-icon" style="--icon-src:url('icon-assets/glyphs/eye-off.png')" aria-hidden="true"></span></button>
               </span>
               <div class="auth-link-row">
                 <button class="text-link gate-link" type="button" id="forgotPasswordBtn">비밀번호를 잊으셨나요?</button>
@@ -80,10 +82,35 @@
             </button>
           </form>
 
-          <form class="gate-form hidden" id="gateSignupForm" novalidate>
-            <div class="auth-link-row auth-link-row-end">
-              <button class="text-link gate-link" type="button" data-auth-mode="login">로그인</button>
+          <div class="social-login-row" id="socialLoginRow">
+            <div class="social-login-divider"><span>또는</span></div>
+            <div class="social-login-buttons">
+              <button class="social-login-btn" id="googleLoginBtn" type="button" aria-label="구글로 로그인">
+                <img src="login_google.png" alt="" aria-hidden="true" />
+              </button>
+              <button class="social-login-btn" id="naverLoginBtn" type="button" aria-label="네이버로 로그인">
+                <img src="login_naver.png" alt="" aria-hidden="true" />
+              </button>
             </div>
+          </div>
+
+          <form class="gate-form hidden" id="gateSocialProfileForm" novalidate>
+            <p class="auth-banner" id="socialProfileMessage" aria-live="polite" hidden></p>
+            <p class="field-hint">소셜 계정으로 처음 로그인하셨어요. 통독할 때 쓸 이름을 정해주세요.</p>
+            <div class="field" id="socialNameField">
+              <label for="socialProfileName">이름</label>
+              <input id="socialProfileName" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label for="socialProfileNickname">닉네임</label>
+              <input id="socialProfileNickname" required />
+            </div>
+            <button class="primary-button submit-button" type="submit" id="socialProfileSubmitBtn">
+              <span class="btn-label">시작하기</span>
+            </button>
+          </form>
+
+          <form class="gate-form hidden" id="gateSignupForm" novalidate>
             <fieldset class="field-group">
               <legend>계정 정보</legend>
               <div class="field">
@@ -102,7 +129,7 @@
                     data-password-target="gateSignupPassword"
                     aria-label="회원가입 비밀번호 보기"
                     aria-pressed="false"
-                  >보기</button>
+                  ><span class="icon-mask password-toggle-icon" style="--icon-src:url('icon-assets/glyphs/eye-off.png')" aria-hidden="true"></span></button>
                 </span>
                 <p class="field-hint">6자 이상</p>
               </div>
@@ -122,7 +149,7 @@
                     data-password-target="gateSignupPasswordConfirm"
                     aria-label="비밀번호 확인 내용 보기"
                     aria-pressed="false"
-                  >보기</button>
+                  ><span class="icon-mask password-toggle-icon" style="--icon-src:url('icon-assets/glyphs/eye-off.png')" aria-hidden="true"></span></button>
                 </span>
                 <p class="field-message" id="passwordMatchMessage" aria-live="polite"></p>
               </div>
@@ -170,37 +197,66 @@
             </div>
           </div>
 
-          <div class="home-metrics">
-            <button class="metric-card" data-jump-view="stats" type="button">
-              <span>전체 진행률</span>
-              <strong id="homePercent">0%</strong>
+          <div class="next-card">
+            <p class="eyebrow">오늘의 통독</p>
+            <h3 id="nextChapterTitle">창세기 1장</h3>
+            <p class="next-card-book-en" id="heroBookEnglish">genesis</p>
+            <button class="next-card-cta" id="homeNextBtn" type="button">이어서 읽기 →</button>
+          </div>
+
+          <div class="week-strip" id="weekStrip" aria-label="이번 주 통독 현황"></div>
+
+          <button class="home-calendar-btn" id="homeCalendarBtn" type="button">
+            <img class="home-calendar-btn-icon" src="icon-assets/glyphs/calendar-color.png" alt="" aria-hidden="true" />
+            통독 캘린더 보기
+          </button>
+
+          <div class="home-stats-grid">
+            <button class="total-progress-card metric-card-plain" data-jump-view="stats" type="button">
+              <span class="total-progress-header">
+                <img class="total-progress-icon" src="icon-assets/glyphs/open-bible.png" alt="" aria-hidden="true" />
+                <span class="total-progress-label">전체 통독</span>
+              </span>
+              <strong class="total-progress-value"><span id="homeTotalDone">0</span> / <span id="homeTotalCount">1189</span></strong>
+              <span class="total-progress-bar-row">
+                <span class="next-card-progress home-total-bar"><span id="homeTotalBar"></span></span>
+                <span class="total-progress-percent" id="homeTotalPercent">0%</span>
+              </span>
             </button>
-            <button class="metric-card" data-jump-view="stats" type="button">
-              <span>연속 통독</span>
-              <strong id="homeStreak">0일</strong>
+
+            <button class="metric-card metric-card-streak" data-jump-view="stats" type="button">
+              <img class="metric-card-icon" src="icon-assets/glyphs/fire-streak.png" alt="" aria-hidden="true" />
+              <span class="metric-card-text">
+                <strong id="homeStreak">0일</strong>
+                <span>연속 통독</span>
+              </span>
             </button>
-            <button class="metric-card" data-jump-view="profile" type="button">
-              <span>하루 목표</span>
-              <strong id="homeTarget">3장</strong>
-            </button>
-            <button class="metric-card" data-jump-view="community" type="button">
-              <span>공유 순위</span>
-              <strong id="homeRank">-</strong>
+            <button class="metric-card metric-card-cool" data-jump-view="profile" type="button">
+              <img class="metric-card-icon" src="icon-assets/glyphs/target-goal.png" alt="" aria-hidden="true" />
+              <span class="metric-card-text">
+                <strong id="homeTodayProgress">0 / 3장</strong>
+                <span>오늘</span>
+              </span>
             </button>
           </div>
 
-          <blockquote class="daily-verse">
-            <p id="homeVerseText"></p>
-            <cite id="homeVerseRef"></cite>
-          </blockquote>
-
-          <div class="next-card">
-            <div>
-              <p class="eyebrow">다음 통독</p>
-              <h3 id="nextChapterTitle">창세기 1장</h3>
-              <p>본문을 먼저 읽고 퀴즈에 도전해 보세요. 핵심내용 요약은 정답을 맞히면 볼 수 있어요.</p>
-            </div>
-            <button class="ghost-button" id="homeNextBtn" type="button">바로 풀기</button>
+          <div class="testament-cards">
+            <button class="testament-card tier-purple" data-jump-view="quiz" data-jump-testament="old" type="button">
+              <span class="testament-card-label">구약</span>
+              <span class="testament-card-stats">
+                <strong id="homeOldCount">0/39</strong>
+                <span id="homeOldProgress" class="testament-card-percent">0%</span>
+              </span>
+              <img class="testament-card-arrow" src="icon-assets/glyphs/chevron-next.png" alt="" aria-hidden="true" />
+            </button>
+            <button class="testament-card tier-orange" data-jump-view="quiz" data-jump-testament="new" type="button">
+              <span class="testament-card-label">신약</span>
+              <span class="testament-card-stats">
+                <strong id="homeNewCount">0/27</strong>
+                <span id="homeNewProgress" class="testament-card-percent">0%</span>
+              </span>
+              <img class="testament-card-arrow" src="icon-assets/glyphs/chevron-next.png" alt="" aria-hidden="true" />
+            </button>
           </div>
         </section>
 
@@ -222,7 +278,7 @@
               <strong id="todayCount">0장</strong>
             </div>
             <button class="record-cell" id="viewRecordsBtn" type="button">
-              <span class="metric-label">통독 기록</span>
+              <span class="metric-label"><img class="record-cell-icon" src="icon-assets/glyphs/calendar-color.png" alt="" aria-hidden="true" /> 통독 기록</span>
               <strong>기록 보기 →</strong>
             </button>
             <div>
@@ -276,20 +332,40 @@
         </section>
 
         <section class="panel library-panel" data-view-panel="quiz" data-quiz-step="books" aria-label="성경 권 선택">
-          <div class="panel-heading">
+          <div class="panel-heading library-heading">
             <div>
-              <p class="eyebrow">책 선택</p>
-              <h2>66권 한눈에 보기</h2>
+              <h2>성경</h2>
+              <p class="library-subtitle" id="librarySubtitle">66권 · 1,189장</p>
             </div>
           </div>
 
+          <div class="book-search-row">
+            <img class="book-search-icon" src="icon-assets/glyphs/search.png" alt="" aria-hidden="true" />
+            <input class="book-search" id="bookSearchInput" type="search" placeholder="책 이름으로 검색" autocomplete="off" />
+          </div>
+
+          <div class="testament-toggle" id="testamentToggle">
+            <span class="testament-toggle-thumb" id="testamentToggleThumb" aria-hidden="true"></span>
+            <button class="testament-toggle-btn active" data-testament="old" type="button">구약</button>
+            <button class="testament-toggle-btn" data-testament="new" type="button">신약</button>
+          </div>
+
+          <div class="library-section-heading">
+            <div>
+              <span id="librarySectionLabel">구약</span>
+              <span id="librarySectionCount">39권 · 929장</span>
+            </div>
+            <img class="library-section-arrow" src="icon-assets/glyphs/chevron-next.png" alt="" aria-hidden="true" />
+          </div>
+
           <div class="book-grid" id="bookGrid"></div>
+          <p class="empty-state" id="bookGridEmpty" hidden>검색 결과가 없습니다.</p>
         </section>
 
         <section class="panel chapter-panel" data-view-panel="quiz" data-quiz-step="chapters" aria-label="장 목록">
           <div class="panel-heading chapter-heading">
             <div class="heading-lead">
-              <button class="back-button" id="chapterBackBtn" type="button" aria-label="책 목록으로 돌아가기">←</button>
+              <button class="back-button" id="chapterBackBtn" type="button" aria-label="책 목록으로 돌아가기"><span class="icon-mask" style="--icon-src:url('icon-assets/glyphs/back.png')" aria-hidden="true"></span></button>
               <div>
                 <p class="eyebrow" id="selectedTestament">구약</p>
                 <h2 id="selectedBook">창세기</h2>
@@ -313,16 +389,17 @@
         <section class="panel reading-panel" data-view-panel="quiz" data-quiz-step="reading" aria-label="성경 본문 읽기">
           <div class="panel-heading quiz-heading">
             <div class="heading-lead">
-              <button class="back-button" id="readingBackBtn" type="button" aria-label="장 목록으로 돌아가기">←</button>
+              <button class="back-button" id="readingBackBtn" type="button" aria-label="장 목록으로 돌아가기"><span class="icon-mask" style="--icon-src:url('icon-assets/glyphs/back.png')" aria-hidden="true"></span></button>
               <div>
-                <p class="eyebrow" id="readingKicker">창세기 1장</p>
                 <h2>성경 본문 읽기</h2>
+                <p class="eyebrow reading-chapter-label" id="readingKicker">창세기 1장</p>
               </div>
             </div>
           </div>
 
           <div class="reading-settings">
             <div class="reading-size-toggle" role="group" aria-label="글씨 크기">
+              <div class="reading-size-toggle-thumb" id="readingSizeThumb"></div>
               <button type="button" data-font-size="small">소</button>
               <button type="button" data-font-size="medium">중</button>
               <button type="button" data-font-size="large">대</button>
@@ -337,14 +414,14 @@
           </div>
 
           <div class="quiz-actions">
-            <button class="primary-button" id="startQuizBtn" type="button">퀴즈 풀기</button>
+            <button class="primary-button start-quiz-btn" id="startQuizBtn" type="button">문제 풀기</button>
           </div>
         </section>
 
         <section class="panel quiz-panel" data-view-panel="quiz" data-quiz-step="quiz" aria-label="읽기와 퀴즈">
           <div class="panel-heading quiz-heading">
             <div class="heading-lead">
-              <button class="back-button" id="quizBackBtn" type="button" aria-label="본문으로 돌아가기">←</button>
+              <button class="back-button" id="quizBackBtn" type="button" aria-label="본문으로 돌아가기"><span class="icon-mask" style="--icon-src:url('icon-assets/glyphs/back.png')" aria-hidden="true"></span></button>
               <div>
                 <p class="eyebrow" id="chapterKicker">창세기 1장</p>
                 <h2>성경 읽고 퀴즈 풀기</h2>
@@ -379,7 +456,7 @@
               <p class="eyebrow">내 정보</p>
               <h2>계정과 칭호</h2>
             </div>
-            <button class="ghost-button" id="logoutBtn" type="button">로그아웃</button>
+            <button class="ghost-button logout-btn" id="logoutBtn" type="button">로그아웃</button>
           </div>
 
           <article class="form-card account-card">
@@ -394,6 +471,45 @@
                 <dd id="accountName">-</dd>
               </div>
             </dl>
+          </article>
+
+          <article class="form-card theme-card">
+            <h3>화면 테마</h3>
+            <div class="check-row">
+              <span>다크 모드</span>
+              <label class="switch">
+                <input type="checkbox" id="darkModeToggle" />
+                <span class="slider">
+                  <span class="glow"></span>
+                  <span class="icon-on">✓</span>
+                  <span class="icon-off">✕</span>
+                </span>
+              </label>
+            </div>
+            <p class="field-hint">눈이 편안한 어두운 화면으로 바꿔요. 이 기기에서만 적용돼요.</p>
+          </article>
+
+          <article class="form-card notification-card">
+            <h3>알림</h3>
+            <div class="check-row">
+              <span id="notificationStatusText">이 기기에서 알림이 꺼져 있어요</span>
+              <button class="mini-button" id="notificationEnableBtn" type="button">알림 켜기</button>
+            </div>
+            <p class="field-hint">이 기기로 알림을 받으려면 먼저 켜주세요.</p>
+
+            <div class="check-row">
+              <span>순간의 말씀 알림</span>
+              <label class="switch">
+                <input type="checkbox" id="momentVerseToggle" checked />
+                <span class="slider">
+                  <span class="glow"></span>
+                  <span class="icon-on">✓</span>
+                  <span class="icon-off">✕</span>
+                </span>
+              </label>
+            </div>
+            <label>하루 알림 개수<select id="momentVerseCountSelect"></select></label>
+            <p class="field-hint">하루 중 무작위 시각에 짧은 말씀 한 구절을 알림으로 보내드려요.</p>
           </article>
 
           <form class="form-card profile-form" id="profileForm">
@@ -416,7 +532,7 @@
                 </span>
               </label>
             </div>
-            <button class="primary-button" type="submit">저장</button>
+            <button class="primary-button profile-save-btn" type="submit">변경사항 적용하기</button>
             <p class="form-message" id="profileMessage" aria-live="polite"></p>
           </form>
 
@@ -441,9 +557,8 @@
         <section class="panel achievements-panel" data-view-panel="achievements" aria-label="칭호 도감">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">칭호 도감</p>
-              <h2>모은 칭호 <span id="achievementCount">0/74</span></h2>
-              <p class="field-hint">대표 칭호는 "내정보" 탭에서 설정할 수 있어요.</p>
+              <h2 class="achievements-heading">칭호 <span class="achievements-heading-count" id="achievementCount">0 / 74 수집됨</span></h2>
+              <p class="field-hint">내 칭호는 "내정보" 탭에서 변경할 수 있어요.</p>
             </div>
           </div>
 
@@ -453,21 +568,23 @@
 
       <nav class="mobile-tabbar" aria-label="모바일 화면 전환">
         <button class="active" data-view-tab="home" type="button">
+          <span class="icon-mask tabbar-icon" style="--icon-src:url('icon-assets/glyphs/home.png')" aria-hidden="true"></span>
           <span>홈</span>
         </button>
-        <button data-view-tab="stats" type="button">
-          <span>통계</span>
+        <button data-view-tab="achievements" type="button">
+          <span class="icon-mask tabbar-icon" style="--icon-src:url('icon-assets/glyphs/title-badge.png')" aria-hidden="true"></span>
+          <span>칭호</span>
         </button>
-        <button data-view-tab="quiz" type="button">
+        <button class="tabbar-fab" data-view-tab="quiz" type="button">
+          <span class="icon-mask tabbar-fab-icon" style="--icon-src:url('icon-assets/glyphs/bible.png')" aria-hidden="true"></span>
           <span>성경</span>
         </button>
         <button data-view-tab="community" type="button">
+          <span class="icon-mask tabbar-icon" style="--icon-src:url('icon-assets/glyphs/rank-crown.png')" aria-hidden="true"></span>
           <span>빌보드</span>
         </button>
-        <button data-view-tab="achievements" type="button">
-          <span>칭호</span>
-        </button>
         <button data-view-tab="profile" type="button">
+          <span class="icon-mask tabbar-icon" style="--icon-src:url('icon-assets/glyphs/profile.png')" aria-hidden="true"></span>
           <span>내정보</span>
         </button>
       </nav>
@@ -476,9 +593,9 @@
     <div class="calendar-modal-overlay" id="calendarModal" hidden>
       <div class="calendar-modal-card">
         <div class="calendar-modal-header">
-          <button class="back-button" id="calendarPrevBtn" type="button" aria-label="이전 달">‹</button>
+          <button class="back-button back-button-plain" id="calendarPrevBtn" type="button" aria-label="이전 달"><img src="icon-assets/glyphs/chevron-left.png" alt="" aria-hidden="true" /></button>
           <h2 id="calendarMonthLabel">2026년 8월</h2>
-          <button class="back-button" id="calendarNextBtn" type="button" aria-label="다음 달">›</button>
+          <button class="back-button back-button-plain" id="calendarNextBtn" type="button" aria-label="다음 달"><img src="icon-assets/glyphs/chevron-right.png" alt="" aria-hidden="true" /></button>
         </div>
         <div class="calendar-weekdays">
           <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
@@ -501,22 +618,22 @@
         <button class="tutorial-skip-btn" id="tutorialSkipBtn" type="button">건너뛰기</button>
 
         <div class="tutorial-step" data-step="0">
-          <div class="tutorial-icon">📖</div>
+          <div class="tutorial-icon"><img src="icon-assets/glyphs/open-bible.png" alt="" /></div>
           <h2>Verbum에 오신 걸 환영해요</h2>
           <p>매일 한 장씩, 성경 66권 1,189장을 함께 통독해요.</p>
         </div>
         <div class="tutorial-step" data-step="1" hidden>
-          <div class="tutorial-icon">✏️</div>
+          <div class="tutorial-icon"><img src="icon-assets/glyphs/edit.png" alt="" /></div>
           <h2>성경을 먼저 읽고, 퀴즈로 확인해요</h2>
           <p>성경 탭에서 책과 장을 고르면 성경 본문이 먼저 나와요. 본문을 읽고 맨 아래 "퀴즈 풀기"를 누른 뒤, 핵심 질문의 정답을 맞히면 그 장이 완료 처리돼요.</p>
         </div>
         <div class="tutorial-step" data-step="2" hidden>
-          <div class="tutorial-icon">📅</div>
+          <div class="tutorial-icon"><img src="icon-assets/glyphs/calendar-color.png" alt="" /></div>
           <h2>기록을 한눈에</h2>
-          <p>통계 탭에서 진행률과 연속 기록을 확인하고, "기록 보기"로 날짜별 통독 캘린더도 볼 수 있어요.</p>
+          <p>홈 화면의 진행률 카드를 누르면 진행률과 연속 기록을 확인하고, "기록 보기"로 날짜별 통독 캘린더도 볼 수 있어요.</p>
         </div>
         <div class="tutorial-step" data-step="3" hidden>
-          <div class="tutorial-icon">🏆</div>
+          <div class="tutorial-icon"><img src="icon-assets/glyphs/trophy.png" alt="" /></div>
           <h2>칭호를 모으고, 함께 경쟁해요</h2>
           <p>통독하며 다양한 칭호를 얻고, 빌보드에서 이번 주 순위를 친구들과 겨뤄보세요.</p>
         </div>
@@ -586,9 +703,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-analytics-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
     <script src="data/bible-data.js?v=20260824-3"></script>
-    <script src="data/achievements.js?v=20260824-2"></script>
+    <script src="data/achievements.js?v=20260909-14"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260904-6"></script>
+    <script src="app.js?v=20260909-28"></script>
   </body>
 </html>

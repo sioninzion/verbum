@@ -44,11 +44,22 @@ window.RARITY_META = {
   rare: { label: "희귀", order: 2 },
   epic: { label: "영웅", order: 3 },
   legendary: { label: "전설", order: 4 },
+  hidden: { label: "히든", order: 5 },
 };
 
 function allBooksDone(ctx, books) {
   return books.every((book) => ctx.completedBooks.has(book));
 }
+
+// Hidden achievements hide their real unlock condition until unlocked; the UI
+// shows "?????" in place of `condition` for locked hidden-rarity achievements
+// (see achievement-card-body span rendering in app.js's renderAchievements()).
+function hasReadChapter(ctx, book, chapterNumber) {
+  const chapter = window.BIBLE_APP_DATA.chapters.find((item) => item.book === book && item.chapter === chapterNumber);
+  return Boolean(chapter && ctx.completedChapterIds.has(chapter.id));
+}
+
+const SOLA_ACHIEVEMENT_IDS = ["sola-scriptura", "sola-fide", "sola-gratia", "solus-christus", "soli-deo-gloria"];
 
 window.ACHIEVEMENTS = [
   // ── 일반 ─────────────────────────────────────────────────────────
@@ -65,30 +76,36 @@ window.ACHIEVEMENTS = [
   { id: "book-ruth", rarity: "common", name: "어디로 가든지", condition: "룻기를 완독하세요", check: (ctx) => ctx.completedBooks.has("룻기") },
   { id: "book-esther", rarity: "common", name: "이 때를 위함이 아닌지", condition: "에스더를 완독하세요", check: (ctx) => ctx.completedBooks.has("에스더") },
   { id: "book-ecclesiastes", rarity: "common", name: "헛되지 않은 것", condition: "전도서를 완독하세요", check: (ctx) => ctx.completedBooks.has("전도서") },
-  { id: "book-matthew", rarity: "common", name: "왕이 오셨다", condition: "마태복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("마태복음") },
+  { id: "no-bad-lions", rarity: "common", name: "세상에 나쁜 사자는 없다", condition: "다니엘 6장을 읽으세요", check: (ctx) => hasReadChapter(ctx, "다니엘", 6) },
+  { id: "book-matthew", rarity: "common", name: "호산나 호산나", condition: "마태복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("마태복음") },
   { id: "book-mark", rarity: "common", name: "곧바로", condition: "마가복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("마가복음") },
+  { id: "talitha-koum", rarity: "common", name: "달리다굼", condition: "마가복음 5장을 읽으세요", check: (ctx) => hasReadChapter(ctx, "마가복음", 5) },
   { id: "book-luke", rarity: "common", name: "한 마리 양", condition: "누가복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("누가복음") },
   { id: "book-john", rarity: "common", name: "말씀이 육신이 되어", condition: "요한복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("요한복음") },
+  { id: "thanks-be-to-you", rarity: "common", name: "오 주여 당신께 감사하리다~", condition: "요한복음 9장을 읽으세요", check: (ctx) => hasReadChapter(ctx, "요한복음", 9) },
   { id: "book-acts", rarity: "common", name: "땅 끝까지", condition: "사도행전을 완독하세요", check: (ctx) => ctx.completedBooks.has("사도행전") },
   { id: "book-romans", rarity: "common", name: "오직 믿음으로", condition: "로마서를 완독하세요", check: (ctx) => ctx.completedBooks.has("로마서") },
   { id: "book-1corinthians", rarity: "common", name: "사랑이 없으면", condition: "고린도전서를 완독하세요", check: (ctx) => ctx.completedBooks.has("고린도전서") },
   { id: "book-2corinthians", rarity: "common", name: "약할 때 강함이라", condition: "고린도후서를 완독하세요", check: (ctx) => ctx.completedBooks.has("고린도후서") },
   { id: "book-galatians", rarity: "common", name: "자유를 위하여", condition: "갈라디아서를 완독하세요", check: (ctx) => ctx.completedBooks.has("갈라디아서") },
   { id: "book-ephesians", rarity: "common", name: "하나 되어", condition: "에베소서를 완독하세요", check: (ctx) => ctx.completedBooks.has("에베소서") },
-  { id: "book-philippians", rarity: "common", name: "항상 기뻐하라", condition: "빌립보서를 완독하세요", check: (ctx) => ctx.completedBooks.has("빌립보서") },
+  { id: "book-philippians", rarity: "common", name: "I CAN DO ALL THINGS", condition: "빌립보서를 완독하세요", check: (ctx) => ctx.completedBooks.has("빌립보서") },
   { id: "book-colossians", rarity: "common", name: "위의 것을 찾으라", condition: "골로새서를 완독하세요", check: (ctx) => ctx.completedBooks.has("골로새서") },
   { id: "book-hebrews", rarity: "common", name: "더 나은 언약", condition: "히브리서를 완독하세요", check: (ctx) => ctx.completedBooks.has("히브리서") },
   { id: "book-james", rarity: "common", name: "행함이 있는 믿음", condition: "야고보서를 완독하세요", check: (ctx) => ctx.completedBooks.has("야고보서") },
+  { id: "book-revelation", rarity: "common", name: "마라나타", condition: "요한계시록을 완독하세요", check: (ctx) => ctx.completedBooks.has("요한계시록") },
 
   // ── 희귀 ─────────────────────────────────────────────────────────
   { id: "tasted-the-word", rarity: "rare", name: "이제는 익숙해!", condition: "성경 50장을 읽으세요", check: (ctx) => ctx.totalRead >= 50 },
   { id: "hundred-chapters", rarity: "rare", name: "백(부)장", condition: "성경 100장을 읽으세요", check: (ctx) => ctx.totalRead >= 100 },
-  { id: "month-in-wilderness", rarity: "rare", name: "광야의 한 달", condition: "30일 연속 통독하세요", check: (ctx) => ctx.longestStreak >= 30 },
+  { id: "one-hundred-fifty-three", rarity: "rare", name: "153", condition: "누적 153장을 읽으세요", check: (ctx) => ctx.totalRead >= 153 },
+  { id: "walking-with-the-lord", rarity: "rare", name: "주와 같이 길 가는 것", condition: "15일 연속 통독하세요", check: (ctx) => ctx.longestStreak >= 15 },
+  { id: "month-in-wilderness", rarity: "rare", name: "우리가 주를 더욱 사랑하고", condition: "30일 연속 통독하세요", check: (ctx) => ctx.longestStreak >= 30 },
   { id: "forty-days-of-rain", rarity: "rare", name: "성벽 재건자", condition: "52일 연속 통독하세요", check: (ctx) => ctx.longestStreak >= 52 },
   { id: "start-of-kingship", rarity: "rare", name: "왕의 시작", condition: "사무엘상과 사무엘하를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["사무엘상", "사무엘하"]) },
   { id: "tales-of-kings", rarity: "rare", name: "왕들의 이야기", condition: "열왕기상과 열왕기하를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["열왕기상", "열왕기하"]) },
   { id: "returned-people", rarity: "rare", name: "돌아온 백성", condition: "에스라와 느헤미야를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["에스라", "느헤미야"]) },
-  { id: "my-song", rarity: "rare", name: "나의 노래", condition: "시편 150편을 모두 완독하세요", check: (ctx) => ctx.completedBooks.has("시편") },
+  { id: "my-song", rarity: "rare", name: "나를 향한 주의 사랑", condition: "시편 150편을 완독하세요", check: (ctx) => ctx.completedBooks.has("시편") },
   { id: "weeping-prophet", rarity: "rare", name: "눈물의 선지자", condition: "예레미야와 예레미야애가를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["예레미야", "예레미야애가"]) },
   { id: "without-ceasing", rarity: "rare", name: "쉬지 말고", condition: "데살로니가전서와 데살로니가후서를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["데살로니가전서", "데살로니가후서"]) },
   { id: "good-fight", rarity: "rare", name: "선한 싸움", condition: "디모데전서와 디모데후서를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["디모데전서", "디모데후서"]) },
@@ -96,8 +113,8 @@ window.ACHIEVEMENTS = [
   { id: "love-one-another", rarity: "rare", name: "서로 사랑하라", condition: "요한일서, 요한이서, 요한삼서를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["요한일서", "요한이서", "요한삼서"]) },
   { id: "from-the-beginning", rarity: "rare", name: "태초부터", condition: "모세오경 5권을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, window.BOOK_GROUPS.pentateuch) },
   { id: "fountain-of-wisdom", rarity: "rare", name: "지혜의 샘", condition: "시가서 5권을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, window.BOOK_GROUPS.wisdom) },
-  { id: "four-witnesses", rarity: "rare", name: "복음의 네 증인", condition: "마태복음, 마가복음, 누가복음, 요한복음을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, window.BOOK_GROUPS.gospels) },
-  { id: "beginning-and-end", rarity: "rare", name: "시작과 끝", condition: "창세기와 요한계시록을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["창세기", "요한계시록"]) },
+  { id: "four-witnesses", rarity: "rare", name: "ΙΧΘΥΣ", condition: "마태복음, 마가복음, 누가복음, 요한복음을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, window.BOOK_GROUPS.gospels) },
+  { id: "beginning-and-end", rarity: "rare", name: "Ἄλφα καὶ Ὦ", condition: "창세기와 요한계시록을 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["창세기", "요한계시록"]) },
   { id: "law-and-gospel", rarity: "rare", name: "율법과 복음", condition: "신명기와 로마서를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["신명기", "로마서"]) },
   { id: "wisdom-trio", rarity: "rare", name: "지혜 삼총사", condition: "욥기, 잠언, 전도서를 모두 완독하세요", check: (ctx) => allBooksDone(ctx, ["욥기", "잠언", "전도서"]) },
   { id: "early-morning", rarity: "rare", name: "이른 아침에", condition: "오전 6시 이전 통독을 10회 기록하세요", check: (ctx) => ctx.earlyMorningCount >= 10 },
@@ -132,4 +149,22 @@ window.ACHIEVEMENTS = [
   { id: "word-became-life", rarity: "legendary", name: "말씀이 삶이 되어", condition: "성경 전체를 10회 완독하세요", check: (ctx) => ctx.cycles >= 10 },
   { id: "dwelling-in-the-word", rarity: "legendary", name: "말씀에 거하다", condition: "누적 통독 일수 1,000일을 달성하세요", check: (ctx) => ctx.cumulativeDaysRead >= 1000 },
   { id: "thousand-days-together", rarity: "legendary", name: "천 일의 동행", condition: "1,000일 연속 통독하세요", check: (ctx) => ctx.longestStreak >= 1000 },
+
+  // ── 히든 ─────────────────────────────────────────────────────────
+  // Post Tenebras Lux checks ctx.unlockedAchievements, which is the same object
+  // runAchievementPipeline() mutates as it walks this array in order — so it
+  // must stay positioned after all five Sola achievements below.
+  { id: "sola-scriptura", rarity: "hidden", name: "Sola Scriptura", condition: "디모데후서 3장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "디모데후서", 3) },
+  { id: "sola-fide", rarity: "hidden", name: "Sola Fide", condition: "히브리서 11장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "히브리서", 11) },
+  { id: "sola-gratia", rarity: "hidden", name: "Sola Gratia", condition: "에베소서 2장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "에베소서", 2) },
+  { id: "solus-christus", rarity: "hidden", name: "Solus Christus", condition: "요한복음 14장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "요한복음", 14) },
+  { id: "soli-deo-gloria", rarity: "hidden", name: "Soli Deo Gloria", condition: "고린도전서 10장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "고린도전서", 10) },
+  { id: "post-tenebras-lux", rarity: "epic", name: "Post Tenebras Lux", condition: "다섯 개의 Sola 칭호를 모두 획득하세요.", check: (ctx) => SOLA_ACHIEVEMENT_IDS.every((id) => ctx.unlockedAchievements[id]) },
+  // Event-driven, not state-driven: check() always returns false here because
+  // by the time any later chapter-completion re-runs the pipeline, the reset
+  // this achievement is about has already wiped `completed`. It is unlocked
+  // directly by resetProgress() in app.js instead, right before that wipe.
+  { id: "not-really", rarity: "hidden", name: "이게 진짜일 리 없어", condition: "25장 이상 통독한 상태에서 통독 진행도를 초기화하세요.", check: () => false },
+  { id: "flawless-hundred", rarity: "hidden", name: "백발백중", condition: "퀴즈를 100문제 연속으로 맞히세요.", check: (ctx) => ctx.quizCorrectStreak >= 100 },
+  { id: "full-canon-order", rarity: "hidden", name: "1189", condition: "창세기 1장부터 요한계시록 22장까지 성경 1,189장을 정순으로 완독하세요.", check: (ctx) => ctx.readInCanonicalOrder },
 ];

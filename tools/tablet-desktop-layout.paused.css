@@ -1,0 +1,129 @@
+/* PAUSED — tablet/desktop responsive layout, temporarily removed from styles.css
+   on 2026-09-05 per user request ("컴퓨터, 태블릿은 나중에 설정하고 기본적으로
+   핸드폰 화면을 대상으로 빌드하자"). The app now always renders the phone-shaped
+   16:9 card (see the unconditional "App-frame layout" block in styles.css) on
+   every screen width ≥ 521px, instead of widening into this tablet/sidebar
+   layout at 768px/1024px.
+
+   To restore: paste this file's contents back onto the end of styles.css
+   (after the last @media (max-width: 520px) block). No HTML/JS changes are
+   needed — it only re-flows the existing .app-shell/.mobile-tabbar elements. */
+
+/* Tablet: same phone-card look, but wider and no longer locked to a 9:16
+   phone aspect ratio. The bottom tab bar stays exactly as on mobile
+   (position: sticky, unaffected below 768px). */
+@media (min-width: 768px) {
+  .app-shell,
+  .login-card {
+    width: min(680px, calc(100vw - 64px));
+    height: min(920px, calc(100dvh - 64px));
+    max-height: calc(100dvh - 64px);
+  }
+
+  .library-panel,
+  .chapter-panel,
+  .reading-panel,
+  .quiz-panel,
+  .community-panel {
+    padding-bottom: 14px;
+  }
+}
+
+/* Desktop: fixed left sidebar (the same tab-bar buttons, just re-flowed)
+   plus a centered, reading-width content column. No new markup — the
+   existing #dashboard and .mobile-tabbar elements are simply reflowed. */
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .app-shell {
+    width: 100%;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: row;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .dashboard,
+  .dashboard[data-view] {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 24px;
+    grid-template-columns: minmax(0, 760px);
+    justify-content: center;
+    align-content: start;
+  }
+
+  .mobile-tabbar {
+    order: -1;
+    position: static;
+    flex: 0 0 240px;
+    width: 240px;
+    height: 100%;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 28px 14px;
+    border-radius: 0;
+    box-shadow: none;
+    border-right: 1px solid var(--line);
+  }
+
+  .mobile-tabbar button {
+    place-items: center start;
+    padding: 0 16px;
+    min-height: 48px;
+    border-radius: 14px;
+  }
+
+  .mobile-tabbar span {
+    font-size: 15px;
+  }
+
+  /* The circular floating "성경" button only makes sense in the bottom bar —
+     in the sidebar it lays out as a normal row like every other tab. */
+  .mobile-tabbar button.tabbar-fab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: none;
+    width: auto;
+    height: auto;
+    min-height: 48px;
+    margin: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--muted);
+    box-shadow: none;
+  }
+
+  .mobile-tabbar button.tabbar-fab:active {
+    transform: scale(0.98);
+  }
+
+  .mobile-tabbar button.tabbar-fab.active {
+    background: var(--bg);
+    color: var(--blue);
+    box-shadow: var(--neu-pressed-sm);
+  }
+
+  .tabbar-fab-icon {
+    font-size: 18px;
+  }
+
+  .mobile-tabbar button.tabbar-fab span:not(.tabbar-fab-icon) {
+    position: static;
+    color: inherit;
+    font-size: 15px;
+  }
+}
