@@ -401,7 +401,6 @@ const elements = {
   achievementModalCondition: document.querySelector("#achievementModalCondition"),
   achievementModalCloseBtn: document.querySelector("#achievementModalCloseBtn"),
   viewRecordsBtn: document.querySelector("#viewRecordsBtn"),
-  homeCalendarBtn: document.querySelector("#homeCalendarBtn"),
   calendarModal: document.querySelector("#calendarModal"),
   calendarMonthLabel: document.querySelector("#calendarMonthLabel"),
   calendarGrid: document.querySelector("#calendarGrid"),
@@ -2317,8 +2316,18 @@ async function resetProgress() {
 elements.achievementModalCloseBtn.addEventListener("click", showNextAchievementModal);
 
 elements.viewRecordsBtn.addEventListener("click", openCalendarModal);
-elements.homeCalendarBtn.addEventListener("click", openCalendarModal);
 elements.calendarCloseBtn.addEventListener("click", closeCalendarModal);
+
+// The week strip itself now opens the calendar (replaces the old separate
+// "통독 캘린더 보기" button below it) — role="button" in the markup, so
+// Enter/Space need to be wired by hand same as a real <button> would.
+elements.weekStrip.addEventListener("click", openCalendarModal);
+elements.weekStrip.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openCalendarModal();
+  }
+});
 elements.calendarPrevBtn.addEventListener("click", () => {
   state.calendarViewDate.setMonth(state.calendarViewDate.getMonth() - 1);
   renderCalendarModal();
@@ -2479,18 +2488,28 @@ elements.logoutBtn.addEventListener("click", logout);
 // load — this is the only place additionalUserInfo.isNewUser is available,
 // so it has to be captured here and handed off via pendingSocialSignup
 // (declared above) for the very next onAuthStateChanged to consume.
-auth
-  .getRedirectResult()
-  .then((result) => {
+//
+// This has to fully resolve BEFORE onAuthStateChanged is even registered
+// below (not just before pendingSocialSignup is read) — onAuthStateChanged
+// fires its first callback almost immediately once it's live, and that
+// first firing was winning the race against this async lookup, so a brand
+// new Google/Naver sign-in fell straight through to the normal returning-
+// user path (home screen) instead of ever showing the nickname step.
+// onAuthStateChanged always fires once more anyway, immediately, reflecting
+// whatever the current signed-in state already is — so registering it only
+// after this resolves loses nothing for the normal (no pending redirect)
+// case, it's just a few ms later.
+async function resolvePendingSocialRedirect() {
+  try {
+    const result = await auth.getRedirectResult();
     if (result?.user && result.additionalUserInfo?.isNewUser) {
       pendingSocialSignup = { name: result.user.displayName || "" };
     }
-  })
-  .catch((error) => {
+  } catch (error) {
     setAuthBanner(getAuthErrorMessage(error));
-  });
-
-handleNaverRedirectReturn();
+  }
+  await handleNaverRedirectReturn();
+}
 
 elements.darkModeToggle.checked = document.documentElement.getAttribute("data-theme") === "dark";
 elements.darkModeToggle.addEventListener("change", () => {
@@ -2578,7 +2597,7 @@ async function openPendingMomentVerseLink() {
   }
 }
 
-auth.onAuthStateChanged(async (firebaseUser) => {
+async function handleAuthStateChange(firebaseUser) {
   try {
     if (state.creatingAccount) return;
 
@@ -2616,6 +2635,10 @@ auth.onAuthStateChanged(async (firebaseUser) => {
     state.isAuthenticated = false;
     render();
   }
+}
+
+resolvePendingSocialRedirect().finally(() => {
+  auth.onAuthStateChanged(handleAuthStateChange);
 });
 
 render();

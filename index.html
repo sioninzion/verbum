@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260909-85" />
+    <link rel="stylesheet" href="styles.css?v=20260909-87" />
   </head>
   <body>
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -204,12 +204,13 @@
             <button class="next-card-cta" id="homeNextBtn" type="button">이어서 읽기 →</button>
           </div>
 
-          <div class="week-strip" id="weekStrip" aria-label="이번 주 통독 현황"></div>
-
-          <button class="home-calendar-btn" id="homeCalendarBtn" type="button">
-            <img class="home-calendar-btn-icon" src="icon-assets/glyphs/calendar-color.png" alt="" aria-hidden="true" />
-            통독 캘린더 보기
-          </button>
+          <div
+            class="week-strip"
+            id="weekStrip"
+            role="button"
+            tabindex="0"
+            aria-label="이번 주 통독 현황, 눌러서 통독 캘린더 보기"
+          ></div>
 
           <div class="home-stats-grid">
             <button class="total-progress-card metric-card-plain" data-jump-view="stats" type="button">
@@ -708,6 +709,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-14"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260909-28"></script>
+    <script src="app.js?v=20260909-30"></script>
   </body>
 </html>

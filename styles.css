@@ -1,8 +1,12 @@
 :root {
   /* Flat, light theme (replaces the old neumorphic parchment palette). */
   /* Also used by the reading panel's sticky header to know exactly how much
-     of .app-shell's own top padding it needs to pull up and re-cover. */
-  --app-shell-pad-top: max(24px, calc(env(safe-area-inset-top) + 18px));
+     of .app-shell's own top padding it needs to pull up and re-cover.
+     Combined with each panel's own 14px top padding, this is what makes
+     the very first on-screen object sit 20px below the top edge on a
+     non-notched device (6 + 14 = 20) — notched devices still get the full
+     safe-area inset plus a small buffer on top of that. */
+  --app-shell-pad-top: max(6px, calc(env(safe-area-inset-top) + 6px));
   --bg: #fbf9f4;
   --paper: #ffffff;
   --ink: #211c16;
@@ -321,28 +325,6 @@ h3 {
   line-height: 1.58;
 }
 
-.home-calendar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  margin-bottom: 35px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 14px;
-  background: #f5f1eb;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.home-calendar-btn-icon {
-  width: 20px;
-  height: 20px;
-}
-
 .home-stats-grid {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
@@ -571,7 +553,21 @@ h3 {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  margin: 14px 0 16px;
+  margin: 14px 0 32px;
+  cursor: pointer;
+  border-radius: 14px;
+  transition: transform 140ms ease;
+}
+
+/* Doubles as the old "통독 캘린더 보기" button now, so it gets the same
+   press/focus feedback a real button would. */
+.week-strip:active {
+  transform: scale(0.98);
+}
+
+.week-strip:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .week-day {
@@ -3771,10 +3767,6 @@ body {
    instead of being pinned dark like it is against the light card art. */
 :root[data-theme="dark"] .next-card {
   background-image: url('today_card_dark.png') !important;
-}
-
-:root[data-theme="dark"] .home-calendar-btn {
-  background: #201d16;
 }
 
 :root[data-theme="dark"] .testament-card::after {
