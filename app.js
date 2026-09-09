@@ -2674,6 +2674,14 @@ resolvePendingSocialRedirect().finally(() => {
   auth.onAuthStateChanged(handleAuthStateChange);
 });
 
+// Declared here (rather than down in the "add to home screen" section below
+// where it's actually populated, via the `beforeinstallprompt` listener) so
+// that it's already initialized by the time `render()` on the next line
+// makes its first synchronous pass through `renderNotificationPwaStatus()` —
+// that `let` binding would otherwise still be in its temporal dead zone at
+// this point in the file and throw.
+let deferredInstallPrompt = null;
+
 render();
 document.documentElement.dataset.appReady = "true";
 
@@ -2696,8 +2704,6 @@ function detectInstallPlatform() {
   const isAndroid = /Android/.test(ua);
   return { isIOS, isAndroid };
 }
-
-let deferredInstallPrompt = null;
 
 const installBannerGroups = [
   {
@@ -2816,21 +2822,25 @@ function canReceiveNotifications() {
   return getNotificationReadiness() === "ready";
 }
 
-const NOTIFICATION_PWA_STATUS_MESSAGES = {
-  ready: "알림 준비 완료",
-  "needs-install": "홈 화면에 추가(PWA 설치)해야 알림을 받을 수 있어요",
-  denied: "알림이 차단되어 있어요 — 기기/브라우저 설정에서 허용해주세요",
-  default: "알림을 켜면 권한 요청 창이 떠요",
-  unsupported: "이 브라우저는 알림을 지원하지 않아요",
-};
-
+// Defined inline (rather than as a module-level const) so this has no
+// dependency on where in the file it sits relative to its first call — see
+// the `deferredInstallPrompt` comment above for why that ordering matters
+// here: render() makes its first synchronous pass through this function
+// well before the bottom of the file finishes executing.
 function renderNotificationPwaStatus() {
   if (!elements.notificationPwaStatus) return;
   const readiness = getNotificationReadiness();
   const ready = readiness === "ready";
   const { isIOS, isAndroid } = detectInstallPlatform();
+  const messages = {
+    ready: "알림 준비 완료",
+    "needs-install": "홈 화면에 추가(PWA 설치)해야 알림을 받을 수 있어요",
+    denied: "알림이 차단되어 있어요 — 기기/브라우저 설정에서 허용해주세요",
+    default: "알림을 켜면 권한 요청 창이 떠요",
+    unsupported: "이 브라우저는 알림을 지원하지 않아요",
+  };
 
-  elements.notificationPwaStatus.textContent = NOTIFICATION_PWA_STATUS_MESSAGES[readiness];
+  elements.notificationPwaStatus.textContent = messages[readiness];
   elements.notificationPwaStatus.classList.toggle("ready", ready);
 
   // The install/tutorial buttons only ever help the "needs-install" case —
