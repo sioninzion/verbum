@@ -493,15 +493,9 @@
           <article class="form-card notification-card">
             <h3>알림</h3>
             <div class="check-row">
-              <span id="notificationStatusText">이 기기에서 알림이 꺼져 있어요</span>
-              <button class="mini-button" id="notificationEnableBtn" type="button">알림 켜기</button>
-            </div>
-            <p class="field-hint">이 기기로 알림을 받으려면 먼저 켜주세요.</p>
-
-            <div class="check-row">
-              <span>순간의 말씀 알림</span>
+              <span>알림</span>
               <label class="switch">
-                <input type="checkbox" id="momentVerseToggle" checked />
+                <input type="checkbox" id="momentVerseToggle" />
                 <span class="slider">
                   <span class="glow"></span>
                   <span class="icon-on">✓</span>
@@ -509,8 +503,10 @@
                 </span>
               </label>
             </div>
-            <label>하루 알림 개수<select id="momentVerseCountSelect"></select></label>
-            <p class="field-hint">하루 중 무작위 시각에 짧은 말씀 한 구절을 알림으로 보내드려요.</p>
+            <p class="field-hint" id="notificationStatusText">알림을 켜면 하루 중 무작위 시각에 짧은 말씀 한 구절을 이 기기로 받아볼 수 있어요.</p>
+            <div id="momentVerseCountRow">
+              <label>하루 알림 개수<select id="momentVerseCountSelect"></select></label>
+            </div>
           </article>
 
           <form class="form-card profile-form" id="profileForm">
@@ -709,6 +705,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-14"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260909-32"></script>
+    <script src="app.js?v=20260909-33"></script>
   </body>
 </html>

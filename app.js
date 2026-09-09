@@ -381,9 +381,9 @@ const elements = {
   accountEmail: document.querySelector("#accountEmail"),
   accountName: document.querySelector("#accountName"),
   darkModeToggle: document.querySelector("#darkModeToggle"),
-  notificationEnableBtn: document.querySelector("#notificationEnableBtn"),
   notificationStatusText: document.querySelector("#notificationStatusText"),
   momentVerseToggle: document.querySelector("#momentVerseToggle"),
+  momentVerseCountRow: document.querySelector("#momentVerseCountRow"),
   momentVerseCountSelect: document.querySelector("#momentVerseCountSelect"),
   profileForm: document.querySelector("#profileForm"),
   profileNickname: document.querySelector("#profileNickname"),
@@ -804,33 +804,38 @@ function setNotificationStatus(text) {
   }
 }
 
-// Reflects Notification.permission (read-only browser state) in the profile
-// card whenever it renders — this is just UI text, it never itself prompts.
-function syncNotificationUI() {
-  if (!elements.notificationStatusText || !elements.notificationEnableBtn) return;
-  if (!("Notification" in window)) {
-    setNotificationStatus("이 브라우저는 알림을 지원하지 않아요");
-    elements.notificationEnableBtn.hidden = true;
-    return;
-  }
-  if (Notification.permission === "granted") {
-    setNotificationStatus("이 기기에서 알림이 켜져 있어요");
-    elements.notificationEnableBtn.textContent = "다시 켜기";
-  } else if (Notification.permission === "denied") {
-    setNotificationStatus("알림이 차단됐어요 — 브라우저 설정에서 허용해주세요");
-    elements.notificationEnableBtn.textContent = "알림 켜기";
-  } else {
-    setNotificationStatus("이 기기에서 알림이 꺼져 있어요");
-    elements.notificationEnableBtn.textContent = "알림 켜기";
-  }
+const MOMENT_VERSE_DEFAULT_HINT = "알림을 켜면 하루 중 무작위 시각에 짧은 말씀 한 구절을 이 기기로 받아볼 수 있어요.";
+
+// What the hint line under the toggle should say absent any just-happened
+// error — read fresh each time rather than cached, since Notification.
+// permission can change at any point behind our back (browser settings).
+function defaultNotificationHint() {
+  if (!("Notification" in window)) return "이 브라우저는 알림을 지원하지 않아요";
+  if (Notification.permission === "denied") return "알림이 차단돼 있어요 — 브라우저 설정에서 허용해주세요";
+  return MOMENT_VERSE_DEFAULT_HINT;
 }
 
-// Only ever called from the "알림 켜기" button's click handler — ⁠the
-// permission prompt must never fire on its own (requirement: only a direct
-// user tap triggers Notification.requestPermission()).
-async function enableNotifications() {
+// The single "알림" toggle now does double duty: turning it on both grants
+// this device permission (browser prompt + FCM token, same work the old
+// separate "알림 켜기" button used to do) AND flips the Firestore
+// preference on, so what used to be a button-plus-switch pair collapses
+// into the one switch every other setting in this app already uses.
+// Turning it back off only touches the Firestore preference — the device
+// stays registered so turning it on again later never needs to re-prompt.
+//
+// The permission prompt still only ever fires from this direct click
+// handler, never on its own, same as before.
+async function handleMomentVerseToggleChange() {
+  if (!elements.momentVerseToggle.checked) {
+    await saveMomentVerseSettings();
+    setNotificationStatus(defaultNotificationHint());
+    return;
+  }
+
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     setNotificationStatus("이 브라우저는 알림을 지원하지 않아요");
+    elements.momentVerseToggle.checked = false;
+    renderMomentVerseSettings();
     return;
   }
 
@@ -844,19 +849,31 @@ async function enableNotifications() {
   }
   if (!supported) {
     setNotificationStatus("이 브라우저/환경에서는 푸시 알림을 지원하지 않아요");
+    elements.momentVerseToggle.checked = false;
+    renderMomentVerseSettings();
     return;
   }
 
-  elements.notificationEnableBtn.disabled = true;
+  if (Notification.permission === "denied") {
+    setNotificationStatus("알림이 차단돼 있어요 — 브라우저 설정에서 허용해주세요");
+    elements.momentVerseToggle.checked = false;
+    renderMomentVerseSettings();
+    return;
+  }
+
+  elements.momentVerseToggle.disabled = true;
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      setNotificationStatus(
-        permission === "denied"
-          ? "알림이 차단됐어요 — 브라우저 설정에서 허용해주세요"
-          : "알림 권한이 허용되지 않았어요"
-      );
-      return;
+    if (Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotificationStatus(
+          permission === "denied"
+            ? "알림이 차단됐어요 — 브라우저 설정에서 허용해주세요"
+            : "알림 권한이 허용되지 않았어요"
+        );
+        elements.momentVerseToggle.checked = false;
+        return;
+      }
     }
 
     // Reuse the PWA's own already-registered worker instead of letting the
@@ -871,21 +888,23 @@ async function enableNotifications() {
 
     if (!token) {
       setNotificationStatus("알림 토큰을 발급받지 못했어요. 잠시 후 다시 시도해주세요");
+      elements.momentVerseToggle.checked = false;
       return;
     }
 
     console.log("[FCM] registration token:", token);
-
     if (state.isAuthenticated && state.firebaseUser) {
       await saveNotificationToken(token);
     }
-    setNotificationStatus("이 기기에서 알림이 켜졌어요");
-    elements.notificationEnableBtn.textContent = "다시 켜기";
-  } catch (err) {
-    console.error("[FCM] enable failed", err);
+    await saveMomentVerseSettings();
+    setNotificationStatus(defaultNotificationHint());
+  } catch (error) {
+    console.error("[FCM] enable failed", error);
     setNotificationStatus("알림을 켜는 중 문제가 발생했어요. 잠시 후 다시 시도해주세요");
+    elements.momentVerseToggle.checked = false;
   } finally {
-    elements.notificationEnableBtn.disabled = false;
+    elements.momentVerseToggle.disabled = false;
+    renderMomentVerseSettings();
   }
 }
 
@@ -1460,6 +1479,10 @@ function renderMomentVerseSettings() {
   elements.momentVerseCountSelect.value = String(settings.momentVerseDailyCount);
   elements.momentVerseToggle.disabled = !state.isAuthenticated;
   elements.momentVerseCountSelect.disabled = !state.isAuthenticated;
+  // Only worth configuring a count while the toggle itself is on.
+  if (elements.momentVerseCountRow) {
+    elements.momentVerseCountRow.hidden = !settings.momentVerseEnabled;
+  }
 }
 
 // Both controls save straight to Firestore the moment they change (per spec
@@ -2527,12 +2550,9 @@ elements.darkModeToggle.addEventListener("change", () => {
   }
 });
 
-syncNotificationUI();
-if (elements.notificationEnableBtn) {
-  elements.notificationEnableBtn.addEventListener("click", enableNotifications);
-}
+setNotificationStatus(defaultNotificationHint());
 if (elements.momentVerseToggle) {
-  elements.momentVerseToggle.addEventListener("change", saveMomentVerseSettings);
+  elements.momentVerseToggle.addEventListener("change", handleMomentVerseToggleChange);
 }
 if (elements.momentVerseCountSelect) {
   elements.momentVerseCountSelect.addEventListener("change", saveMomentVerseSettings);

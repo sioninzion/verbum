@@ -227,27 +227,50 @@ async function sendPlanEntries(uid, planRef, selected, indexes) {
   const updated = [...selected];
   const now = FieldValue.serverTimestamp();
 
+  if (!tokens.length) {
+    // No enabled device to send to at all — leave sent:false. Marking it
+    // sent here would be a lie: nothing went anywhere, and since this
+    // function only ever matches a plan entry's *exact* HH:MM, a false
+    // "sent" would permanently bury it with zero chance of ever being
+    // retried, even once the user does register a device later.
+    logger.info(`sendDueMomentVerses: ${uid} has no enabled device token, skipping ${indexes.length} entr${indexes.length === 1 ? "y" : "ies"}`);
+    return;
+  }
+
   for (const i of indexes) {
     const entry = selected[i];
     const ref = `${entry.book} ${entry.chapter}:${entry.verse}`;
-    const body = `${entry.text}\n- ${ref} -`;
+    // The chapter:verse numbers ARE the displayed "clock face" (that's the
+    // whole point of this feature) — not entry.time, which is only the
+    // real Asia/Seoul send time used for scheduling (chapter 11 doing
+    // double duty for both an 11 AM slot and an 11 PM one is expected and
+    // fine here; the display always just reads chapter/verse literally).
+    const title = `✨${entry.chapter}시 ${entry.verse}분의 말씀✨`;
+    const body = `${entry.text}\n${ref}`;
 
-    if (tokens.length) {
-      const response = await messaging.sendEachForMulticast({
-        tokens,
-        data: {
-          type: "moment_verse",
-          title: "✨ 순간의 말씀",
-          body,
-          book: entry.book,
-          chapter: String(entry.chapter),
-          verse: String(entry.verse),
-        },
-      });
-      await cleanupInvalidTokens(deviceDocs, response);
+    const response = await messaging.sendEachForMulticast({
+      tokens,
+      data: {
+        type: "moment_verse",
+        title,
+        body,
+        book: entry.book,
+        chapter: String(entry.chapter),
+        verse: String(entry.verse),
+      },
+    });
+    await cleanupInvalidTokens(deviceDocs, response);
+
+    // Only record it as sent if it actually reached at least one device —
+    // sendEachForMulticast can fail every single token (exactly what
+    // happened earlier: the one registered token had already gone stale),
+    // and marking it sent regardless would falsely bury it forever with no
+    // way to ever retry, same reasoning as the no-token-at-all case above.
+    if (response.successCount > 0) {
+      updated[i] = { ...entry, sent: true, sentAt: new Date().toISOString() };
+    } else {
+      logger.info(`sendDueMomentVerses: all ${tokens.length} token(s) failed for ${uid} on ${ref}, leaving sent:false`);
     }
-
-    updated[i] = { ...entry, sent: true, sentAt: new Date().toISOString() };
   }
 
   await planRef.update({ selected: updated, updatedAt: now });
