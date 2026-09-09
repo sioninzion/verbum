@@ -75,6 +75,7 @@ window.ACHIEVEMENTS = [
   { id: "book-judges", rarity: "common", name: "사사로운 시대", condition: "사사기를 완독하세요", check: (ctx) => ctx.completedBooks.has("사사기") },
   { id: "book-ruth", rarity: "common", name: "어디로 가든지", condition: "룻기를 완독하세요", check: (ctx) => ctx.completedBooks.has("룻기") },
   { id: "book-esther", rarity: "common", name: "이 때를 위함이 아닌지", condition: "에스더를 완독하세요", check: (ctx) => ctx.completedBooks.has("에스더") },
+  { id: "book-job", rarity: "common", name: "어둔 날 다 지나고", condition: "욥기를 완독하세요", check: (ctx) => ctx.completedBooks.has("욥기") },
   { id: "book-ecclesiastes", rarity: "common", name: "헛되지 않은 것", condition: "전도서를 완독하세요", check: (ctx) => ctx.completedBooks.has("전도서") },
   { id: "no-bad-lions", rarity: "common", name: "세상에 나쁜 사자는 없다", condition: "다니엘 6장을 읽으세요", check: (ctx) => hasReadChapter(ctx, "다니엘", 6) },
   { id: "book-matthew", rarity: "common", name: "호산나 호산나", condition: "마태복음을 완독하세요", check: (ctx) => ctx.completedBooks.has("마태복음") },

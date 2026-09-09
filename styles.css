@@ -2917,6 +2917,44 @@ body {
   display: none;
 }
 
+/* Portrait-only lock. manifest.json's "orientation":"portrait" only takes
+   effect for an installed Android PWA — iOS Safari ignores it outright, and
+   neither platform stops rotation inside an ordinary browser tab. A CSS
+   overlay is the one thing that works everywhere regardless of platform or
+   install state: touch devices only (pointer:coarse excludes a desktop
+   window that's simply been resized narrow/wide), so laptops/desktops in
+   any window shape are never affected. */
+.rotate-overlay {
+  display: none;
+}
+
+@media (orientation: landscape) and (pointer: coarse) {
+  .rotate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .rotate-overlay-icon {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 40px;
+    transform: rotate(90deg);
+  }
+
+  .rotate-overlay-content p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+  }
+}
+
 .splash-screen {
   position: fixed;
   inset: 0;
