@@ -2484,39 +2484,34 @@ elements.gateSocialProfileForm.addEventListener("submit", handleSocialProfileSub
 elements.googleLoginBtn.addEventListener("click", async () => {
   setAuthBanner("");
   try {
-    await auth.signInWithRedirect(googleProvider);
+    const result = await auth.signInWithPopup(googleProvider);
+    // Set this BEFORE anything else can react to the now-signed-in state —
+    // same reasoning as resolvePendingSocialRedirect below: onAuthStateChanged
+    // could otherwise process the sign-in first and fall through to the
+    // normal-returning-user path before this flag is ever seen.
+    if (result?.user && result.additionalUserInfo?.isNewUser) {
+      pendingSocialSignup = { name: result.user.displayName || "" };
+    }
   } catch (error) {
-    setAuthBanner(getAuthErrorMessage(error));
+    if (error?.code !== "auth/popup-closed-by-user" && error?.code !== "auth/cancelled-popup-request") {
+      setAuthBanner(getAuthErrorMessage(error));
+    }
   }
 });
 elements.naverLoginBtn.addEventListener("click", signInWithNaver);
 elements.profileForm.addEventListener("submit", handleProfileSave);
 elements.logoutBtn.addEventListener("click", logout);
 
-// signInWithRedirect leaves the page entirely and comes back to a fresh
-// load — this is the only place additionalUserInfo.isNewUser is available,
-// so it has to be captured here and handed off via pendingSocialSignup
-// (declared above) for the very next onAuthStateChanged to consume.
-//
-// This has to fully resolve BEFORE onAuthStateChanged is even registered
-// below (not just before pendingSocialSignup is read) — onAuthStateChanged
-// fires its first callback almost immediately once it's live, and that
-// first firing was winning the race against this async lookup, so a brand
-// new Google/Naver sign-in fell straight through to the normal returning-
-// user path (home screen) instead of ever showing the nickname step.
-// onAuthStateChanged always fires once more anyway, immediately, reflecting
-// whatever the current signed-in state already is — so registering it only
-// after this resolves loses nothing for the normal (no pending redirect)
-// case, it's just a few ms later.
+// Google now signs in via a popup (see googleLoginBtn above), which resolves
+// its own promise directly — no page reload, so nothing needs recovering
+// here for it. Naver is still a full-page redirect (nid.naver.com has no
+// popup-postMessage option we control), so its return still has to be
+// handled at startup, same as before: this must fully resolve BEFORE
+// onAuthStateChanged is even registered below, since Naver's sign-in
+// completes *inside* this call (it ends by awaiting signInWithCustomToken),
+// and onAuthStateChanged's first firing needs pendingSocialSignup already
+// set by the time it happens, not racing to catch up with it.
 async function resolvePendingSocialRedirect() {
-  try {
-    const result = await auth.getRedirectResult();
-    if (result?.user && result.additionalUserInfo?.isNewUser) {
-      pendingSocialSignup = { name: result.user.displayName || "" };
-    }
-  } catch (error) {
-    setAuthBanner(getAuthErrorMessage(error));
-  }
   await handleNaverRedirectReturn();
 }
 
