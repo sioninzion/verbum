@@ -1436,7 +1436,7 @@ h3 {
 .reading-size-toggle {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 4px;
   border: 2.1px solid var(--ink);
   border-radius: 14px;
@@ -1448,7 +1448,7 @@ h3 {
   position: absolute;
   top: 4px;
   left: 4px;
-  width: calc((100% - 8px) / 3);
+  width: calc((100% - 8px) / 4);
   height: calc(100% - 8px);
   border-radius: 10px;
   background: var(--ink);
@@ -1461,6 +1461,10 @@ h3 {
 
 .reading-size-toggle-thumb.position-large {
   transform: translateX(200%);
+}
+
+.reading-size-toggle-thumb.position-xlarge {
+  transform: translateX(300%);
 }
 
 .reading-size-toggle button {
@@ -1515,6 +1519,10 @@ h3 {
 
 .reading-text[data-font-size="large"] {
   --reading-font-size: 19px;
+}
+
+.reading-text[data-font-size="xlarge"] {
+  --reading-font-size: 22px;
 }
 
 .reading-heading {
@@ -3375,6 +3383,30 @@ body {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.notification-pwa-status {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notification-pwa-status.ready {
+  color: var(--green);
+}
+
+.notification-pwa-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notification-pwa-actions .ghost-button {
+  width: auto;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
 }
 
 .label-note {

@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260909-88" />
+    <link rel="stylesheet" href="styles.css?v=20260909-90" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -411,6 +411,7 @@
               <button type="button" data-font-size="small">소</button>
               <button type="button" data-font-size="medium">중</button>
               <button type="button" data-font-size="large">대</button>
+              <button type="button" data-font-size="xlarge">특대</button>
             </div>
             <button type="button" class="reading-bold-toggle" id="readingBoldBtn" aria-pressed="false">
               <b>가</b> 굵게
@@ -511,6 +512,11 @@
               </label>
             </div>
             <p class="field-hint" id="notificationStatusText">알림을 켜면 하루 중 무작위 시각에 짧은 말씀 한 구절을 이 기기로 받아볼 수 있어요.</p>
+            <p class="notification-pwa-status" id="notificationPwaStatus"></p>
+            <div class="notification-pwa-actions" id="notificationPwaActions" hidden>
+              <button class="ghost-button" id="notificationInstallActionBtn" type="button" hidden>설치</button>
+              <button class="ghost-button" id="notificationInstallTutorialBtn" type="button" hidden>튜토리얼 보기</button>
+            </div>
             <div id="momentVerseCountRow">
               <label>하루 알림 개수<select id="momentVerseCountSelect"></select></label>
             </div>
@@ -712,6 +718,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-15"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260909-33"></script>
+    <script src="app.js?v=20260909-35"></script>
   </body>
 </html>

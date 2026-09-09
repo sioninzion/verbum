@@ -385,6 +385,10 @@ const elements = {
   momentVerseToggle: document.querySelector("#momentVerseToggle"),
   momentVerseCountRow: document.querySelector("#momentVerseCountRow"),
   momentVerseCountSelect: document.querySelector("#momentVerseCountSelect"),
+  notificationPwaStatus: document.querySelector("#notificationPwaStatus"),
+  notificationPwaActions: document.querySelector("#notificationPwaActions"),
+  notificationInstallActionBtn: document.querySelector("#notificationInstallActionBtn"),
+  notificationInstallTutorialBtn: document.querySelector("#notificationInstallTutorialBtn"),
   profileForm: document.querySelector("#profileForm"),
   profileNickname: document.querySelector("#profileNickname"),
   profileDailyTarget: document.querySelector("#profileDailyTarget"),
@@ -1454,6 +1458,7 @@ function renderProfile() {
   elements.profileNickname.disabled = !state.isAuthenticated;
   renderRepresentativeTitlePicker();
   renderMomentVerseSettings();
+  renderNotificationPwaStatus();
 }
 
 // Populated once; re-run is harmless (replaceChildren just re-creates the
@@ -1856,8 +1861,8 @@ function applyReadingPrefs() {
   elements.readingSizeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.fontSize === size);
   });
-  elements.readingSizeThumb.className =
-    "reading-size-toggle-thumb" + (size === "medium" ? " position-medium" : size === "large" ? " position-large" : "");
+  const sizePosition = { medium: " position-medium", large: " position-large", xlarge: " position-xlarge" }[size] || "";
+  elements.readingSizeThumb.className = "reading-size-toggle-thumb" + sizePosition;
   elements.readingBoldBtn.setAttribute("aria-pressed", String(bold));
 }
 
@@ -2748,6 +2753,10 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
   showInstallBanner("android");
+  // The "설치" button in the 알림 card only makes sense once this prompt is
+  // actually available, and this event fires asynchronously well after the
+  // profile panel may already be visible — re-render so it can appear.
+  renderNotificationPwaStatus();
 });
 
 elements.installActionBtn.addEventListener("click", async () => {
@@ -2779,4 +2788,54 @@ elements.homeInstallBannerCloseBtn.addEventListener("click", () => {
 const { isIOS: isIOSDevice } = detectInstallPlatform();
 if (isIOSDevice) {
   showInstallBanner("ios");
+}
+
+// ── 알림 카드의 PWA 수신 가능 여부 표시 ───────────────────────────────
+// Web Push actually reaches the device only in certain contexts: iOS Safari
+// requires the app to already be installed to the home screen (standalone
+// display mode) before it will deliver push at all, while Android/desktop
+// browsers can receive push from a plain open tab. So "can receive" here
+// hinges specifically on that iOS constraint, not on notification
+// permission itself (which is asked for separately when the toggle is
+// turned on).
+function canReceiveNotifications() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return false;
+  const { isIOS } = detectInstallPlatform();
+  if (isIOS && !isRunningStandalone()) return false;
+  return true;
+}
+
+function renderNotificationPwaStatus() {
+  if (!elements.notificationPwaStatus) return;
+  const ready = canReceiveNotifications();
+  const { isIOS, isAndroid } = detectInstallPlatform();
+
+  elements.notificationPwaStatus.textContent = ready
+    ? "알림 준비 완료"
+    : "홈 화면에 추가(PWA 설치)해야 알림을 받을 수 있어요";
+  elements.notificationPwaStatus.classList.toggle("ready", ready);
+
+  if (elements.notificationPwaActions) {
+    elements.notificationPwaActions.hidden = ready;
+  }
+  if (elements.notificationInstallActionBtn) {
+    elements.notificationInstallActionBtn.hidden = ready || !isAndroid || !deferredInstallPrompt;
+  }
+  if (elements.notificationInstallTutorialBtn) {
+    elements.notificationInstallTutorialBtn.hidden = ready || !isIOS;
+  }
+}
+
+if (elements.notificationInstallActionBtn) {
+  elements.notificationInstallActionBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    renderNotificationPwaStatus();
+  });
+}
+
+if (elements.notificationInstallTutorialBtn) {
+  elements.notificationInstallTutorialBtn.addEventListener("click", showInstallTutorial);
 }
