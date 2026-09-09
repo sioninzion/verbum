@@ -731,9 +731,18 @@ function updateLeaderboardCountdown() {
 
 function calculateStreak(progress = state.progress) {
   const days = new Set(Object.values(progress.completed || {}).map((entry) => entry.date));
-  let count = 0;
   const cursor = new Date(`${TODAY}T00:00:00`);
 
+  // Not read yet today doesn't mean the streak is broken — the day isn't
+  // over. Only count today as the streak's end if today's already been
+  // read; otherwise start from yesterday, and only actually drop to 0 once
+  // yesterday's ALSO empty (i.e. a full day was skipped with no reading).
+  if (!days.has(localDateStr(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!days.has(localDateStr(cursor))) return 0;
+  }
+
+  let count = 0;
   while (days.has(localDateStr(cursor))) {
     count += 1;
     cursor.setDate(cursor.getDate() - 1);
