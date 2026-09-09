@@ -840,6 +840,7 @@ async function handleMomentVerseToggleChange() {
     setNotificationStatus("이 브라우저는 알림을 지원하지 않아요");
     elements.momentVerseToggle.checked = false;
     renderMomentVerseSettings();
+    renderNotificationPwaStatus();
     return;
   }
 
@@ -855,6 +856,7 @@ async function handleMomentVerseToggleChange() {
     setNotificationStatus("이 브라우저/환경에서는 푸시 알림을 지원하지 않아요");
     elements.momentVerseToggle.checked = false;
     renderMomentVerseSettings();
+    renderNotificationPwaStatus();
     return;
   }
 
@@ -862,6 +864,7 @@ async function handleMomentVerseToggleChange() {
     setNotificationStatus("알림이 차단돼 있어요 — 브라우저 설정에서 허용해주세요");
     elements.momentVerseToggle.checked = false;
     renderMomentVerseSettings();
+    renderNotificationPwaStatus();
     return;
   }
 
@@ -909,6 +912,7 @@ async function handleMomentVerseToggleChange() {
   } finally {
     elements.momentVerseToggle.disabled = false;
     renderMomentVerseSettings();
+    renderNotificationPwaStatus();
   }
 }
 
@@ -2791,38 +2795,56 @@ if (isIOSDevice) {
 }
 
 // ── 알림 카드의 PWA 수신 가능 여부 표시 ───────────────────────────────
-// Web Push actually reaches the device only in certain contexts: iOS Safari
-// requires the app to already be installed to the home screen (standalone
-// display mode) before it will deliver push at all, while Android/desktop
-// browsers can receive push from a plain open tab. So "can receive" here
-// hinges specifically on that iOS constraint, not on notification
-// permission itself (which is asked for separately when the toggle is
-// turned on).
-function canReceiveNotifications() {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) return false;
+// Web Push actually reaches the device only when BOTH conditions hold:
+// (1) the platform allows it at all — iOS Safari refuses push entirely
+// unless the app is already installed to the home screen (standalone
+// display mode); Android/desktop can receive from a plain open tab — and
+// (2) the OS/browser notification permission for this origin is actually
+// "granted", not just "default" (never asked) or "denied" (blocked). Only
+// (1) used to be checked; this reads live off `Notification.permission`
+// too, which can change at any time behind our back via browser settings.
+function getNotificationReadiness() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
   const { isIOS } = detectInstallPlatform();
-  if (isIOS && !isRunningStandalone()) return false;
-  return true;
+  if (isIOS && !isRunningStandalone()) return "needs-install";
+  if (Notification.permission === "denied") return "denied";
+  if (Notification.permission === "default") return "default";
+  return "ready";
 }
+
+function canReceiveNotifications() {
+  return getNotificationReadiness() === "ready";
+}
+
+const NOTIFICATION_PWA_STATUS_MESSAGES = {
+  ready: "알림 준비 완료",
+  "needs-install": "홈 화면에 추가(PWA 설치)해야 알림을 받을 수 있어요",
+  denied: "알림이 차단되어 있어요 — 기기/브라우저 설정에서 허용해주세요",
+  default: "알림을 켜면 권한 요청 창이 떠요",
+  unsupported: "이 브라우저는 알림을 지원하지 않아요",
+};
 
 function renderNotificationPwaStatus() {
   if (!elements.notificationPwaStatus) return;
-  const ready = canReceiveNotifications();
+  const readiness = getNotificationReadiness();
+  const ready = readiness === "ready";
   const { isIOS, isAndroid } = detectInstallPlatform();
 
-  elements.notificationPwaStatus.textContent = ready
-    ? "알림 준비 완료"
-    : "홈 화면에 추가(PWA 설치)해야 알림을 받을 수 있어요";
+  elements.notificationPwaStatus.textContent = NOTIFICATION_PWA_STATUS_MESSAGES[readiness];
   elements.notificationPwaStatus.classList.toggle("ready", ready);
 
+  // The install/tutorial buttons only ever help the "needs-install" case —
+  // a denied/default permission is fixed via the toggle or the browser's
+  // own settings, not by installing the app.
+  const showInstallActions = readiness === "needs-install";
   if (elements.notificationPwaActions) {
-    elements.notificationPwaActions.hidden = ready;
+    elements.notificationPwaActions.hidden = !showInstallActions;
   }
   if (elements.notificationInstallActionBtn) {
-    elements.notificationInstallActionBtn.hidden = ready || !isAndroid || !deferredInstallPrompt;
+    elements.notificationInstallActionBtn.hidden = !showInstallActions || !isAndroid || !deferredInstallPrompt;
   }
   if (elements.notificationInstallTutorialBtn) {
-    elements.notificationInstallTutorialBtn.hidden = ready || !isIOS;
+    elements.notificationInstallTutorialBtn.hidden = !showInstallActions || !isIOS;
   }
 }
 
