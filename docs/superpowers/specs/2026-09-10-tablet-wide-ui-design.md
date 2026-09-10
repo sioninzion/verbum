@@ -1,0 +1,241 @@
+# 태블릿·와이드 화면 UI — 설계 문서
+
+작성일: 2026-09-10
+대상: `styles.css`, `index.html`, `app.js` (정적 PWA)
+
+## 목표
+
+폭이 넓은 기기(주로 아이패드, 가로/세로 모두)에서 화면을 제대로 활용하는 레이아웃을 추가한다.
+폰 레이아웃은 그대로 두고, 새 브레이크포인트 위에서만 재배치한다.
+
+## 비목표 (범위 밖)
+
+- 퀴즈 화면(`quiz-panel`) — 집중 태스크라 폭 확장 안 함, 중앙 유지
+- 로그인/회원가입(`login-card`, `gateSocialProfileForm` 등) — 중앙 카드 유지
+- 뉴모피즘 → 레퍼런스 전면 리디자인(`docs`/플랜 별건) — 이 작업은 현 토큰 위에 그리드만 추가
+- 좌측 네비게이션 레일 — **명시적으로 채택 안 함**
+- 데스크톱 전용 최적화 — 와이드 규칙이 데스크톱에도 그대로 적용되면 그걸로 충분
+
+## 핵심 결정 사항 (확정)
+
+| 항목 | 결정 |
+|---|---|
+| 브레이크포인트 | `@media (min-width: 768px)` = "와이드 모드" |
+| 하단 탭바 (`.mobile-tabbar`) | **모든 폭에서** 표시. 위치·크기 폰과 동일 (sticky bottom center, 6칸) |
+| 상단 가로탭 (`.view-tabs`) | **완전 제거** (마크업 + CSS + JS). 네비게이션은 하단 탭바 하나로 통일 |
+| 좌측 레일 | 안 씀 |
+| 세로 잠금 오버레이 | 폰(`max-width: 767px`)에서만 동작. 태블릿은 가로/세로 자유 |
+| 콘텐츠 폭 | 여백은 적당히, 화면을 넉넉히 채우는 쪽. `app-shell` 최대 ~1200px |
+| 성경 | 2-pane 마스터·디테일 (좌: 책+장 / 우: 본문·퀴즈) |
+| 내 정보 | 정보 블록 3열 |
+| 홈·칭호·빌보드 | 아래 안대로 (구현자 재량 범위였음) |
+
+---
+
+## 1. 공통 셸 & 네비게이션
+
+### 1.1 상단 가로탭 제거
+
+- `index.html`: `.view-tabs` 마크업 삭제 (현재 위치 확인 필요 — `renderView()`가 `elements.viewTabs = document.querySelectorAll("[data-view-tab]")`로 잡음. **주의: 하단 탭바 버튼도 `data-view-tab`을 씀** → 셀렉터가 두 곳을 다 잡고 있음)
+- `app.js`:
+  - `elements.viewTabs` 셀렉터를 `.mobile-tabbar [data-view-tab]` 으로 좁힌다 (이제 하단 탭바만 대상)
+  - `renderView()` 안의 `elements.viewTabs.forEach(... button.classList.toggle("active" ...))` 는 그대로 유지 — 하단 탭바의 active 표시에 쓰임
+  - line ~2422 `elements.viewTabs.forEach(... addEventListener("click", () => setView(...)))` 도 그대로 — 하단 탭바 클릭 핸들러로 계속 동작
+- `styles.css`: `.view-tabs`, `.view-tabs button`, `.view-tabs button:hover`, `.view-tabs button.active`, `@media (max-width: 760px) { .view-tabs { display: none } }` 관련 규칙 삭제
+
+### 1.2 셸 폭 & 탭바
+
+와이드 모드(`min-width: 768px`):
+
+```
+.app-shell        width: min(1200px, calc(100% - 48px));  margin: 0 auto;
+                  padding-top 은 현행 var(--app-shell-pad-top) 유지
+.mobile-tabbar    display: 로 노출 (현재 base 는 display:none, @max-width:760 에서만 grid)
+                  → base 를 grid 로 올리거나, min-width:768 에서 다시 grid 선언
+                  폭: max-width 로 폰과 동일하게 (예: min(520px, calc(100% - 32px))) 중앙 정렬
+                  position: sticky; bottom: 10px; 유지
+```
+
+현재 `@media (max-width: 420px)`의 9:16 고정 프레임(`.app-shell`, `.login-card`)은 **폰 전용 그대로** — 와이드 모드와 겹치지 않음.
+
+### 1.3 브레이크포인트 겹침 정리
+
+현재 `@media (max-width: 760px)`가 "모바일"을 담당. 와이드는 `min-width: 768px`. 760–768px 사이 8px 공백 구간이 생기므로 둘 중 하나로 맞춘다: 와이드를 `min-width: 761px`로 시작하거나, 모바일을 `max-width: 767px`로 확장. → **모바일을 `max-width: 767px`로, 와이드를 `min-width: 768px`로** 통일.
+
+---
+
+## 2. 성경 — 2-pane 마스터·디테일
+
+### 2.1 현재 구조
+
+- 4개 패널이 전부 `data-view-panel="quiz"` + `data-quiz-step` 로 구분:
+  `library-panel`(books) → `chapter-panel`(chapters) → `reading-panel`(reading) → `quiz-panel`(quiz)
+- `renderQuizStep()` 이 `state.quizStep` 과 일치하는 하나에만 `.step-active` 부여 (한 번에 하나만 보임)
+- 흐름: 책 선택 → 장 선택 → 본문 읽기 → "문제 풀기" → 퀴즈
+
+### 2.2 와이드 모드 레이아웃
+
+```
+┌───────────────────────────────────────────────────┐
+│  좌 pane (300px)          │  우 pane (나머지)        │
+│  ┌─────────────────────┐  │  ┌──────────────────┐   │
+│  │ library-panel       │  │  │ reading-panel     │   │
+│  │  (검색·구약/신약·     │  │  │  또는 quiz-panel  │   │
+│  │   book-grid)         │  │  │  (문제 풀기 시 교체)│   │
+│  ├─────────────────────┤  │  │                  │   │
+│  │ chapter-panel       │  │  │  본문 칼럼은       │   │
+│  │  (선택된 책의         │  │  │  max-width ~640,  │   │
+│  │   chapter-grid)      │  │  │  pane 안에서 중앙  │   │
+│  └─────────────────────┘  │  └──────────────────┘   │
+└───────────────────────────────────────────────────┘
+              (하단 중앙 탭바)
+```
+
+- **좌 pane**: `library-panel` + `chapter-panel` 을 세로로 쌓아 **동시 표시**. 자체 스크롤.
+  - `library-panel` 의 `panel-heading`("성경 66권·1189장")은 유지, 크기 축소
+  - `chapter-panel` 의 `back-button`(장→책 뒤로)과 `reading-panel`/`quiz-panel`의 `back-button` 은 와이드에서 **숨김** (전환이 아니라 항상 보이므로 불필요)
+- **우 pane**: `reading-panel` 기본, `state.quizStep === "quiz"` 면 `quiz-panel` 로 교체
+- 책 미선택 상태: 우 pane 에 비어있는 안내("왼쪽에서 장을 선택하세요") — `chapter-panel` 도 "책을 먼저 선택하세요" 빈 상태
+
+### 2.3 렌더링 로직 변경 (`app.js`)
+
+- `renderQuizStep()`: 와이드 여부를 `window.matchMedia("(min-width: 768px)").matches` 로 판정
+  - **와이드**: `library-panel` 과 `chapter-panel` 은 항상 `.step-active`. `reading-panel` 은 `quizStep !== "quiz"` 일 때, `quiz-panel` 은 `quizStep === "quiz"` 일 때 `.step-active`
+  - **폰(현행)**: 지금처럼 `state.quizStep` 하나만 `.step-active` (변경 없음)
+- `data-view="quiz"` 일 때만 2-pane 그리드 적용 (다른 뷰는 단일 컬럼)
+- `resize` 로 브레이크포인트를 넘나들 때 `renderQuizStep()` 재호출 (matchMedia change 리스너 1개 추가)
+- 책/장 클릭 핸들러는 그대로 `state.selectedBook` / `state.currentChapter` + `state.quizStep` 갱신 → `renderQuizStep()` 호출. 와이드에선 좌 pane 은 안 사라지고 우 pane 만 바뀜
+
+### 2.4 세로 태블릿 (768–900px)
+
+- 좌 pane 폭 240px 로 축소
+- 좌 pane 접기 버튼(우 pane 헤더 또는 좌 pane 상단에 토글) — 접으면 우 pane 전체폭
+- `≥ 900px` 는 항상 2-pane 고정, 접기 버튼 없음
+- (사용자 확인: "일단 ok, 경과를 봐" — 구현 후 실제 아이패드에서 조정 여지 있음)
+
+### 2.5 퀴즈 단계
+
+- 우 pane 안에서 `quiz-panel` 이 `reading-panel` 을 대체 (전체폭 아님, 우 pane 폭 유지)
+- 좌 pane 은 계속 보임 → 퀴즈 중에도 다른 장으로 이동 가능
+
+---
+
+## 3. 내 정보 — 3열
+
+### 3.1 현재
+
+- `.dashboard[data-view="profile"]` : `grid-template-columns: minmax(520px, 980px)` (단일 컬럼)
+- `profile-panel` 내부에 카드들이 세로로: 계정 카드, 프로필 폼(닉네임·하루목표·공유), 대표 칭호 선택, 알림 카드(`notification-card`), 테마 토글, 위험 구역(`danger-zone-card`)
+
+### 3.2 와이드 모드
+
+```
+┌──────────────────────────────────────────────┐
+│ ┌────────┐  ┌────────┐  ┌────────┐            │
+│ │ 계정    │  │ 프로필  │  │ 알림    │            │
+│ ├────────┤  ├────────┤  ├────────┤            │
+│ │ 대표칭호│  │ 테마    │  │ 위험구역│            │
+│ └────────┘  └────────┘  └────────┘            │
+└──────────────────────────────────────────────┘
+```
+
+- `.dashboard[data-view="profile"]` 폭을 `min(1200px, calc(100% - 48px))` 로 확장
+- `index.html`: `profile-panel` 안의 카드들을 3개 `<div class="profile-col">` 래퍼로 묶는다 (계정+대표칭호 / 프로필폼+테마 / 알림+위험구역 — 실제 배분은 구현 시 높이 보고 조정)
+- `styles.css`:
+  - 폰(`max-width: 767px`): `.profile-col { display: contents; }` → 래퍼가 사라져 현행 세로 스택 그대로 (픽셀 변화 0)
+  - 와이드(`min-width: 768px`): `profile-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }` — `.profile-col` 이 각 컬럼
+- `.dashboard[data-view="profile"]` 폭을 `min(1200px, calc(100% - 48px))` 로 확장
+- 한 화면에 다 보이는 걸 목표로 하되, 세로 태블릿에서 넘치면 스크롤 허용 (하드 제약 아님)
+
+---
+
+## 4. 홈 (구현자 재량 → 아래 확정)
+
+### 4.1 현재
+
+- `.dashboard[data-view="home"]` : `minmax(420px, 640px)`
+- `home-hero`(다음 통독 카드 + 우측 텍스트), `daily-verse`(오늘의 말씀), `home-stats-grid`(1.3fr/1fr, 2×2: 전체 진행률·연속 기록·하루 목표·공유 순위), 주간 스트립(`week-strip`, 탭하면 캘린더)
+
+### 4.2 와이드 모드
+
+```
+┌────────────────────────────────────────────────┐
+│ ┌──────────────────────┐  ┌──────────────────┐  │
+│ │ home-hero            │  │ week-strip        │  │
+│ │  다음 통독 [읽기 →]   │  │  일 월 화 …       │  │
+│ └──────────────────────┘  └──────────────────┘  │
+│ ┌────────────────────────────────────────────┐  │
+│ │ daily-verse (오늘의 말씀, 풀폭)              │  │
+│ └────────────────────────────────────────────┘  │
+│ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐            │
+│ │전체% │ │연속  │ │하루  │ │순위  │  1×4         │
+│ └──────┘ └──────┘ └──────┘ └──────┘            │
+└────────────────────────────────────────────────┘
+```
+
+- `.dashboard[data-view="home"]` 폭 `min(1040px, calc(100% - 48px))`
+- 상단: `home-hero` 와 `week-strip` 을 2컬럼(예: `1.4fr 1fr`)으로 나란히
+- `daily-verse` 풀폭
+- `home-stats-grid` → `grid-template-columns: repeat(4, minmax(0, 1fr))` (2×2 → 1×4)
+
+## 5. 칭호 (구현자 재량 → 아래 확정)
+
+### 5.1 현재
+
+- `.dashboard[data-view="achievements"]` : `minmax(440px, 720px)`
+- `achievements-panel` : 카드 그리드(등급별 색상 뱃지, 잠금/해제)
+
+### 5.2 와이드 모드
+
+- `.dashboard[data-view="achievements"]` 폭 `min(1040px, calc(100% - 48px))`
+- 카드 그리드 `repeat(3, minmax(0, 1fr))` (와이드에서만; 폰 현행 유지)
+- 등급/획득 필터는 이번 범위에서 **추가하지 않음** (별도 요청 시). 3열 그리드만 적용
+
+## 6. 빌보드 (구현자 재량 → 아래 확정)
+
+### 6.1 현재
+
+- `.dashboard[data-view="community"]` : `minmax(440px, 720px)`
+- `community-panel` : 카운트다운, 리더보드(`leader-row` 리스트)
+
+### 6.2 와이드 모드
+
+- `.dashboard[data-view="community"]` 폭 `min(920px, calc(100% - 48px))`
+- 리더보드는 **1열 유지** (순위 위→아래 스캔이 핵심)
+- 넓어진 폭 덕에 `leader-row` 의 `leader-stats` 가 한 줄에 다 들어감 (`@media (max-width: 760px)` 의 `grid-column: 1 / -1` 강제 줄바꿈이 와이드엔 적용 안 됨 — base 규칙 그대로면 OK)
+- 카운트다운 + 내 순위 요약을 리스트 헤더 옆에 배치 (여유 있으면)
+
+---
+
+## 7. 방향(orientation) 잠금
+
+- `styles.css` `@media (orientation: landscape) and (pointer: coarse)` 블록에 `and (max-width: 767px)` 추가
+  → 폰(가로)만 "세로로 돌려주세요" 오버레이, 태블릿은 해제
+- `.rotate-overlay` 마크업/그 외 로직 변경 없음
+- `manifest.json` 의 `"orientation": "portrait"` 는 그대로 (iOS/브라우저에서 무효라 영향 없음)
+
+---
+
+## 8. 위험 요소 / 주의
+
+1. **`data-view-tab` 셀렉터 공유**: 상단 가로탭과 하단 탭바 버튼이 같은 속성을 씀. 상단탭 마크업만 지우면 `elements.viewTabs` 가 자동으로 하단탭만 가리키게 되어 `renderView()`/클릭 핸들러가 그대로 동작. **삭제 전 상단탭 마크업에 `data-view-tab` 이 실제로 붙어있는지 확인** (index.html 해당 라인 grep)
+2. **`renderQuizStep()` 분기**: 와이드/폰 판정을 매 호출마다 `matchMedia` 로. `resize`/orientation 변경 시 재렌더 필요 — `matchMedia("(min-width: 768px)").addEventListener("change", ...)` 1개 추가
+3. **좌 pane 스크롤 독립**: `.app-shell` 이 이미 자체 스크롤 컨테이너. 2-pane 은 그 안에서 `display: grid` + 각 pane `overflow-y: auto` + 높이 제한(`height: calc(100dvh - 헤더 - 탭바)` 또는 `max-height`) 필요. 계산값 검증 필수
+4. **캐시 무효화**: `styles.css`/`app.js` 쿼리스트링 + `service-worker.js` `CACHE_VERSION` 항상 함께 올림
+5. **회귀**: 폰(≤767px)에서 픽셀 변화 0 이어야 함. 와이드 규칙은 전부 `min-width: 768px` 안에 격리
+6. **`@media (max-width: 1260px)` 의 quiz 컬럼 규칙**: 와이드 2-pane 도입 시 재검토 (지금은 단일 컬럼 폭만 조정)
+
+---
+
+## 9. 테스트
+
+로컬 `python -m http.server` + 헤드리스 크롬으로:
+
+- 폰 폭(390, 414) — 스크린샷 회귀: 변화 없음 확인
+- 태블릿 세로(iPad 810×1080 상당) — 성경 2-pane(좁은 좌 pane + 접기), 내 정보 3열, 하단 탭바 위치
+- 태블릿 가로(1080×810 상당) — 세로 오버레이 안 뜸, 성경 2-pane 고정, 각 화면 폭/여백
+- 데스크톱(1440) — `app-shell` 최대폭 캡, 여백
+- 각 뷰(home/stats/성경/community/achievements/profile) DOM 덤프로 `.view-active` / `.step-active` 상태 검증
+- `matchMedia` 브레이크포인트 넘나들 때 성경 pane 상태 갱신 (수동/스크립트)
+
+주의: 헤드리스 크롬은 `pointer: coarse` 를 실제로 못 만들어서 세로 오버레이의 태블릿 해제는 코드 리뷰로만 확인, 실기기 최종 검증 필요.
