@@ -37,11 +37,11 @@ const MOMENT_VERSES = require("./moment-verses.json"); // [{time:"HH:MM", book, 
 // pile up one-per-enabled-user-per-day forever. generateDailyPlans sweeps
 // out the old ones each midnight — but first rolls each doomed day up into a
 // single notificationDailyStats/{date} summary doc (per-user target vs
-// scheduled vs sent counts) so the long-term delivery-health record
-// survives while the bulky per-verse detail doesn't. Keep this many days
-// *before* today live as a buffer so a morning "I didn't get last night's
-// verse" report still has full detail to inspect; 0 = keep only today.
-const PLAN_RETENTION_DAYS = 1;
+// scheduled vs sent counts + failReasons) so the delivery-health record
+// survives while the bulky per-verse detail doesn't. 0 = notificationDaily-
+// Plans only ever holds *today*; raise it to keep N days of full per-verse
+// detail live as a debugging buffer before it collapses to the summary.
+const PLAN_RETENTION_DAYS = 0;
 
 // ---------------------------------------------------------------- helpers --
 
