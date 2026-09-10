@@ -5,8 +5,27 @@
 
 ## 목표
 
-폭이 넓은 기기(주로 아이패드, 가로/세로 모두)에서 화면을 제대로 활용하는 레이아웃을 추가한다.
-폰 레이아웃은 그대로 두고, 새 브레이크포인트 위에서만 재배치한다.
+넓은 화면(아이패드 가로/세로, **폴더블 펼친 화면** — 갤럭시 Z Fold 내부, iPhone Duo 내부)에서
+화면을 제대로 활용하는 레이아웃을 추가한다. 폰 레이아웃은 그대로 두고, 새 브레이크포인트
+위에서만 재배치한다.
+
+## 대상 기기 & 화면 (참고)
+
+CSS 폭은 물리 해상도 ÷ 추정 DPR — iPhone Duo는 미출시(2026-10-23)라 논리 해상도(pt) 미공개, DPR 3 가정 추정치.
+
+| 기기 / 화면 | 물리 해상도 | 종횡비 (가로:세로) | 대략 CSS 폭×높이 | 대응 |
+|---|---|---|---|---|
+| Flip 커버 | 948×1048 | ~1:1.1 | ~380×420 | ❌ 대상 아님 (위젯 환경) |
+| Flip / 일반 폰 펼침 | 1080×2520 | 1:2.33 | ~360×840 | 기존 폰 레이아웃 (작업 없음) |
+| Fold 커버 | 1248×1972 | 1:1.58 | ~344–384 | 폰 레이아웃 — **344px 회귀 검증** |
+| **Fold 펼침** | 2448×1848 (4:3) | ~1:1.32 | **~706–885 × ~940–1100** | 🎯 와이드 |
+| iPhone Duo 커버 | 1398×2034 | 1:1.45 | ~466×678 | 폰 single-column 레이아웃 |
+| **iPhone Duo 펼침** | 1878×2670 | 1:1.42 | **~626 × ~890** | 🎯 와이드 |
+| iPad 세로 | 1640×2360 | ~1:1.44 | ~820×1180 | 🎯 와이드 |
+| iPad 가로 | — | ~1.44:1 | ~1180×820 | 🎯 와이드 |
+
+핵심 문제: 폴더블 펼친 화면은 **거의 정사각(가로:세로 ~1:1.3~1.45)** 인데 CSS 폭이 626~885로
+768 아래에 걸치는 경우가 많다. 순수 `min-width: 768px` 트리거로는 놓친다 → 아래 1.3 참고.
 
 ## 비목표 (범위 밖)
 
@@ -20,11 +39,11 @@
 
 | 항목 | 결정 |
 |---|---|
-| 브레이크포인트 | `@media (min-width: 768px)` = "와이드 모드" |
+| 브레이크포인트 | 와이드 트리거 = `(min-width: 768px), (min-width: 620px) and (min-height: 720px)` (1.3 참고). 폴더블 펼침도 포함, 폰 가로는 높이 조건으로 제외 |
 | 하단 탭바 (`.mobile-tabbar`) | **모든 폭에서** 표시. 위치·크기 폰과 동일 (sticky bottom center, 6칸) |
 | 상단 가로탭 (`.view-tabs`) | **완전 제거** (마크업 + CSS + JS). 네비게이션은 하단 탭바 하나로 통일 |
 | 좌측 레일 | 안 씀 |
-| 세로 잠금 오버레이 | 폰(`max-width: 767px`)에서만 동작. 태블릿은 가로/세로 자유 |
+| 세로 잠금 오버레이 | 폰 가로(`max-height: 500px`)에서만 동작. 태블릿·폴더블 펼침은 가로/세로 자유 |
 | 콘텐츠 폭 | 여백은 적당히, 화면을 넉넉히 채우는 쪽. `app-shell` 최대 ~1200px |
 | 성경 | 2-pane 마스터·디테일 (좌: 책+장 / 우: 본문·퀴즈) |
 | 내 정보 | 정보 블록 3열 |
@@ -45,7 +64,7 @@
 
 ### 1.2 셸 폭 & 탭바
 
-와이드 모드(`min-width: 768px`):
+와이드 모드:
 
 ```
 .app-shell        width: min(1200px, calc(100% - 48px));  margin: 0 auto;
@@ -58,9 +77,23 @@
 
 현재 `@media (max-width: 420px)`의 9:16 고정 프레임(`.app-shell`, `.login-card`)은 **폰 전용 그대로** — 와이드 모드와 겹치지 않음.
 
-### 1.3 브레이크포인트 겹침 정리
+### 1.3 브레이크포인트 정의
 
-현재 `@media (max-width: 760px)`가 "모바일"을 담당. 와이드는 `min-width: 768px`. 760–768px 사이 8px 공백 구간이 생기므로 둘 중 하나로 맞춘다: 와이드를 `min-width: 761px`로 시작하거나, 모바일을 `max-width: 767px`로 확장. → **모바일을 `max-width: 767px`로, 와이드를 `min-width: 768px`로** 통일.
+**와이드 트리거** (CSS + JS 공용, 한 곳에 상수로):
+
+```
+(min-width: 768px), (min-width: 620px) and (min-height: 720px)
+```
+
+- 1절 `min-width: 768px` — iPad(양방향), 데스크톱, Fold 펼침 중 넓게 잡히는 모델
+- 2절 `min-width: 620px and min-height: 720px` — "크고 거의 정사각인 캔버스". Fold 펼침(~706×940+), iPhone Duo 펼침(~626×890)을 잡는다. `min-height` 조건이 **폰 가로**(높이 ~390)를 자동 제외 — 폰 가로는 어차피 세로잠금 오버레이가 덮지만 이중 안전장치
+- 놓치는 것(의도됨): Fold 커버·Duo 커버(폭 <620) → 폰 레이아웃 유지
+- iPhone Duo CSS 폭이 실제로 620 미만으로 나오면 2절 `min-width`를 하향 조정 (출시 후 실측)
+
+**JS 쪽**: `const WIDE_MQ = window.matchMedia("(min-width: 768px), (min-width: 620px) and (min-height: 720px)")`.
+`WIDE_MQ.matches` 로 분기, `WIDE_MQ.addEventListener("change", ...)` 로 **폴드 접었다 펼 때 / 회전 시 즉시 재렌더**. 이 리스너는 성경 pane뿐 아니라 **모든 와이드 JS 분기**(있다면)를 다시 태워야 함. CSS만으로 되는 레이아웃(홈·내정보·칭호·빌보드 그리드)은 자동.
+
+**모바일 브레이크포인트 정리**: 현재 `@media (max-width: 760px)` → `max-width: 767px` 로 확장해 768과 딱 붙임. 620–767px 구간은 (와이드 2절 조건 만족 시) 와이드, 아니면 모바일.
 
 ---
 
@@ -99,19 +132,20 @@
 
 ### 2.3 렌더링 로직 변경 (`app.js`)
 
-- `renderQuizStep()`: 와이드 여부를 `window.matchMedia("(min-width: 768px)").matches` 로 판정
+- `renderQuizStep()`: 와이드 여부를 `WIDE_MQ.matches` (1.3의 공용 matchMedia)로 판정
   - **와이드**: `library-panel` 과 `chapter-panel` 은 항상 `.step-active`. `reading-panel` 은 `quizStep !== "quiz"` 일 때, `quiz-panel` 은 `quizStep === "quiz"` 일 때 `.step-active`
   - **폰(현행)**: 지금처럼 `state.quizStep` 하나만 `.step-active` (변경 없음)
 - `data-view="quiz"` 일 때만 2-pane 그리드 적용 (다른 뷰는 단일 컬럼)
-- `resize` 로 브레이크포인트를 넘나들 때 `renderQuizStep()` 재호출 (matchMedia change 리스너 1개 추가)
+- `WIDE_MQ.addEventListener("change", ...)` → 브레이크포인트를 넘나들 때(폴드 접었다 펴기, 회전 포함) `renderQuizStep()` + 필요 시 `render()` 재호출
 - 책/장 클릭 핸들러는 그대로 `state.selectedBook` / `state.currentChapter` + `state.quizStep` 갱신 → `renderQuizStep()` 호출. 와이드에선 좌 pane 은 안 사라지고 우 pane 만 바뀜
 
-### 2.4 세로 태블릿 (768–900px)
+### 2.4 좁은 와이드 (620–900px — Fold/Duo 펼침, iPad 세로)
 
 - 좌 pane 폭 240px 로 축소
 - 좌 pane 접기 버튼(우 pane 헤더 또는 좌 pane 상단에 토글) — 접으면 우 pane 전체폭
 - `≥ 900px` 는 항상 2-pane 고정, 접기 버튼 없음
-- (사용자 확인: "일단 ok, 경과를 봐" — 구현 후 실제 아이패드에서 조정 여지 있음)
+- iPhone Duo 펼침(~626px)은 좌 240 + 우 ~370이라 우 pane이 빠듯 → **접기 버튼이 기본 접힘 상태로** 시작하는 것도 고려 (구현 시 실측)
+- (사용자 확인: "일단 ok, 경과를 봐" — 구현 후 실기기에서 조정)
 
 ### 2.5 퀴즈 단계
 
@@ -209,8 +243,9 @@
 
 ## 7. 방향(orientation) 잠금
 
-- `styles.css` `@media (orientation: landscape) and (pointer: coarse)` 블록에 `and (max-width: 767px)` 추가
-  → 폰(가로)만 "세로로 돌려주세요" 오버레이, 태블릿은 해제
+- `styles.css` `@media (orientation: landscape) and (pointer: coarse)` 블록에 **`and (max-height: 500px)`** 추가
+  → 폰(가로, 높이 ~375–430)만 "세로로 돌려주세요" 오버레이. 태블릿·Fold 펼침 가로(높이 700+)는 해제
+  → `max-width` 가 아니라 `max-height` 로 판별하는 이유: 요즘 폰 가로 CSS 폭이 844~932라 `max-width: 767` 로는 못 거른다. 높이는 폰(가로) ~400 vs 태블릿(가로) 700+ 로 확실히 갈림 — 1.3의 `min-height: 720` 와 같은 논리
 - `.rotate-overlay` 마크업/그 외 로직 변경 없음
 - `manifest.json` 의 `"orientation": "portrait"` 는 그대로 (iOS/브라우저에서 무효라 영향 없음)
 
@@ -219,11 +254,14 @@
 ## 8. 위험 요소 / 주의
 
 1. **`data-view-tab` 셀렉터 공유**: 상단 가로탭과 하단 탭바 버튼이 같은 속성을 씀. 상단탭 마크업만 지우면 `elements.viewTabs` 가 자동으로 하단탭만 가리키게 되어 `renderView()`/클릭 핸들러가 그대로 동작. **삭제 전 상단탭 마크업에 `data-view-tab` 이 실제로 붙어있는지 확인** (index.html 해당 라인 grep)
-2. **`renderQuizStep()` 분기**: 와이드/폰 판정을 매 호출마다 `matchMedia` 로. `resize`/orientation 변경 시 재렌더 필요 — `matchMedia("(min-width: 768px)").addEventListener("change", ...)` 1개 추가
+2. **`WIDE_MQ` 공용**: 와이드 판정 matchMedia는 **한 곳에 상수**로 만들고 CSS 미디어쿼리 문자열과 **글자 그대로 일치**시킬 것. `renderQuizStep()` 등 JS 분기는 `WIDE_MQ.matches`, 전환 대응은 `WIDE_MQ.addEventListener("change", ...)` 하나로
 3. **좌 pane 스크롤 독립**: `.app-shell` 이 이미 자체 스크롤 컨테이너. 2-pane 은 그 안에서 `display: grid` + 각 pane `overflow-y: auto` + 높이 제한(`height: calc(100dvh - 헤더 - 탭바)` 또는 `max-height`) 필요. 계산값 검증 필수
 4. **캐시 무효화**: `styles.css`/`app.js` 쿼리스트링 + `service-worker.js` `CACHE_VERSION` 항상 함께 올림
-5. **회귀**: 폰(≤767px)에서 픽셀 변화 0 이어야 함. 와이드 규칙은 전부 `min-width: 768px` 안에 격리
+5. **회귀**: 폰(≤767px 그리고 620–767px 중 와이드 2절 조건 미충족)에서 픽셀 변화 0 이어야 함
 6. **`@media (max-width: 1260px)` 의 quiz 컬럼 규칙**: 와이드 2-pane 도입 시 재검토 (지금은 단일 컬럼 폭만 조정)
+7. **폴더블 전환**: 폰↔펼침을 앱 켠 채로 하면 `WIDE_MQ` change 로 레이아웃 즉시 스왑돼야 함. 성경 2-pane 뿐 아니라 홈/내정보/칭호/빌보드(CSS 자동)도 확인
+8. **iPhone Duo 추정치**: 대상 기기 표의 CSS 폭은 미출시 기기 추정. 출시(10-23) 후 실측해 1.3의 `620` 임계값 재조정 가능성 열어둠
+9. **Fold/Duo 커버 회귀**: 좁은 커버 화면(~344px)에서 안 깨지는지 — `chapter-grid` `repeat(5,1fr)`, `book-grid`, 로그인 카드 등 320~384px 구간 확인
 
 ---
 
@@ -231,11 +269,13 @@
 
 로컬 `python -m http.server` + 헤드리스 크롬으로:
 
-- 폰 폭(390, 414) — 스크린샷 회귀: 변화 없음 확인
-- 태블릿 세로(iPad 810×1080 상당) — 성경 2-pane(좁은 좌 pane + 접기), 내 정보 3열, 하단 탭바 위치
-- 태블릿 가로(1080×810 상당) — 세로 오버레이 안 뜸, 성경 2-pane 고정, 각 화면 폭/여백
+- 폰 폭(390, 414) + 좁은 커버(344, 360) — 스크린샷 회귀: 변화 없음 + 안 깨짐
+- Fold 펼침(720×940, 880×1100 상당) — 좁은 좌 pane + 접기, 내 정보 3열
+- iPhone Duo 펼침(626×890 상당) — 와이드 트리거 걸리는지, 좌 pane 기본 접힘 여부
+- 폰 가로(844×390 상당) — 와이드 트리거 **안** 걸리는지(높이 720 미만) + 세로 오버레이
+- iPad 세로(820×1180) / 가로(1180×820) — 성경 2-pane, 세로 오버레이 안 뜸, 각 화면 폭/여백
 - 데스크톱(1440) — `app-shell` 최대폭 캡, 여백
 - 각 뷰(home/stats/성경/community/achievements/profile) DOM 덤프로 `.view-active` / `.step-active` 상태 검증
-- `matchMedia` 브레이크포인트 넘나들 때 성경 pane 상태 갱신 (수동/스크립트)
+- `WIDE_MQ` 브레이크포인트 넘나들 때(폭·높이 양쪽) 성경 pane + 각 뷰 레이아웃 갱신 (수동/스크립트)
 
 주의: 헤드리스 크롬은 `pointer: coarse` 를 실제로 못 만들어서 세로 오버레이의 태블릿 해제는 코드 리뷰로만 확인, 실기기 최종 검증 필요.
