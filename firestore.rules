@@ -29,9 +29,9 @@ service cloud.firestore {
     }
 
     // notificationDailyPlans/{uid}_{date} ("순간의 말씀" scheduling) and
-    // notificationDailyStats/{date} (the daily roll-up summary kept after
-    // each plan is swept) are written and read only by Cloud Functions via
-    // the Admin SDK, which bypasses these rules entirely — no match block
-    // here means the client is correctly denied all access, by default.
+    // yesterdaylog/{uid}_{date} (yesterday's plans, moved there each
+    // midnight) are written and read only by Cloud Functions via the Admin
+    // SDK, which bypasses these rules entirely — no match block here means
+    // the client is correctly denied all access, by default.
   }
 }

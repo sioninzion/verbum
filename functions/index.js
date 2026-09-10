@@ -31,17 +31,15 @@ const messaging = getMessaging();
 const SEOUL_TZ = "Asia/Seoul";
 const MOMENT_VERSES = require("./moment-verses.json"); // [{time:"HH:MM", book, chapter, verse, text}], 51 fixed entries — see project spec.
 
-// notificationDailyPlans docs are write-only scaffolding: once their day has
-// passed nothing ever reads them again (sendDueMomentVerses only queries
-// date == today, no client touches the collection at all), so they'd just
-// pile up one-per-enabled-user-per-day forever. generateDailyPlans sweeps
-// out the old ones each midnight — but first rolls each doomed day up into a
-// single notificationDailyStats/{date} summary doc (per-user target vs
-// scheduled vs sent counts + failReasons) so the delivery-health record
-// survives while the bulky per-verse detail doesn't. 0 = notificationDaily-
-// Plans only ever holds *today*; raise it to keep N days of full per-verse
-// detail live as a debugging buffer before it collapses to the summary.
-const PLAN_RETENTION_DAYS = 0;
+// notificationDailyPlans is write-only scaffolding for the current day:
+// sendDueMomentVerses only ever queries date == today and no client touches
+// the collection, so a doc is dead weight the moment its day ends. Each
+// midnight generateDailyPlans rotates the logs so exactly two collections
+// exist and both stay small:
+//   notificationDailyPlans — today's plans only (full per-verse detail)
+//   yesterdaylog           — yesterday's plans only, moved over verbatim
+// Anything older than yesterday (in either place) is deleted outright.
+const YESTERDAY_LOG_COLLECTION = "yesterdaylog";
 
 // ---------------------------------------------------------------- helpers --
 
@@ -64,11 +62,11 @@ function seoulNow() {
   };
 }
 
-// The oldest plan `date` string to keep. Anything strictly less than this
-// gets deleted. Subtracting whole days in real ms then reading back the
-// Seoul calendar date is exact here — Korea has no DST.
-function retentionCutoffDate() {
-  const past = new Date(Date.now() - PLAN_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+// The Seoul calendar date `days` days before now, as "YYYY-MM-DD".
+// Subtracting whole days in real ms then reading back the Seoul date is
+// exact here — Korea has no DST.
+function seoulDateMinusDays(days) {
+  const past = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: SEOUL_TZ,
     year: "numeric",
@@ -178,83 +176,47 @@ async function ensurePlanForDay(uid, date, dailyCount, nowMinutesFloor) {
   );
 }
 
-// Rolls each notificationDailyPlans doc whose day is behind the retention
-// window up into a compact notificationDailyStats/{date} summary, then
-// deletes the originals. BulkWriter (not a single db.batch()) for the
-// delete because the first run after this ships could face far more than
-// the 500-write batch cap.
-async function archiveAndDeleteStalePlans() {
-  const cutoff = retentionCutoffDate();
-  const staleSnap = await db.collection("notificationDailyPlans").where("date", "<", cutoff).get();
-  if (staleSnap.empty) {
-    logger.info(`archiveAndDeleteStalePlans: nothing older than ${cutoff}`);
-    return;
-  }
-
-  // Group the doomed plan docs by their own `date` so each day collapses
-  // into exactly one summary doc.
-  const byDate = new Map();
-  for (const doc of staleSnap.docs) {
-    const d = doc.data();
-    if (!d.date) continue;
-    if (!byDate.has(d.date)) byDate.set(d.date, []);
-    byDate.get(d.date).push(d);
-  }
-
-  for (const [date, plans] of byDate) {
-    const summaryRef = db.collection("notificationDailyStats").doc(date);
-    if ((await summaryRef.get()).exists) continue; // already rolled up (safe re-run)
-
-    const users = [];
-    for (const plan of plans) {
-      const selected = plan.selected || [];
-      let name = "";
-      let nickname = "";
-      try {
-        const u = await db.collection("users").doc(plan.uid).get();
-        if (u.exists) {
-          name = u.data().name || "";
-          nickname = u.data().nickname || "";
-        }
-      } catch (err) {
-        logger.warn(`archiveAndDeleteStalePlans: could not read user ${plan.uid}`, err);
-      }
-      // Tally why the unsent ones didn't go out, e.g. { no_device: 2 }.
-      const failReasons = {};
-      for (const v of selected) {
-        if (v.sent || !v.failReason) continue;
-        failReasons[v.failReason] = (failReasons[v.failReason] || 0) + 1;
-      }
-      const row = {
-        uid: plan.uid,
-        name,
-        nickname,
-        target: plan.targetCount ?? null, // 신청한 수
-        scheduled: selected.length, // 실제 계획에 잡힌 수 (밤늦게 켜면 target보다 적을 수 있음)
-        sent: selected.filter((v) => v.sent).length, // 실제로 나간 수
-      };
-      if (Object.keys(failReasons).length) row.failReasons = failReasons;
-      users.push(row);
-    }
-    // Biggest shortfall first, so a scan lands on the problem rows.
-    users.sort((a, b) => b.scheduled - b.sent - (a.scheduled - a.sent));
-
-    await summaryRef.set({
-      date,
-      generatedAt: FieldValue.serverTimestamp(),
-      userCount: users.length,
-      totalTarget: users.reduce((s, u) => s + (u.target || 0), 0),
-      totalScheduled: users.reduce((s, u) => s + u.scheduled, 0),
-      totalSent: users.reduce((s, u) => s + u.sent, 0),
-      users,
-    });
-    logger.info(`archiveAndDeleteStalePlans: rolled up ${date} (${users.length} user(s))`);
-  }
-
+// Midnight log rotation, called right after today's plans are generated:
+//   - every notificationDailyPlans doc dated `yesterday` is copied verbatim
+//     (same doc id, full per-verse detail incl. sent/failReason) into the
+//     yesterdaylog collection, then removed from notificationDailyPlans;
+//   - anything older than yesterday, in notificationDailyPlans OR already
+//     sitting in yesterdaylog from a previous day, is deleted outright.
+// Net effect: notificationDailyPlans holds only today, yesterdaylog holds
+// only yesterday. Idempotent — a re-run finds nothing left to move.
+// BulkWriter rather than one db.batch() since a first run (or a missed day)
+// can exceed the 500-write batch cap.
+async function rotateDailyPlanLogs(today) {
+  const yesterday = seoulDateMinusDays(1);
   const writer = db.bulkWriter();
-  staleSnap.docs.forEach((doc) => writer.delete(doc.ref));
+  let moved = 0;
+  let deleted = 0;
+
+  // notificationDailyPlans: move yesterday's out, drop anything older.
+  const stalePlans = await db.collection("notificationDailyPlans").where("date", "<", today).get();
+  for (const doc of stalePlans.docs) {
+    if (doc.data().date === yesterday) {
+      writer.set(db.collection(YESTERDAY_LOG_COLLECTION).doc(doc.id), doc.data());
+      moved++;
+    } else {
+      deleted++;
+    }
+    writer.delete(doc.ref);
+  }
+
+  // yesterdaylog: clear out whatever the previous rotation left (now older
+  // than yesterday). `<` is enough — nothing newer than yesterday is ever
+  // written here.
+  const staleLog = await db.collection(YESTERDAY_LOG_COLLECTION).where("date", "<", yesterday).get();
+  for (const doc of staleLog.docs) {
+    writer.delete(doc.ref);
+    deleted++;
+  }
+
   await writer.close();
-  logger.info(`archiveAndDeleteStalePlans: removed ${staleSnap.size} plan doc(s) older than ${cutoff}`);
+  logger.info(
+    `rotateDailyPlanLogs: moved ${moved} doc(s) to ${YESTERDAY_LOG_COLLECTION} (${yesterday}), deleted ${deleted} older doc(s)`
+  );
 }
 
 // --------------------------------------------------------- scheduled jobs --
@@ -282,11 +244,9 @@ exports.generateDailyPlans = onSchedule(
       })
     );
 
-    // Own catch: archiving/sweeping stale plans must not fail today's
-    // generation, and a generation error above must not skip the sweep.
-    await archiveAndDeleteStalePlans().catch((err) =>
-      logger.error("archiveAndDeleteStalePlans failed", err)
-    );
+    // Own catch: rotating the logs must not fail today's generation, and a
+    // generation error above must not skip the rotation.
+    await rotateDailyPlanLogs(date).catch((err) => logger.error("rotateDailyPlanLogs failed", err));
   }
 );
 
