@@ -31,6 +31,18 @@ const messaging = getMessaging();
 const SEOUL_TZ = "Asia/Seoul";
 const MOMENT_VERSES = require("./moment-verses.json"); // [{time:"HH:MM", book, chapter, verse, text}], 51 fixed entries — see project spec.
 
+// notificationDailyPlans docs are write-only scaffolding: once their day has
+// passed nothing ever reads them again (sendDueMomentVerses only queries
+// date == today, no client touches the collection at all), so they'd just
+// pile up one-per-enabled-user-per-day forever. generateDailyPlans sweeps
+// out the old ones each midnight — but first rolls each doomed day up into a
+// single notificationDailyStats/{date} summary doc (per-user target vs
+// scheduled vs sent counts) so the long-term delivery-health record
+// survives while the bulky per-verse detail doesn't. Keep this many days
+// *before* today live as a buffer so a morning "I didn't get last night's
+// verse" report still has full detail to inspect; 0 = keep only today.
+const PLAN_RETENTION_DAYS = 1;
+
 // ---------------------------------------------------------------- helpers --
 
 function seoulNow() {
@@ -50,6 +62,21 @@ function seoulNow() {
     date: `${get("year")}-${get("month")}-${get("day")}`,
     hhmm: `${get("hour")}:${get("minute")}`,
   };
+}
+
+// The oldest plan `date` string to keep. Anything strictly less than this
+// gets deleted. Subtracting whole days in real ms then reading back the
+// Seoul calendar date is exact here — Korea has no DST.
+function retentionCutoffDate() {
+  const past = new Date(Date.now() - PLAN_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SEOUL_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(past);
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function timeToMinutes(hhmm) {
@@ -151,6 +178,85 @@ async function ensurePlanForDay(uid, date, dailyCount, nowMinutesFloor) {
   );
 }
 
+// Rolls each notificationDailyPlans doc whose day is behind the retention
+// window up into a compact notificationDailyStats/{date} summary, then
+// deletes the originals. BulkWriter (not a single db.batch()) for the
+// delete because the first run after this ships could face far more than
+// the 500-write batch cap.
+async function archiveAndDeleteStalePlans() {
+  const cutoff = retentionCutoffDate();
+  const staleSnap = await db.collection("notificationDailyPlans").where("date", "<", cutoff).get();
+  if (staleSnap.empty) {
+    logger.info(`archiveAndDeleteStalePlans: nothing older than ${cutoff}`);
+    return;
+  }
+
+  // Group the doomed plan docs by their own `date` so each day collapses
+  // into exactly one summary doc.
+  const byDate = new Map();
+  for (const doc of staleSnap.docs) {
+    const d = doc.data();
+    if (!d.date) continue;
+    if (!byDate.has(d.date)) byDate.set(d.date, []);
+    byDate.get(d.date).push(d);
+  }
+
+  for (const [date, plans] of byDate) {
+    const summaryRef = db.collection("notificationDailyStats").doc(date);
+    if ((await summaryRef.get()).exists) continue; // already rolled up (safe re-run)
+
+    const users = [];
+    for (const plan of plans) {
+      const selected = plan.selected || [];
+      let name = "";
+      let nickname = "";
+      try {
+        const u = await db.collection("users").doc(plan.uid).get();
+        if (u.exists) {
+          name = u.data().name || "";
+          nickname = u.data().nickname || "";
+        }
+      } catch (err) {
+        logger.warn(`archiveAndDeleteStalePlans: could not read user ${plan.uid}`, err);
+      }
+      // Tally why the unsent ones didn't go out, e.g. { no_device: 2 }.
+      const failReasons = {};
+      for (const v of selected) {
+        if (v.sent || !v.failReason) continue;
+        failReasons[v.failReason] = (failReasons[v.failReason] || 0) + 1;
+      }
+      const row = {
+        uid: plan.uid,
+        name,
+        nickname,
+        target: plan.targetCount ?? null, // 신청한 수
+        scheduled: selected.length, // 실제 계획에 잡힌 수 (밤늦게 켜면 target보다 적을 수 있음)
+        sent: selected.filter((v) => v.sent).length, // 실제로 나간 수
+      };
+      if (Object.keys(failReasons).length) row.failReasons = failReasons;
+      users.push(row);
+    }
+    // Biggest shortfall first, so a scan lands on the problem rows.
+    users.sort((a, b) => b.scheduled - b.sent - (a.scheduled - a.sent));
+
+    await summaryRef.set({
+      date,
+      generatedAt: FieldValue.serverTimestamp(),
+      userCount: users.length,
+      totalTarget: users.reduce((s, u) => s + (u.target || 0), 0),
+      totalScheduled: users.reduce((s, u) => s + u.scheduled, 0),
+      totalSent: users.reduce((s, u) => s + u.sent, 0),
+      users,
+    });
+    logger.info(`archiveAndDeleteStalePlans: rolled up ${date} (${users.length} user(s))`);
+  }
+
+  const writer = db.bulkWriter();
+  staleSnap.docs.forEach((doc) => writer.delete(doc.ref));
+  await writer.close();
+  logger.info(`archiveAndDeleteStalePlans: removed ${staleSnap.size} plan doc(s) older than ${cutoff}`);
+}
+
 // --------------------------------------------------------- scheduled jobs --
 
 // 00:00 Asia/Seoul — the normal case. Only touches users who currently have
@@ -174,6 +280,12 @@ exports.generateDailyPlans = onSchedule(
           logger.error(`generateDailyPlans failed for ${doc.id}`, err)
         );
       })
+    );
+
+    // Own catch: archiving/sweeping stale plans must not fail today's
+    // generation, and a generation error above must not skip the sweep.
+    await archiveAndDeleteStalePlans().catch((err) =>
+      logger.error("archiveAndDeleteStalePlans failed", err)
     );
   }
 );
@@ -204,12 +316,25 @@ exports.sendDueMomentVerses = onSchedule(
   }
 );
 
+// Stamps a diagnostic reason onto a due-but-unsent entry. `sent` stays
+// false; a later successful send overwrites this and clears it. `reason` is
+// a short stable code ("disabled", "no_device", or the FCM error code(s)).
+function markEntryFailed(entry, reason) {
+  return { ...entry, failReason: reason, failedAt: new Date().toISOString() };
+}
+
 async function sendPlanEntries(uid, planRef, selected, indexes) {
+  const idxSet = new Set(indexes);
   const userSnap = await db.collection("users").doc(uid).get();
   const enabled = userSnap.exists ? userSnap.data()?.notificationSettings?.momentVerseEnabled !== false : false;
   if (!enabled) {
+    // Spec §11: OFF means no new sends and no re-planning. Recording *why*
+    // an entry didn't go out is just diagnostic metadata, not a plan
+    // change, so this one annotation is allowed.
     logger.info(`skip send for ${uid}: momentVerseEnabled is false`);
-    return; // leave sent:false — spec §11: OFF means no new sends, plan stays untouched.
+    const stamped = selected.map((v, idx) => (idxSet.has(idx) ? markEntryFailed(v, "disabled") : v));
+    await planRef.update({ selected: stamped, updatedAt: FieldValue.serverTimestamp() });
+    return;
   }
 
   const devicesSnap = await db
@@ -234,6 +359,8 @@ async function sendPlanEntries(uid, planRef, selected, indexes) {
     // "sent" would permanently bury it with zero chance of ever being
     // retried, even once the user does register a device later.
     logger.info(`sendDueMomentVerses: ${uid} has no enabled device token, skipping ${indexes.length} entr${indexes.length === 1 ? "y" : "ies"}`);
+    for (const i of indexes) updated[i] = markEntryFailed(selected[i], "no_device");
+    await planRef.update({ selected: updated, updatedAt: now });
     return;
   }
 
@@ -267,9 +394,17 @@ async function sendPlanEntries(uid, planRef, selected, indexes) {
     // and marking it sent regardless would falsely bury it forever with no
     // way to ever retry, same reasoning as the no-token-at-all case above.
     if (response.successCount > 0) {
-      updated[i] = { ...entry, sent: true, sentAt: new Date().toISOString() };
+      // Clear any failReason/failedAt a previous attempt this minute left.
+      updated[i] = { ...entry, sent: true, sentAt: new Date().toISOString(), failReason: null, failedAt: null };
     } else {
-      logger.info(`sendDueMomentVerses: all ${tokens.length} token(s) failed for ${uid} on ${ref}, leaving sent:false`);
+      // Every token errored — record the distinct FCM error code(s) so the
+      // log says *why* ("registration-token-not-registered" = stale device,
+      // etc.) rather than just "failed".
+      const codes = [...new Set(response.responses.map((r) => r.error?.code).filter(Boolean))];
+      updated[i] = markEntryFailed(entry, codes.length ? codes.join(", ") : "send_failed");
+      logger.info(
+        `sendDueMomentVerses: all ${tokens.length} token(s) failed for ${uid} on ${ref} (${updated[i].failReason}), leaving sent:false`
+      );
     }
   }
 
