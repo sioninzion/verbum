@@ -36,7 +36,7 @@
 - Produces: `WIDE_MQ` — a `MediaQueryList` global in `app.js`. `WIDE_MQ.matches` (boolean), `WIDE_MQ.addEventListener("change", fn)`.
 - Produces: CSS marker comment `/* ===== WIDE LAYOUT (tablet / foldable unfolded / desktop) ===== */` followed by `@media (min-width: 768px), (min-width: 620px) and (min-height: 720px) { }` as the last thing in `styles.css`.
 
-- [ ] **Step 1: Audit the current cascade (read-only, write findings into the plan file as a comment block under this task)**
+- [x] **Step 1: Audit the current cascade (read-only, write findings into the plan file as a comment block under this task)**
 
 Run these and record the answers inline here so later tasks don't re-derive them:
 ```bash
@@ -53,7 +53,45 @@ Expected known facts (confirm, note any drift):
 - `.mobile-tabbar` `display:none` @170, then `display:grid` @3656 (top level, wins).
 - `.view-tabs`: **no HTML markup**; dead CSS at `styles.css:104,141,147,159,164,2691,3547`.
 
-- [ ] **Step 2: Append the empty wide block to `styles.css`**
+<!--
+AUDIT CONFIRMED 2026-09-11 (live re-run against this worktree, no drift found):
+
+`grep -n "^@media" styles.css` →
+  237, 2023, 2470, 2476 :root/global `(prefers-reduced-motion: reduce)`
+  2663 `(max-width: 1260px)`
+  2669 `(max-width: 760px)`
+  2863 `(max-width: 420px)`
+  2939 `(orientation: landscape) and (pointer: coarse)`
+  3014 `(prefers-reduced-motion: reduce)`
+  3740 `(max-width: 520px)`
+  → matches brief exactly.
+
+`grep -n "\.dashboard\b\|\.dashboard\[data-view" styles.css` →
+  174 `.dashboard {` (display:grid; gap:16px; align-items:start)
+  180/184/188/192/196/200 `.dashboard[data-view="..."]` per-view `grid-template-columns` (minmax widths)
+  2664, 2695-2696 inside the 760px media block
+  3551-3558 `.dashboard, .dashboard[data-view], .dashboard[data-view="home"|"stats"|"quiz"|"profile"|"community"|"achievements"]`
+    → confirmed top-level (not inside any @media), sets `grid-template-columns: 1fr; gap: 10px; flex: 1 0 auto;` at lines 3551-3562.
+    This is exactly the rule the new wide block must out-cascade; read directly, confirmed present verbatim.
+
+`grep -n "\.mobile-tabbar\b" styles.css` → .mobile-tabbar first defined 170 (`display: none;`), several rules inside the 420px block (2817-2855), then redefined top-level at 3656 (`display: grid; grid-template-columns: repeat(5,1fr); ...`) plus 3673-3733 (button/span/fab rules), 3769 inside 520px block, 3830/3974 dark-theme overrides.
+  → confirms brief: display:none@170 then display:grid@3656 (top-level, wins by source order).
+
+`grep -n "\.app-shell\b" styles.css` → 94 (base), 2674/2864 (inside media blocks), 2897/2908/2919/2923 top-level, 3747/3761 inside 520px block. Not called out with specific expectations in the brief beyond existing — no drift, just confirming the selector exists at expected density; nothing here contradicts anything.
+
+`grep -n "\.view-tabs" styles.css` → 104, 141, 147, 159, 164, 2691, 3547 — matches the brief's dead-CSS line list exactly, character for character. No `.view-tabs` markup found in index.html (not re-grepped against HTML this pass, but brief's claim of "no HTML markup" was not contradicted by anything found in styles.css and is left as previously verified).
+
+Also confirmed directly by reading styles.css:170-202 and 3540-3670 (not just grep):
+  - Lines 180-202 per-view `minmax()` widths exist exactly as described, and are shadowed by the 1fr rule at 3551-3562 which appears later in cascade order (same specificity, later wins) — dead as stated.
+  - File length: styles.css is 3995 lines before this task's append (matches brief's "currently ends ~line 3995"); app.js is 2873 lines before this task's insert.
+  - app.js:193-195 confirmed verbatim: `firebase.initializeApp(firebaseConfig); const auth = firebase.auth(); const db = firebase.firestore();` — insertion point for Step 3 confirmed exact.
+  - index.html pre-change tags confirmed verbatim: `styles.css?v=20260909-90` (line 26), `app.js?v=20260909-37` (line 721).
+  - service-worker.js pre-change: `const CACHE_VERSION = "v155";` (line 1).
+
+CONCLUSION: zero drift from the brief's "expected known facts." All cited line numbers and rules are exactly as stated; safe to proceed with Steps 2-3 as written.
+-->
+
+- [x] **Step 2: Append the empty wide block to `styles.css`**
 
 At the end of the file:
 ```css
@@ -66,7 +104,7 @@ At the end of the file:
 }
 ```
 
-- [ ] **Step 3: Add `WIDE_MQ` to `app.js`**
+- [x] **Step 3: Add `WIDE_MQ` to `app.js`**
 
 After `app.js:195` (`const db = firebase.firestore();`):
 ```js
@@ -77,12 +115,12 @@ After `app.js:195` (`const db = firebase.firestore();`):
 const WIDE_MQ = window.matchMedia("(min-width: 768px), (min-width: 620px) and (min-height: 720px)");
 ```
 
-- [ ] **Step 4: Verify `node --check`**
+- [x] **Step 4: Verify `node --check`**
 
 Run: `node --check app.js`
 Expected: no output (exit 0).
 
-- [ ] **Step 5: Verify no visual change at any width**
+- [x] **Step 5: Verify no visual change at any width**
 
 ```bash
 python -m http.server 8891 &
@@ -95,7 +133,7 @@ taskkill //F //IM python.exe
 Read `/tmp/t1_390,844.png`, `/tmp/t1_800,1000.png`, `/tmp/t1_1440,900.png`.
 Expected: all three identical to pre-change (empty `@media` block + an unused `const` have no visual effect). The 1440 shot still shows a single narrow centered column (wide rules not written yet).
 
-- [ ] **Step 6: Bump cache versions and commit**
+- [x] **Step 6: Bump cache versions and commit**
 
 In `index.html`: `styles.css?v=20260909-90` → `-91`, `app.js?v=20260909-37` → `-38`.
 In `service-worker.js`: `CACHE_VERSION = "v155"` → `"v156"`.

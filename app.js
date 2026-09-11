@@ -194,6 +194,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Wide-screen breakpoint — string MUST match the @media prelude at the end of
+// styles.css verbatim (tablet, foldable unfolded, desktop). Foldable/Duo
+// unfolded are near-square and can be <768 wide, hence the second clause; the
+// min-height clause keeps phone-landscape out.
+const WIDE_MQ = window.matchMedia("(min-width: 768px), (min-width: 620px) and (min-height: 720px)");
+
 db.enablePersistence().catch(() => {
   // Multiple tabs open, or the browser doesn't support persistence — offline
   // reads/writes just won't be queued locally, which is fine, not fatal.

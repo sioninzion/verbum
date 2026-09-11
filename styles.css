@@ -3993,3 +3993,10 @@ body {
 :root[data-theme="dark"] body {
   background: var(--bg);
 }
+
+/* ===== WIDE LAYOUT (tablet / foldable unfolded / desktop) =====================
+   One block, must stay last in the file so it wins over .dashboard{1fr} at ~L3551.
+   Query string is duplicated verbatim as WIDE_MQ in app.js — keep them identical. */
+@media (min-width: 768px), (min-width: 620px) and (min-height: 720px) {
+  /* filled in by later tasks */
+}
