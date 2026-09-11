@@ -194,6 +194,11 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Folded foldable cover screen — narrow AND stubby aspect ratio. Excludes
+// normal phones (taller, ratio < 3/5) and the Flip cover (near-square,
+// ratio > 4/5). String MUST match the @media prelude in styles.css verbatim.
+const COVER_MQ = window.matchMedia("(max-width: 430px) and (min-aspect-ratio: 3/5) and (max-aspect-ratio: 4/5)");
+
 db.enablePersistence().catch(() => {
   // Multiple tabs open, or the browser doesn't support persistence — offline
   // reads/writes just won't be queued locally, which is fine, not fatal.
@@ -251,6 +256,7 @@ const state = {
   readingPrefs: loadReadingPrefs(),
   bookSearchQuery: "",
   bookTestamentFilter: "old",
+  verseReader: { chapterId: null, verses: [], index: 0, open: false },
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -411,6 +417,15 @@ const elements = {
   calendarPrevBtn: document.querySelector("#calendarPrevBtn"),
   calendarNextBtn: document.querySelector("#calendarNextBtn"),
   calendarCloseBtn: document.querySelector("#calendarCloseBtn"),
+  verseReader: document.querySelector("#verseReader"),
+  verseReaderTitle: document.querySelector("#verseReaderTitle"),
+  verseReaderCounter: document.querySelector("#verseReaderCounter"),
+  verseReaderHeading: document.querySelector("#verseReaderHeading"),
+  verseReaderVerse: document.querySelector("#verseReaderVerse"),
+  verseReaderQuizBtn: document.querySelector("#verseReaderQuizBtn"),
+  verseReaderBackBtn: document.querySelector("#verseReaderBackBtn"),
+  verseReaderZoneLeft: document.querySelector("#verseReaderZoneLeft"),
+  verseReaderZoneRight: document.querySelector("#verseReaderZoneRight"),
 };
 
 function createProgress() {

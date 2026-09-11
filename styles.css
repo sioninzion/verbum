@@ -3993,3 +3993,73 @@ body {
 :root[data-theme="dark"] body {
   background: var(--bg);
 }
+
+/* ===== FOLDABLE COVER-SCREEN ONE-VERSE READER ============================== */
+.verse-reader[hidden] { display: none !important; }
+.verse-reader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;               /* above dashboard, below nothing that matters */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.verse-reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.verse-reader-back {
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  padding: 4px 8px;
+}
+.verse-reader-title { flex: 1; }
+.verse-reader-stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 22px 40px;
+  text-align: center;
+}
+.verse-reader-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.verse-reader-verse {
+  margin: 0;
+  font-size: 22px;             /* Task 5 wires this to the 소/중/대/특대 setting */
+  line-height: 1.7;
+  font-weight: 700;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.verse-reader-verse.slide-out-left  { transform: translateX(-24px); opacity: 0; }
+.verse-reader-verse.slide-out-right { transform: translateX(24px);  opacity: 0; }
+.verse-reader-quiz { width: auto; padding-inline: 28px; }
+.verse-reader-zone {
+  position: absolute;
+  top: 48px;                   /* below the bar */
+  bottom: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.verse-reader-zone-left  { left: 0;  width: 33.333%; }
+.verse-reader-zone-right { right: 0; width: 66.667%; }

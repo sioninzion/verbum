@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260909-90" />
+    <link rel="stylesheet" href="styles.css?v=20260911-1" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -31,6 +31,21 @@
         <span class="rotate-overlay-icon">📱</span>
         <p>세로 모드로 돌려서 이용해 주세요</p>
       </div>
+    </div>
+
+    <div class="verse-reader" id="verseReader" hidden>
+      <div class="verse-reader-bar">
+        <button class="verse-reader-back" id="verseReaderBackBtn" type="button" aria-label="나가기">‹</button>
+        <span class="verse-reader-title" id="verseReaderTitle"></span>
+        <span class="verse-reader-counter" id="verseReaderCounter"></span>
+      </div>
+      <div class="verse-reader-stage">
+        <p class="verse-reader-heading" id="verseReaderHeading" hidden></p>
+        <p class="verse-reader-verse" id="verseReaderVerse"></p>
+        <button class="primary-button verse-reader-quiz" id="verseReaderQuizBtn" type="button" hidden>문제 풀기</button>
+      </div>
+      <button class="verse-reader-zone verse-reader-zone-left" id="verseReaderZoneLeft" type="button" aria-label="이전 절"></button>
+      <button class="verse-reader-zone verse-reader-zone-right" id="verseReaderZoneRight" type="button" aria-label="다음 절"></button>
     </div>
 
     <div class="splash-screen" id="splashScreen" aria-hidden="true">
@@ -718,6 +733,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-15"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260909-37"></script>
+    <script src="app.js?v=20260911-1"></script>
   </body>
 </html>

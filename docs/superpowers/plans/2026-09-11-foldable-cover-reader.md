@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: `COVER_MQ` (`MediaQueryList` global). `state.verseReader = { chapterId: null, verses: [], index: 0, open: false }`. `elements.verseReader`, `elements.verseReaderVerse`, `elements.verseReaderHeading`, `elements.verseReaderCounter`, `elements.verseReaderTitle`, `elements.verseReaderBackBtn`, `elements.verseReaderQuizBtn`, `elements.verseReaderZoneLeft`, `elements.verseReaderZoneRight`.
 
-- [ ] **Step 1: Add `COVER_MQ` to `app.js`**
+- [x] **Step 1: Add `COVER_MQ` to `app.js`**
 
 ```js
 // Folded foldable cover screen — narrow AND stubby aspect ratio. Excludes
@@ -43,14 +43,14 @@
 const COVER_MQ = window.matchMedia("(max-width: 430px) and (min-aspect-ratio: 3/5) and (max-aspect-ratio: 4/5)");
 ```
 
-- [ ] **Step 2: Add reader state**
+- [x] **Step 2: Add reader state**
 
 In the `state` object (`app.js:239`), add:
 ```js
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
 ```
 
-- [ ] **Step 3: Add the overlay markup to `index.html`**
+- [x] **Step 3: Add the overlay markup to `index.html`**
 
 Place right after the `.rotate-overlay` div (`index.html:~33`):
 ```html
@@ -70,7 +70,7 @@ Place right after the `.rotate-overlay` div (`index.html:~33`):
 </div>
 ```
 
-- [ ] **Step 4: Add element refs**
+- [x] **Step 4: Add element refs**
 
 In the `elements` map (`app.js`):
 ```js
@@ -85,7 +85,7 @@ In the `elements` map (`app.js`):
   verseReaderZoneRight: document.querySelector("#verseReaderZoneRight"),
 ```
 
-- [ ] **Step 5: Base CSS**
+- [x] **Step 5: Base CSS**
 
 Append to `styles.css`:
 ```css
@@ -161,7 +161,7 @@ Append to `styles.css`:
 ```
 NOTE: the `.verse-reader` rules are scoped to the element and it is `hidden` by default, so they are inert on every non-cover viewport. No `@media` gate is strictly required, but wrapping the *activation* is JS's job (Task 2).
 
-- [ ] **Step 6: `node --check` + no-regression screenshots**
+- [x] **Step 6: `node --check` + no-regression screenshots**
 
 `node --check app.js` → exit 0.
 ```bash
@@ -172,7 +172,7 @@ taskkill //F //IM python.exe
 ```
 Read both. Expected: identical to before — `#verseReader` is `hidden`, nothing rendered.
 
-- [ ] **Step 7: Bump cache + commit**
+- [x] **Step 7: Bump cache + commit**
 
 Read current `?v=` values from `index.html` and `CACHE_VERSION` from `service-worker.js`; increment each. Then:
 ```bash
