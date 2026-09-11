@@ -3964,4 +3964,56 @@ body {
     width: min(1200px, calc(100% - 48px));
     margin-inline: auto;
   }
+
+  /* Home: .home-hero (title only), .next-card (CTA card) and .week-strip
+     are siblings inside .home-panel — not nested (confirmed against real
+     DOM, see task-3-report.md). .home-panel becomes the 2-col grid itself;
+     .home-hero/.home-stats-grid/.testament-cards/.home-install-banner span
+     both columns (forcing their own row), leaving .next-card + .week-strip
+     to auto-place side by side into the two columns right after the hero
+     row. .home-stats-grid only has 3 cells today (not 4 — stale spec), so
+     it goes 1x3, not 1x4; total-progress-card's mobile 2-row span is reset
+     so it doesn't try to span rows in a 1-row grid. .daily-verse has no
+     DOM element (dead CSS, feature removed pre-redesign) so there is
+     nothing to size full width. .testament-cards is left structurally
+     untouched (out of scope), only participating full-width in the outer
+     grid same as it already is in normal flow.
+     Selector note: `.panel.home-panel` (not bare `.home-panel`) is required
+     here to out-specificity the base `.panel.view-active { display: block; }`
+     rule (styles.css:183) — same (0,2,0) specificity, so this rule (later
+     in source) wins the tie. A bare `.home-panel` (0,1,0) lost to it and
+     silently stayed `display: block`, confirmed via computed-style check
+     against a local DOM harness before landing this fix. */
+  .dashboard[data-view="home"] {
+    width: min(1040px, calc(100% - 48px));
+  }
+
+  .panel.home-panel {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    align-items: start;
+    gap: 16px;
+  }
+
+  .home-panel .home-install-banner,
+  .home-panel .home-hero,
+  .home-panel .home-stats-grid,
+  .home-panel .testament-cards {
+    grid-column: 1 / -1;
+  }
+
+  .home-panel .week-strip {
+    /* reset mobile stacking margin so it lines up with .next-card's top
+       edge when the two sit side by side (align-items: start) */
+    margin: 0;
+  }
+
+  .home-panel .home-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: 1fr;
+  }
+
+  .home-panel .home-stats-grid .total-progress-card {
+    grid-row: auto;
+  }
 }
