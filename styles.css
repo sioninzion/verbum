@@ -100,8 +100,7 @@ h3 {
 .quiz-actions,
 .target-row,
 .legend,
-.quiz-topline,
-.view-tabs {
+.quiz-topline {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -136,35 +135,6 @@ h3 {
   color: var(--ink);
   font-size: 27px;
   font-weight: 900;
-}
-
-.view-tabs {
-  margin-bottom: 16px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.view-tabs button {
-  flex: 0 0 auto;
-  min-height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 18px;
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--muted);
-  font-weight: 900;
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
-}
-
-.view-tabs button:hover:not(.active) {
-  border-color: var(--blue);
-  color: var(--blue);
-}
-
-.view-tabs button.active {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: white;
 }
 
 .mobile-tabbar {
@@ -2688,10 +2658,6 @@ h3 {
     font-size: 16px;
   }
 
-  .view-tabs {
-    display: none;
-  }
-
   .dashboard,
   .dashboard[data-view] {
     grid-template-columns: 1fr;
@@ -2820,7 +2786,7 @@ h3 {
     z-index: 30;
     flex-shrink: 0;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 6px;
     padding: 7px;
     border: 1px solid rgba(231, 217, 195, 0.9);
@@ -3544,10 +3510,6 @@ body {
   font-weight: 900;
 }
 
-.view-tabs {
-  display: none;
-}
-
 .dashboard,
 .dashboard[data-view],
 .dashboard[data-view="home"],
@@ -3998,5 +3960,8 @@ body {
    One block, must stay last in the file so it wins over .dashboard{1fr} at ~L3551.
    Query string is duplicated verbatim as WIDE_MQ in app.js — keep them identical. */
 @media (min-width: 768px), (min-width: 620px) and (min-height: 720px) {
-  /* filled in by later tasks */
+  .app-shell {
+    width: min(1200px, calc(100% - 48px));
+    margin-inline: auto;
+  }
 }
