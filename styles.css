@@ -4052,7 +4052,16 @@ body {
 }
 .verse-reader-verse.slide-out-left  { transform: translateX(-24px); opacity: 0; }
 .verse-reader-verse.slide-out-right { transform: translateX(24px);  opacity: 0; }
-.verse-reader-quiz { width: auto; padding-inline: 28px; }
+.verse-reader-quiz {
+  position: relative;   /* .verse-reader-stage has position:relative but z-index:auto,
+                            so it does NOT create its own stacking context — this
+                            element's z-index is compared directly against the
+                            .verse-reader-zone-* siblings inside #verseReader's context */
+  z-index: 1;            /* wins over the zones' z-index:auto so real taps land on
+                            the button instead of the overlapping right tap zone */
+  width: auto;
+  padding-inline: 28px;
+}
 .verse-reader-zone {
   position: absolute;
   top: 48px;                   /* below the bar */
