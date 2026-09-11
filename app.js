@@ -1981,7 +1981,7 @@ async function openVerseReader(chapterId) {
 
 function closeVerseReader() {
   if (!state.verseReader.open) return;
-  state.verseReader.open = false;
+  state.verseReader = { chapterId: null, verses: [], index: 0, open: false };
   elements.verseReader.hidden = true;
   elements.verseReaderVerse.className = "verse-reader-verse";
 }
@@ -1998,6 +1998,28 @@ function renderVerseReader() {
   if (index === 0 && verse.h) elements.verseReaderHeading.textContent = verse.h;
   elements.verseReaderVerse.textContent = `${verse.v}  ${verse.t}`;
   elements.verseReaderQuizBtn.hidden = !isLast;
+}
+
+function verseReaderGo(dir) {
+  const st = state.verseReader;
+  if (!st.open) return;
+  const target = st.index + dir;
+  if (target < 0) {
+    // bounce at verse 1
+    elements.verseReaderVerse.animate(
+      [{ transform: "translateX(0)" }, { transform: "translateX(14px)" }, { transform: "translateX(0)" }],
+      { duration: 180 }
+    );
+    return;
+  }
+  if (target > st.verses.length - 1) return; // last verse: forward is the quiz button
+  const outClass = dir === 1 ? "slide-out-left" : "slide-out-right";
+  elements.verseReaderVerse.classList.add(outClass);
+  setTimeout(() => {
+    st.index = target;
+    renderVerseReader();
+    elements.verseReaderVerse.classList.remove("slide-out-left", "slide-out-right");
+  }, 150);
 }
 
 function startQuiz() {
@@ -2571,6 +2593,19 @@ elements.hintBtn.addEventListener("click", () => {
 elements.nextBtn.addEventListener("click", goToNextChapter);
 elements.homeNextBtn.addEventListener("click", goToNextIncomplete);
 elements.verseReaderBackBtn.addEventListener("click", () => history.back());
+elements.verseReaderZoneRight.addEventListener("click", () => verseReaderGo(1));
+elements.verseReaderZoneLeft.addEventListener("click", () => verseReaderGo(-1));
+let vrTouchX = null;
+elements.verseReader.addEventListener("touchstart", (e) => {
+  vrTouchX = e.changedTouches[0].clientX;
+}, { passive: true });
+elements.verseReader.addEventListener("touchend", (e) => {
+  if (vrTouchX === null) return;
+  const dx = e.changedTouches[0].clientX - vrTouchX;
+  vrTouchX = null;
+  if (Math.abs(dx) < 40) return;
+  verseReaderGo(dx < 0 ? 1 : -1); // swipe left (finger R→L) = next
+});
 window.addEventListener("popstate", () => {
   if (state.verseReader.open) closeVerseReader();
 });
