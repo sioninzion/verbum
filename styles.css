@@ -4016,4 +4016,31 @@ body {
   .home-panel .home-stats-grid .total-progress-card {
     grid-row: auto;
   }
+
+  /* Profile: .panel-heading then 5 direct-child cards — .account-card,
+     .theme-card, .notification-card, .profile-form, .danger-zone-card —
+     confirmed as direct siblings of .profile-panel against the real DOM
+     (index.html:462-554), matching the plan. .profile-panel becomes a
+     3-col grid; the heading spans all 3 columns and the 5 cards auto-place
+     into row 1 (account/theme/notification) then row 2 (profile-form/
+     danger-zone), tops aligned via align-items: start.
+     Selector note: `.panel.profile-panel` (not bare `.profile-panel`) is
+     required here to out-specificity the base `.panel.view-active {
+     display: block; }` rule (styles.css:183) — same (0,2,0) specificity,
+     so this rule (later in source) wins the tie, same fix as
+     `.panel.home-panel` above. */
+  .dashboard[data-view="profile"] {
+    width: min(1200px, calc(100% - 48px));
+  }
+
+  .panel.profile-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  .profile-panel > .panel-heading {
+    grid-column: 1 / -1;
+  }
 }
