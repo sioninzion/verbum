@@ -192,7 +192,7 @@ git commit -m "cover-reader: scaffold — COVER_MQ, #verseReader overlay, state,
 - Consumes: `COVER_MQ`, `state.verseReader`, `elements.verseReader*`, `getNextIncompleteChapter()` (`app.js:1074`), `loadChapterVerses(chapter)` (`app.js:1836`, returns `[{v,t,h?}]`), `selectChapter(chapterId)` (`app.js:1943`), `DATA.chapters`.
 - Produces: `openVerseReader(chapterId)` (async), `closeVerseReader()`, `renderVerseReader()`.
 
-- [ ] **Step 1: Write `openVerseReader` / `closeVerseReader` / `renderVerseReader`**
+- [x] **Step 1: Write `openVerseReader` / `closeVerseReader` / `renderVerseReader`**
 
 Add near the other reading functions (after `renderReading()` ~`app.js:1936`):
 ```js
@@ -247,7 +247,7 @@ function renderVerseReader() {
 }
 ```
 
-- [ ] **Step 2: Branch `goToNextIncomplete()`**
+- [x] **Step 2: Branch `goToNextIncomplete()`**
 
 `app.js:2000`:
 ```js
@@ -262,7 +262,7 @@ function goToNextIncomplete() {
 }
 ```
 
-- [ ] **Step 3: Wire the back button + `popstate`**
+- [x] **Step 3: Wire the back button + `popstate`**
 
 Near end-of-file wiring:
 ```js
@@ -276,7 +276,7 @@ COVER_MQ.addEventListener("change", (e) => {
 });
 ```
 
-- [ ] **Step 4: `node --check` + verify open/close**
+- [x] **Step 4: `node --check` + verify open/close**
 
 `node --check app.js` → exit 0.
 ```bash
@@ -286,7 +286,7 @@ taskkill //F //IM python.exe
 ```
 Read `/tmp/b2_cover_home.png` — confirm home renders at the cover viewport (the "이어서 읽기" button is visible). Then a **manual** pass in a real browser sized ~360×572 (DevTools device toolbar, custom 360×572): log in, tap "이어서 읽기" → the full-screen reader appears showing verse 1 with "1 / N" counter and a "‹" back button; tap "‹" (or browser back) → reader closes, home visible. At 390×844 (normal phone) the same button still goes to the normal `reading-panel` (no reader).
 
-- [ ] **Step 5: Bump cache + commit**
+- [x] **Step 5: Bump cache + commit**
 
 Increment `?v=` + `CACHE_VERSION`.
 ```bash

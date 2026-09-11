@@ -1950,6 +1950,56 @@ async function renderReading() {
   );
 }
 
+async function openVerseReader(chapterId) {
+  const chapter = DATA.chapters.find((c) => c.id === chapterId);
+  if (!chapter) return;
+  // keep the rest of the app's notion of "current chapter" in sync so the
+  // quiz hand-off (startQuiz) works unchanged
+  selectChapter(chapterId);
+  state.verseReader = { chapterId, verses: [], index: 0, open: true };
+  elements.verseReader.hidden = false;
+  elements.verseReaderVerse.textContent = "본문을 불러오는 중...";
+  elements.verseReaderHeading.hidden = true;
+  elements.verseReaderCounter.textContent = "";
+  elements.verseReaderQuizBtn.hidden = true;
+  history.pushState({ verseReader: true }, "");
+  let verses = [];
+  try {
+    verses = await loadChapterVerses(chapter);
+  } catch {
+    verses = [];
+  }
+  if (!state.verseReader.open || state.verseReader.chapterId !== chapterId) return;
+  if (!verses.length) {
+    elements.verseReaderVerse.textContent = "본문을 불러오지 못했습니다.";
+    return;
+  }
+  state.verseReader.verses = verses;
+  state.verseReader.index = 0;
+  renderVerseReader();
+}
+
+function closeVerseReader() {
+  if (!state.verseReader.open) return;
+  state.verseReader.open = false;
+  elements.verseReader.hidden = true;
+  elements.verseReaderVerse.className = "verse-reader-verse";
+}
+
+function renderVerseReader() {
+  const { verses, index, chapterId } = state.verseReader;
+  const chapter = DATA.chapters.find((c) => c.id === chapterId);
+  const verse = verses[index];
+  if (!verse) return;
+  const isLast = index === verses.length - 1;
+  elements.verseReaderTitle.textContent = `${chapter.book} ${chapter.chapter}장`;
+  elements.verseReaderCounter.textContent = `${index + 1} / ${verses.length}`;
+  elements.verseReaderHeading.hidden = !(index === 0 && verse.h);
+  if (index === 0 && verse.h) elements.verseReaderHeading.textContent = verse.h;
+  elements.verseReaderVerse.textContent = `${verse.v}  ${verse.t}`;
+  elements.verseReaderQuizBtn.hidden = !isLast;
+}
+
 function startQuiz() {
   state.quizStep = "quiz";
   renderQuizStep();
@@ -2014,6 +2064,10 @@ function goToNextChapter() {
 
 function goToNextIncomplete() {
   const next = getNextIncompleteChapter();
+  if (COVER_MQ.matches) {
+    openVerseReader(next.id);
+    return;
+  }
   selectChapter(next.id);
   setView("quiz");
 }
@@ -2516,6 +2570,14 @@ elements.hintBtn.addEventListener("click", () => {
 
 elements.nextBtn.addEventListener("click", goToNextChapter);
 elements.homeNextBtn.addEventListener("click", goToNextIncomplete);
+elements.verseReaderBackBtn.addEventListener("click", () => history.back());
+window.addEventListener("popstate", () => {
+  if (state.verseReader.open) closeVerseReader();
+});
+// If the device leaves cover mode while the reader is open (unfold), drop it.
+COVER_MQ.addEventListener("change", (e) => {
+  if (!e.matches && state.verseReader.open) closeVerseReader();
+});
 elements.undoBtn.addEventListener("click", async () => {
   const chapter = getCurrentChapter();
   delete state.progress.completed[chapter.id];
