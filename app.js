@@ -1987,6 +1987,9 @@ function closeVerseReader() {
 }
 
 function renderVerseReader() {
+  const size = state.readingPrefs?.size || "large"; // cover default = large
+  elements.verseReaderVerse.dataset.size = size;
+  elements.verseReaderVerse.classList.toggle("bold", !!state.readingPrefs?.bold);
   const { verses, index, chapterId } = state.verseReader;
   const chapter = DATA.chapters.find((c) => c.id === chapterId);
   const verse = verses[index];

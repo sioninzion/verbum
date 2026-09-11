@@ -4045,11 +4045,16 @@ body {
 }
 .verse-reader-verse {
   margin: 0;
-  font-size: 22px;             /* Task 5 wires this to the 소/중/대/특대 setting */
+  font-size: 22px;             /* fallback before dataset.size is applied; overridden by [data-size] rules below */
   line-height: 1.7;
   font-weight: 700;
   transition: transform 180ms ease, opacity 180ms ease;
 }
+.verse-reader-verse[data-size="small"]  { font-size: 18px; }
+.verse-reader-verse[data-size="medium"] { font-size: 21px; }
+.verse-reader-verse[data-size="large"]  { font-size: 25px; }
+.verse-reader-verse[data-size="xlarge"] { font-size: 30px; }
+.verse-reader-verse.bold { font-weight: 900; }
 .verse-reader-verse.slide-out-left  { transform: translateX(-24px); opacity: 0; }
 .verse-reader-verse.slide-out-right { transform: translateX(24px);  opacity: 0; }
 .verse-reader-quiz {
