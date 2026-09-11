@@ -2902,7 +2902,10 @@ body {
   display: none;
 }
 
-@media (orientation: landscape) and (pointer: coarse) {
+/* Restrict portrait-lock overlay to phones in landscape only. Modern phones in landscape
+   are 844–932px wide, so max-width can't distinguish them from tablets; landscape height
+   (~375–430px phone vs 700+ tablet/foldable) reliably separates them. */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 500px) {
   .rotate-overlay {
     position: fixed;
     inset: 0;
