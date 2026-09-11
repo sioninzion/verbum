@@ -200,6 +200,13 @@ const db = firebase.firestore();
 // min-height clause keeps phone-landscape out.
 const WIDE_MQ = window.matchMedia("(min-width: 768px), (min-width: 620px) and (min-height: 720px)");
 
+// Sub-range of the wide layout (Task 9) where the Bible screen's left column
+// (library + chapter panels) is narrow enough that a collapse toggle is
+// worth offering. Deliberately separate from WIDE_MQ above — this is NOT a
+// redefinition of "wide", just the band within wide where the toggle button
+// shows. At >=900px the toggle stays hidden and the pane is always expanded.
+const NARROW_WIDE_MQ = window.matchMedia("(min-width: 620px) and (max-width: 899px)");
+
 db.enablePersistence().catch(() => {
   // Multiple tabs open, or the browser doesn't support persistence — offline
   // reads/writes just won't be queued locally, which is fine, not fatal.
@@ -257,6 +264,7 @@ const state = {
   readingPrefs: loadReadingPrefs(),
   bookSearchQuery: "",
   bookTestamentFilter: "old",
+  biblePaneCollapsed: false,
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -353,6 +361,7 @@ const elements = {
   bookSearchInput: document.querySelector("#bookSearchInput"),
   bookGridEmpty: document.querySelector("#bookGridEmpty"),
   librarySubtitle: document.querySelector("#librarySubtitle"),
+  biblePaneToggle: document.querySelector("#biblePaneToggle"),
   librarySectionLabel: document.querySelector("#librarySectionLabel"),
   librarySectionCount: document.querySelector("#librarySectionCount"),
   testamentToggleButtons: document.querySelectorAll("#testamentToggle [data-testament]"),
@@ -1668,6 +1677,8 @@ function renderView() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
   });
+
+  applyBiblePane();
 }
 
 function renderAuthGate() {
@@ -1711,6 +1722,23 @@ function renderQuizStep() {
     panel.classList.toggle("step-active", active);
   });
   if (state.quizStep === "books") animateBookGridFill();
+  applyBiblePane();
+}
+
+// Task 9: collapsible Bible left pane, 620-899px only (NARROW_WIDE_MQ above).
+// The toggle button only ever shows in that sub-range while the Bible/quiz
+// tab is active; outside it (phones, or >=900px) the pane is always
+// expanded and the button stays hidden, regardless of state.biblePaneCollapsed.
+// Also requires WIDE_MQ.matches: NARROW_WIDE_MQ's 620-899 range has no
+// min-height clause, so on its own it would also match phone-landscape
+// (e.g. 667x375) — widths WIDE_MQ deliberately excludes via its height
+// clause (see WIDE_MQ's comment above). Gating on both keeps the toggle
+// from appearing on phones turned sideways, where there is no 2-column
+// grid to collapse in the first place.
+function applyBiblePane() {
+  const inRange = NARROW_WIDE_MQ.matches && WIDE_MQ.matches;
+  elements.biblePaneToggle.hidden = !inRange || state.activeView !== "quiz";
+  elements.dashboard.classList.toggle("bible-pane-collapsed", inRange && state.biblePaneCollapsed);
 }
 
 function render() {
@@ -2898,3 +2926,10 @@ WIDE_MQ.addEventListener("change", () => {
   renderQuizStep();
   render();
 });
+
+// Task 9: Bible left-pane collapse toggle, 620-899px sub-range only.
+elements.biblePaneToggle.addEventListener("click", () => {
+  state.biblePaneCollapsed = !state.biblePaneCollapsed;
+  applyBiblePane();
+});
+NARROW_WIDE_MQ.addEventListener("change", applyBiblePane);

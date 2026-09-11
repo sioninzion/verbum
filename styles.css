@@ -982,6 +982,48 @@ h3 {
   font-weight: 700;
 }
 
+/* Task 9: collapse/expand button for the Bible left pane, 620-899px only.
+   Hidden by default (see index.html); JS un-hides it only inside that
+   sub-range while the Bible/quiz tab is active (app.js applyBiblePane()).
+   Styled like .back-button's circular neumorphic look for visual
+   consistency with the rest of the Bible screen's chrome. */
+.bible-pane-toggle {
+  flex: 0 0 auto;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 999px;
+  border: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  box-shadow: var(--neu-raised-sm);
+  transition:
+    transform 140ms ease,
+    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 140ms ease;
+}
+
+.bible-pane-toggle:hover {
+  color: var(--blue);
+}
+
+.bible-pane-toggle:active {
+  transform: scale(0.94);
+  box-shadow: var(--neu-pressed-sm);
+}
+
+/* .bible-pane-toggle's own `display: grid` above is an author-origin
+   declaration, which beats the browser's UA-stylesheet `[hidden] {
+   display: none }` rule regardless of specificity (author always wins over
+   UA at the same specificity) — without this override the button stayed
+   visible even with the `hidden` attribute set. `[hidden]` here raises
+   specificity to (0,2,0), beating the bare (0,1,0) rule above. */
+.bible-pane-toggle[hidden] {
+  display: none;
+}
+
 .achievements-heading {
   display: flex;
   align-items: baseline;
@@ -3565,6 +3607,18 @@ body {
   align-items: center;
 }
 
+/* Task 9: .library-heading gained a second child (.bible-pane-toggle,
+   sibling to the existing title/subtitle wrapper div) — it previously only
+   ever had one child so the base `.panel-heading { display: grid }` above
+   (implicit single-column grid) never visibly stacked anything. Needs the
+   same flex override .quiz-heading already gets above, so the toggle sits
+   beside the heading text (justify-content:space-between pushes it to the
+   far edge) instead of wrapping onto its own row underneath. */
+.panel-heading.library-heading {
+  display: flex;
+  justify-content: space-between;
+}
+
 .home-hero h2 {
   font-size: 25px;
 }
@@ -4163,5 +4217,29 @@ body {
   .dashboard[data-view="quiz"] #chapterBackBtn,
   .dashboard[data-view="quiz"] #readingBackBtn {
     display: none;
+  }
+
+  /* Task 9: 620-899px sub-range of the outer wide block above. At 300px
+     (the outer block's default), the left column feels tight in this
+     narrower band, so it's trimmed to 240px here and a collapse toggle
+     (app.js NARROW_WIDE_MQ / applyBiblePane()) lets the reader hide it
+     entirely and give the reading/quiz pane the full width. This nested
+     query sits INSIDE the outer wide block (not a new top-level block) so
+     it only ever applies where the outer wide layout is already active;
+     at >=900px the outer block's 300px column stands unmodified and the
+     toggle stays hidden (JS never un-hides it outside this sub-range). */
+  @media (max-width: 899px) {
+    .dashboard[data-view="quiz"] {
+      grid-template-columns: 240px minmax(0, 1fr);
+    }
+
+    .dashboard.bible-pane-collapsed[data-view="quiz"] {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard.bible-pane-collapsed[data-view="quiz"] > .library-panel,
+    .dashboard.bible-pane-collapsed[data-view="quiz"] > .chapter-panel {
+      display: none;
+    }
   }
 }
