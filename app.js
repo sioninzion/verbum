@@ -1693,8 +1693,22 @@ function animateBookGridFill() {
 }
 
 function renderQuizStep() {
+  // Wide layout (Task 6's 2-column Bible grid) keeps library+chapter panels
+  // both visible in the left column while reading/quiz alternate on the
+  // right — narrow phones keep the original one-panel-at-a-time behavior.
+  const wide = WIDE_MQ.matches && state.activeView === "quiz";
   document.querySelectorAll("[data-quiz-step]").forEach((panel) => {
-    panel.classList.toggle("step-active", panel.dataset.quizStep === state.quizStep);
+    const step = panel.dataset.quizStep;
+    let active;
+    if (wide) {
+      if (step === "books" || step === "chapters") active = true;
+      else if (step === "reading") active = state.quizStep !== "quiz";
+      else if (step === "quiz") active = state.quizStep === "quiz";
+      else active = step === state.quizStep;
+    } else {
+      active = step === state.quizStep;
+    }
+    panel.classList.toggle("step-active", active);
   });
   if (state.quizStep === "books") animateBookGridFill();
 }
@@ -2877,3 +2891,10 @@ if (elements.notificationInstallActionBtn) {
 if (elements.notificationInstallTutorialBtn) {
   elements.notificationInstallTutorialBtn.addEventListener("click", showInstallTutorial);
 }
+
+// Foldable fold/unfold or a window resize across the wide breakpoint needs a
+// full re-render — the Bible pane layout and every wide CSS grid flip at once.
+WIDE_MQ.addEventListener("change", () => {
+  renderQuizStep();
+  render();
+});
