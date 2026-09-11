@@ -4082,4 +4082,83 @@ body {
   .dashboard[data-view="community"] {
     width: min(920px, calc(100% - 48px));
   }
+
+  /* Bible/quiz screen: audited against real DOM (index.html:342-441) — the
+     four flow panels (.library-panel, .chapter-panel, .reading-panel,
+     .quiz-panel, all data-view-panel="quiz") are direct <section> children
+     of .dashboard, matching the plan. This task only places them on a
+     2-col grid; only Task 7's JS makes library+chapter both visible at
+     once, so today only whichever panel carries .step-active renders here.
+     No display-on-.panel trap: this block never sets `display` on the
+     panels themselves (see below for the actual visibility mechanism), so
+     the bare-vs-qualified specificity issue from the Home/Profile blocks
+     above does not apply — grid-column/row/max-height/overflow-y are safe
+     as bare `.dashboard[data-view="quiz"] > .foo-panel` selectors.
+     Visibility mechanism (confirmed in app.js): renderView() (app.js:1659)
+     toggles `.view-active` on every panel whose data-view-panel list
+     includes the active tab — all four Bible panels share
+     data-view-panel="quiz", so all four get `.view-active` together
+     whenever the Bible tab is open. renderQuizStep() (app.js:1695)
+     separately toggles `.step-active` only onto the one panel matching
+     state.quizStep. In CSS, `.panel[data-quiz-step].view-active` (styles.css
+     :188) sets display:none at higher specificity than the base
+     `.panel.view-active{display:block}` (:183), and only the combined
+     `.panel[data-quiz-step].view-active.step-active` (:192) restores
+     display:block. So a Bible panel actually renders only with BOTH
+     classes; in practice `.view-active` is common to all four once the tab
+     is active, making `.step-active` alone the deciding factor — the exact
+     thing Task 7 must change to show two panels at once. */
+  .dashboard[data-view="quiz"] {
+    width: min(1200px, calc(100% - 48px));
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .dashboard[data-view="quiz"] > .library-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .dashboard[data-view="quiz"] > .chapter-panel {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .dashboard[data-view="quiz"] > .reading-panel,
+  .dashboard[data-view="quiz"] > .quiz-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+
+  /* Each pane scrolls independently inside the .app-shell scroller instead
+     of growing the whole page. 140px ≈ .app-shell top+bottom padding (24 +
+     34) plus the sticky .mobile-tabbar (~70px incl. its 14px margin-top),
+     tuned visually against the real tab bar at 1024px width — see
+     task-6-report.md. */
+  .dashboard[data-view="quiz"] > .library-panel,
+  .dashboard[data-view="quiz"] > .chapter-panel,
+  .dashboard[data-view="quiz"] > .reading-panel,
+  .dashboard[data-view="quiz"] > .quiz-panel {
+    max-height: calc(100dvh - 140px);
+    overflow-y: auto;
+  }
+
+  /* Reading text stays a comfortable line length instead of stretching to
+     fill the whole right column. */
+  .dashboard[data-view="quiz"] .reading-text {
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  /* chapterBackBtn (chapters→books) and readingBackBtn (reading→chapters)
+     become meaningless once library+chapter are both always visible in
+     column 1 (Task 7). quizBackBtn (quiz→reading) is left alone: reading
+     and quiz still share column 2 and alternate via .step-active, so that
+     back affordance stays meaningful. */
+  .dashboard[data-view="quiz"] #chapterBackBtn,
+  .dashboard[data-view="quiz"] #readingBackBtn {
+    display: none;
+  }
 }
