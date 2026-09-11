@@ -4043,4 +4043,43 @@ body {
   .profile-panel > .panel-heading {
     grid-column: 1 / -1;
   }
+
+  /* Achievements: audited against real DOM (index.html:567-576) — the card
+     grid inside .achievements-panel is #achievementGroups > .achievement-
+     rarity-group > .achievement-grid (app.js renderAchievements(), where
+     grid.className = "achievement-grid"), matching the plan's guess exactly.
+     No display-on-.panel trap here: only .dashboard[data-view="achievements"]
+     width and the inner .achievement-grid's own columns are touched, never
+     `display` on .achievements-panel itself, so the .panel.view-active
+     specificity trap (styles.css:183) does not apply — a bare selector is
+     fine. */
+  .dashboard[data-view="achievements"] {
+    width: min(1040px, calc(100% - 48px));
+  }
+
+  .achievements-panel .achievement-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Community: audited against real DOM (index.html:556-565) — the
+     leaderboard list is #leaderboard > .leader-row (app.js
+     renderLeaderboard(), item.className = "leader-row..."), matching the
+     plan's guess exactly. Only a width cap is added below; .leaderboard
+     itself has no grid-template-columns at any breakpoint (base rule at
+     styles.css:2008 is `display:grid; gap:10px;` only), so it is always a
+     single implicit column regardless of viewport — verified no override
+     is needed to keep the list single-column.
+     Note found during audit: .leader-row's own internal columns (34px 1fr,
+     with .leader-stats spanning the full row) are actually forced
+     unconditionally OUTSIDE any media query, in the "app-frame" desktop-
+     preview section (styles.css ~3609-3616) — not only inside
+     `@media (max-width: 760px)` as the plan assumed. That compact per-row
+     layout is therefore already in effect at every viewport width,
+     including wide, both before and after this change. It does not make
+     the *list* multi-column (which is what this task's constraint is
+     about), so it's left untouched as pre-existing, out-of-scope behavior;
+     only the dashboard width cap is added here. */
+  .dashboard[data-view="community"] {
+    width: min(920px, calc(100% - 48px));
+  }
 }
