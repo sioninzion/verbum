@@ -986,9 +986,11 @@ h3 {
    Hidden by default (see index.html); JS un-hides it only inside that
    sub-range while the Bible/quiz tab is active (app.js applyBiblePane()).
    Styled like .back-button's circular neumorphic look for visual
-   consistency with the rest of the Bible screen's chrome. */
+   consistency with the rest of the Bible screen's chrome.
+   It is a direct child of .dashboard (NOT of any panel — final-review
+   finding C2) and is placed into its own grid row by the wide @media
+   block's 620-899px sub-range; see index.html for why. */
 .bible-pane-toggle {
-  flex: 0 0 auto;
   display: grid;
   width: 36px;
   height: 36px;
@@ -3607,17 +3609,12 @@ body {
   align-items: center;
 }
 
-/* Task 9: .library-heading gained a second child (.bible-pane-toggle,
-   sibling to the existing title/subtitle wrapper div) — it previously only
-   ever had one child so the base `.panel-heading { display: grid }` above
-   (implicit single-column grid) never visibly stacked anything. Needs the
-   same flex override .quiz-heading already gets above, so the toggle sits
-   beside the heading text (justify-content:space-between pushes it to the
-   far edge) instead of wrapping onto its own row underneath. */
-.panel-heading.library-heading {
-  display: flex;
-  justify-content: space-between;
-}
+/* (Task 9 added a `.panel-heading.library-heading { display: flex }`
+   override here because .library-heading had gained .bible-pane-toggle as a
+   second child. Final-review finding C2 moved that button out of the panel
+   entirely, so .library-heading is back to a single child and the override
+   is gone with it — the heading once again renders exactly like every other
+   .panel-heading, i.e. the pre-Task-9 rendering.) */
 
 .home-hero h2 {
   font-size: 25px;
@@ -4035,17 +4032,21 @@ body {
      nothing to size full width. .testament-cards is left structurally
      untouched (out of scope), only participating full-width in the outer
      grid same as it already is in normal flow.
-     Selector note: `.panel.home-panel` (not bare `.home-panel`) is required
-     here to out-specificity the base `.panel.view-active { display: block; }`
-     rule (styles.css:183) — same (0,2,0) specificity, so this rule (later
-     in source) wins the tie. A bare `.home-panel` (0,1,0) lost to it and
-     silently stayed `display: block`, confirmed via computed-style check
-     against a local DOM harness before landing this fix. */
+     Selector note (final-review finding C1): this rule MUST also carry
+     `.view-active`. A bare `.home-panel` (0,1,0) loses to the base
+     `.panel.view-active { display: block }` (styles.css:183) and silently
+     stayed `block`; but `.panel.home-panel` (0,2,0) overshoots the other
+     way — it ties that base rule and, being later in the file, wins
+     unconditionally, so `display: grid` applied even when `.view-active`
+     was absent and the Home panel rendered underneath EVERY other tab in
+     wide mode. `.panel.home-panel.view-active` (0,3,0) beats the base rule
+     when the panel really is active and correctly falls back to the base
+     `.panel { display: none }` (styles.css:177) when it is not. */
   .dashboard[data-view="home"] {
     width: min(1040px, calc(100% - 48px));
   }
 
-  .panel.home-panel {
+  .panel.home-panel.view-active {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
     align-items: start;
@@ -4081,16 +4082,16 @@ body {
      3-col grid; the heading spans all 3 columns and the 5 cards auto-place
      into row 1 (account/theme/notification) then row 2 (profile-form/
      danger-zone), tops aligned via align-items: start.
-     Selector note: `.panel.profile-panel` (not bare `.profile-panel`) is
-     required here to out-specificity the base `.panel.view-active {
-     display: block; }` rule (styles.css:183) — same (0,2,0) specificity,
-     so this rule (later in source) wins the tie, same fix as
-     `.panel.home-panel` above. */
+     Selector note (final-review finding C1): `.view-active` is required in
+     the selector for exactly the reason spelled out on `.panel.home-panel
+     .view-active` above — `.panel.profile-panel` (0,2,0) tied the base
+     `.panel.view-active { display: block }` rule and won on source order
+     alone, so the Profile panel was `display: grid` on every tab. */
   .dashboard[data-view="profile"] {
     width: min(1200px, calc(100% - 48px));
   }
 
-  .panel.profile-panel {
+  .panel.profile-panel.view-active {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
@@ -4165,12 +4166,67 @@ body {
      classes; in practice `.view-active` is common to all four once the tab
      is active, making `.step-active` alone the deciding factor — the exact
      thing Task 7 must change to show two panels at once. */
+  /* Height budget (final-review findings I4 + I5) ---------------------------
+     The old `max-height: calc(100dvh - 140px)` on each of the four panes
+     measured against the VIEWPORT, but the scroll container these panes
+     live in is `.app-shell`, which caps its OWN height at top level
+     (styles.css ~2906, shared with .login-card):
+
+       height: min(932px, calc(100dvh - 28px), calc((100vw - 28px) * 16 / 9))
+
+     In wide mode the 16:9 term can never bind: it is >= 1052px for any
+     viewport >= 620px wide, which is the narrowest width this @media block
+     matches, and the 932px term already caps below that. So inside this
+     block the shell's border-box height is exactly
+
+       min(932px, 100dvh - 28px)
+
+     `* { box-sizing: border-box }` (styles.css:39) means that includes the
+     shell's padding, which at every width >= 521px is
+     `var(--app-shell-pad-top) 12px 0` (styles.css ~2923) — i.e. padding-top
+     only, no bottom padding.
+
+     .app-shell is `display: flex; flex-direction: column`; its two children
+     are .dashboard and the sticky .mobile-tabbar (flex-shrink: 0,
+     margin-top: 14px). The tab bar renders 66px tall (44px min-height
+     buttons are out-grown by the 50px .tabbar-fab, plus 6px/10px vertical
+     padding = 66px; measured identically at 390/720/800/820/1024/1440px
+     wide via headless-Chrome getBoundingClientRect), so it consumes
+     66 + 14 = 80px of the column.
+
+       --bible-pane-h = min(932px, 100dvh - 28px)   shell box
+                        - var(--app-shell-pad-top)  shell padding-top
+                        - 80px                      tab bar + its margin
+
+     Verified: at 800x1000 the shell measures 932px tall with 6px pad-top
+     and an 80px tab-bar block, leaving 846px — exactly what the formula
+     yields. `flex: 1 1 auto; min-height: 0` is kept alongside it so the
+     grid still lands on the shell's REAL leftover space (and the shell
+     still needs no scrolling) even if the tab bar ever renders a different
+     height than the 80px baked into the formula; the formula is what gives
+     the grid a definite height for track sizing, and what the library
+     panel's own cap below is expressed against.
+
+     I5: giving the grid container a definite height is also what makes the
+     two left-column rows SHARE one budget instead of each claiming the full
+     amount. Row 1 is `minmax(0, auto)` so a short book list only takes what
+     it needs, capped at 55% of the column so a full 66-book list can never
+     starve row 2; row 2 is `minmax(0, 1fr)` and absorbs whatever is left.
+     The panes' own `max-height: 100%` now resolves against their own grid
+     AREA (definite, because the container height is definite) rather than
+     against the viewport. */
   .dashboard[data-view="quiz"] {
+    --bible-pane-h: calc(
+      min(932px, 100dvh - 28px) - var(--app-shell-pad-top) - 80px
+    );
     width: min(1200px, calc(100% - 48px));
     grid-template-columns: 300px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: minmax(0, auto) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
+    height: var(--bible-pane-h);
+    min-height: 0;
+    flex: 1 1 auto;
   }
 
   .dashboard[data-view="quiz"] > .library-panel {
@@ -4189,17 +4245,21 @@ body {
     grid-row: 1 / -1;
   }
 
-  /* Each pane scrolls independently inside the .app-shell scroller instead
-     of growing the whole page. 140px ≈ .app-shell top+bottom padding (24 +
-     34) plus the sticky .mobile-tabbar (~70px incl. its 14px margin-top),
-     tuned visually against the real tab bar at 1024px width — see
-     task-6-report.md. */
+  /* Each pane scrolls independently inside .app-shell instead of growing
+     the whole shell. 100% = the panel's own grid area (see the derivation
+     above), so the two left-column panels share the column's budget. */
   .dashboard[data-view="quiz"] > .library-panel,
   .dashboard[data-view="quiz"] > .chapter-panel,
   .dashboard[data-view="quiz"] > .reading-panel,
   .dashboard[data-view="quiz"] > .quiz-panel {
-    max-height: calc(100dvh - 140px);
+    max-height: 100%;
     overflow-y: auto;
+  }
+
+  /* Row 1 is content-sized, so it needs its own ceiling or a long book list
+     would take the whole column and leave the chapter grid 0px (I5). */
+  .dashboard[data-view="quiz"] > .library-panel {
+    max-height: calc(var(--bible-pane-h) * 0.55);
   }
 
   /* Reading text stays a comfortable line length instead of stretching to
@@ -4229,17 +4289,81 @@ body {
      at >=900px the outer block's 300px column stands unmodified and the
      toggle stays hidden (JS never un-hides it outside this sub-range). */
   @media (max-width: 899px) {
+    /* Final-review finding C2: #biblePaneToggle used to live inside
+       .library-panel's heading, i.e. inside one of the very panels the
+       collapsed rule below hides — so collapsing the pane also hid the only
+       control that could un-collapse it (a one-way trap; reproduced by
+       click-driving the button in a harness and finding
+       getClientRects().length === 0 afterwards). It is now a direct child
+       of .dashboard in index.html, a sibling of the four Bible panels
+       rather than a descendant, and gets its own grid row here so it is
+       reachable in BOTH states and never overlaps a panel.
+
+       Rows become: 1 = toggle, 2 = library, 3 = chapter (reading/quiz span
+       2 / -1 in column 2). Outside this 620-899 band the button is
+       `hidden` -> `display: none` -> not a grid item at all, and the outer
+       block's 2-row template stands unchanged, so nothing else moves. */
     .dashboard[data-view="quiz"] {
       grid-template-columns: 240px minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
+    }
+
+    .dashboard[data-view="quiz"] > .bible-pane-toggle {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      align-self: start;
+    }
+
+    .dashboard[data-view="quiz"] > .library-panel {
+      grid-row: 2;
+    }
+
+    .dashboard[data-view="quiz"] > .chapter-panel {
+      grid-row: 3;
+    }
+
+    .dashboard[data-view="quiz"] > .reading-panel,
+    .dashboard[data-view="quiz"] > .quiz-panel {
+      grid-row: 2 / -1;
     }
 
     .dashboard.bible-pane-collapsed[data-view="quiz"] {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     .dashboard.bible-pane-collapsed[data-view="quiz"] > .library-panel,
     .dashboard.bible-pane-collapsed[data-view="quiz"] > .chapter-panel {
       display: none;
     }
+
+    /* Final-review finding I3: the panes keep an explicit `grid-column: 2`
+       from the outer block, so with a 1-track template above CSS Grid used
+       to synthesise an implicit second column to honour that placement —
+       leaving a phantom empty track and a pane narrower than the row (652px
+       row vs 608px pane, measured). Re-place them onto the single remaining
+       track (and onto the single remaining content row) instead. */
+    .dashboard.bible-pane-collapsed[data-view="quiz"] > .reading-panel,
+    .dashboard.bible-pane-collapsed[data-view="quiz"] > .quiz-panel {
+      grid-column: 1;
+      grid-row: 2;
+    }
+  }
+
+  /* Final-review finding I7 (spec §1.2): the tab bar must stay phone-sized
+     in wide mode instead of stretching across the (up to 1200px) shell.
+     `width` rather than the spec's `max-width`: .mobile-tabbar is a flex
+     item of the column-flex .app-shell, and per css-flexbox-1 §9.6 an item
+     with an auto margin in the cross axis does not stretch — with
+     `max-width` + `margin-inline: auto` it fell back to fit-content and
+     measured only 286px, narrower than the tab bar on a real 390px phone.
+     An explicit width pins it at the intended 520px (it is the smaller term
+     of the min() for any shell wider than 552px, i.e. always in this block).
+     `position: sticky` is unaffected — verified by re-measuring computed
+     position and the rect's top/bottom after the cap. */
+  .mobile-tabbar {
+    width: min(520px, calc(100% - 32px));
+    margin-inline: auto;
   }
 }

@@ -1707,6 +1707,18 @@ function renderQuizStep() {
   // Wide layout (Task 6's 2-column Bible grid) keeps library+chapter panels
   // both visible in the left column while reading/quiz alternate on the
   // right — narrow phones keep the original one-panel-at-a-time behavior.
+  //
+  // Spec §2.2 asks for empty-state placeholders in wide mode here ("왼쪽에서
+  // 장을 선택하세요" for an unselected reading pane, "책을 먼저 선택하세요" for an
+  // unselected chapter pane), but that state is provably unreachable, so no
+  // placeholder is intentionally implemented — shipping it would be dead UI.
+  // Every write site of state.selectedBook / state.selectedChapterId assigns
+  // a real record: the initial state object and resetProgress() seed them from
+  // DATA.books[0].name / DATA.chapters[0].id; syncUser() only assigns inside
+  // `if (chapter)`; selectBook() falls back to `chaptersByBook[bookName][0].id`
+  // when nothing is incomplete; selectChapter() reads chapter.book/chapter.id.
+  // Neither can ever be falsy. Traced three times: Task 7's implementer,
+  // Task 7's reviewer, and the final-review fix pass (finding I6).
   const wide = WIDE_MQ.matches && state.activeView === "quiz";
   document.querySelectorAll("[data-quiz-step]").forEach((panel) => {
     const step = panel.dataset.quizStep;

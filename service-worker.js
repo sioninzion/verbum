@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v164";
+const CACHE_VERSION = "v165";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 // --- Firebase Cloud Messaging -----------------------------------------
