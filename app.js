@@ -289,14 +289,7 @@ const elements = {
   gateLoginPassword: document.querySelector("#gateLoginPassword"),
   forgotPasswordBtn: document.querySelector("#forgotPasswordBtn"),
   googleLoginBtn: document.querySelector("#googleLoginBtn"),
-  naverLoginBtn: document.querySelector("#naverLoginBtn"),
   socialLoginRow: document.querySelector("#socialLoginRow"),
-  gateSocialProfileForm: document.querySelector("#gateSocialProfileForm"),
-  socialProfileMessage: document.querySelector("#socialProfileMessage"),
-  socialNameField: document.querySelector("#socialNameField"),
-  socialProfileName: document.querySelector("#socialProfileName"),
-  socialProfileNickname: document.querySelector("#socialProfileNickname"),
-  socialProfileSubmitBtn: document.querySelector("#socialProfileSubmitBtn"),
   gateSignupForm: document.querySelector("#gateSignupForm"),
   gateSignupEmail: document.querySelector("#gateSignupEmail"),
   gateSignupPassword: document.querySelector("#gateSignupPassword"),
@@ -2372,163 +2365,50 @@ async function handleSignup(event) {
   render();
 }
 
-// --- Social login (Google / Naver) ---------------------------------------
-// A brand-new social sign-in doesn't go through handleSignup's form at all,
-// so it never gets a name/nickname the normal way. Firebase's own
-// onAuthStateChanged fires the instant the redirect/custom-token sign-in
-// resolves — before we'd get a chance to ask anything — so this flag is set
-// first (by whichever of googleLoginBtn/naverLoginBtn's flow ran) and
-// consumed once by that very next onAuthStateChanged call, which shows the
-// name/nickname step instead of proceeding straight into the app.
+// --- Social login (Google) -------------------------------------------------
+// A brand-new Google sign-in doesn't go through handleSignup's form, so it
+// never gets a name/nickname the normal way. Firebase's own
+// onAuthStateChanged fires the instant the popup sign-in resolves — before
+// we'd get a chance to do anything else — so this flag is set first (by
+// googleLoginBtn's click handler) and consumed once by that very next
+// onAuthStateChanged call, which creates the Firestore profile using
+// Google's own name for both name and nickname (no separate prompt).
 let pendingSocialSignup = null; // { name: string } | null
 
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-function showSocialProfileStep(name) {
-  elements.gateLoginForm.classList.add("hidden");
-  elements.gateSignupForm.classList.add("hidden");
-  elements.socialLoginRow.classList.add("hidden");
-  elements.backToLoginRow.classList.add("hidden");
-  elements.gateSocialProfileForm.classList.remove("hidden");
-  elements.socialNameField.hidden = Boolean(name);
-  elements.socialProfileName.value = "";
-  elements.socialProfileNickname.value = name || "";
-  elements.socialProfileMessage.hidden = true;
-}
+async function createSocialUser(firebaseUser, name) {
+  const resolvedName = name || firebaseUser.email?.split("@")[0] || "통독자";
+  const progress = createProgress();
+  const user = {
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    name: resolvedName,
+    nickname: resolvedName,
+    title: DEFAULT_TITLE,
+    titleAchievementId: null,
+    share: true,
+    hasSeenTutorial: false,
+    notificationSettings: normalizeNotificationSettings(),
+  };
+  await getUserDocRef(firebaseUser.uid).set({
+    ...user,
+    progress,
+    completedCount: getCompletedCount(DATA.chapters, progress),
+    streakDays: calculateStreak(progress),
+    dailyTarget: progress.dailyTarget || 3,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    lastActive: TODAY,
+  });
 
-function hideSocialProfileStep() {
-  elements.gateSocialProfileForm.classList.add("hidden");
-  elements.gateLoginForm.classList.remove("hidden");
-  elements.socialLoginRow.classList.remove("hidden");
-}
-
-async function handleSocialProfileSubmit(event) {
-  event.preventDefault();
-  const firebaseUser = auth.currentUser;
-  if (!firebaseUser) return;
-
-  const name = (pendingSocialSignup?.name || elements.socialProfileName.value).trim();
-  const nickname = elements.socialProfileNickname.value.trim();
-  if (!name || !nickname) {
-    elements.socialProfileMessage.textContent = "이름과 닉네임을 모두 입력해 주세요.";
-    elements.socialProfileMessage.hidden = false;
-    return;
-  }
-
-  setSubmitLoading(elements.socialProfileSubmitBtn, true);
-  try {
-    const progress = createProgress();
-    const user = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email || "",
-      name,
-      nickname,
-      title: DEFAULT_TITLE,
-      titleAchievementId: null,
-      share: true,
-      hasSeenTutorial: false,
-      notificationSettings: normalizeNotificationSettings(),
-    };
-    await getUserDocRef(firebaseUser.uid).set({
-      ...user,
-      progress,
-      completedCount: getCompletedCount(DATA.chapters, progress),
-      streakDays: calculateStreak(progress),
-      dailyTarget: progress.dailyTarget || 3,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      lastActive: TODAY,
-    });
-
-    pendingSocialSignup = null;
-    hideSocialProfileStep();
-    state.isAuthenticated = true;
-    state.firebaseUser = firebaseUser;
-    syncUser(user, progress);
-    await refreshLeaderboard().catch(() => {});
-    setView("home");
-    render();
-    showTutorial();
-  } catch (error) {
-    elements.socialProfileMessage.textContent = getAuthErrorMessage(error);
-    elements.socialProfileMessage.hidden = false;
-  } finally {
-    setSubmitLoading(elements.socialProfileSubmitBtn, false);
-  }
-}
-
-// Firebase has no built-in Naver provider, so this does the OAuth redirect
-// by hand (skips the Naver JS SDK entirely, since its only client-visible
-// job here — getting an access token back via a redirect — is one URL and
-// one hash-param read; the SDK otherwise insists on rendering its own
-// button, which we don't want next to the Google one). The access token
-// itself proves nothing on its own: naverSignIn() below re-verifies it
-// server-side against Naver's own profile API before minting a Firebase
-// custom token, so a forged/tampered token client-side can't sign anyone in.
-const NAVER_CLIENT_ID = "vYJ9sJffUdYZRnsjFfzG";
-const NAVER_OAUTH_STATE_KEY = "naverOAuthState";
-const FUNCTIONS_REGION = "asia-northeast3";
-
-function naverRedirectUri() {
-  // Naver requires an exact string match against what's registered in the
-  // Naver Developers console — location.pathname varies ("/", "/index.html",
-  // trailing slash or not) depending on how the page was opened, so origin
-  // alone (which Naver console should have registered verbatim, no
-  // trailing slash) is the only value that's reliably stable.
-  return location.origin;
-}
-
-async function signInWithNaver() {
-  setAuthBanner("");
-  const state = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  try {
-    sessionStorage.setItem(NAVER_OAUTH_STATE_KEY, state);
-  } catch {
-    // Private mode / storage disabled — state check on return just gets
-    // skipped below rather than blocking the whole login.
-  }
-  const authUrl = new URL("https://nid.naver.com/oauth2.0/authorize");
-  authUrl.searchParams.set("response_type", "token");
-  authUrl.searchParams.set("client_id", NAVER_CLIENT_ID);
-  authUrl.searchParams.set("redirect_uri", naverRedirectUri());
-  authUrl.searchParams.set("state", state);
-  location.href = authUrl.toString();
-}
-
-// Naver redirects back with the token in the URL *hash* (implicit-grant
-// style), not a query param — read once at startup, then strip it so a
-// later refresh doesn't try to replay a used token.
-async function handleNaverRedirectReturn() {
-  if (!location.hash.includes("access_token=")) return;
-  const params = new URLSearchParams(location.hash.slice(1));
-  const accessToken = params.get("access_token");
-  const returnedState = params.get("state");
-  history.replaceState(null, "", location.pathname + location.search);
-  if (!accessToken) return;
-
-  let expectedState = null;
-  try {
-    expectedState = sessionStorage.getItem(NAVER_OAUTH_STATE_KEY);
-    sessionStorage.removeItem(NAVER_OAUTH_STATE_KEY);
-  } catch {
-    // No sessionStorage — can't check state, but proceed anyway rather
-    // than locking private-mode users out entirely.
-  }
-  if (expectedState && returnedState !== expectedState) {
-    setAuthBanner("네이버 로그인 상태 확인에 실패했습니다. 다시 시도해 주세요.");
-    return;
-  }
-
-  try {
-    const naverSignIn = firebase.app().functions(FUNCTIONS_REGION).httpsCallable("naverSignIn");
-    const { data } = await naverSignIn({ accessToken });
-    if (data.isNewUser) {
-      pendingSocialSignup = { name: data.name || "" };
-    }
-    await auth.signInWithCustomToken(data.customToken);
-  } catch (error) {
-    setAuthBanner(getAuthErrorMessage(error));
-  }
+  state.isAuthenticated = true;
+  state.firebaseUser = firebaseUser;
+  syncUser(user, progress);
+  await refreshLeaderboard().catch(() => {});
+  setView("home");
+  render();
+  showTutorial();
 }
 
 async function handleProfileSave(event) {
@@ -2821,15 +2701,13 @@ elements.undoBtn.addEventListener("click", async () => {
 elements.resetBtn.addEventListener("click", resetProgress);
 elements.gateLoginForm.addEventListener("submit", handleLogin);
 elements.gateSignupForm.addEventListener("submit", handleSignup);
-elements.gateSocialProfileForm.addEventListener("submit", handleSocialProfileSubmit);
 elements.googleLoginBtn.addEventListener("click", async () => {
   setAuthBanner("");
   try {
     const result = await auth.signInWithPopup(googleProvider);
     // Set this BEFORE anything else can react to the now-signed-in state —
-    // same reasoning as resolvePendingSocialRedirect below: onAuthStateChanged
-    // could otherwise process the sign-in first and fall through to the
-    // normal-returning-user path before this flag is ever seen.
+    // onAuthStateChanged could otherwise process the sign-in first and fall
+    // through to the normal-returning-user path before this flag is seen.
     if (result?.user && result.additionalUserInfo?.isNewUser) {
       pendingSocialSignup = { name: result.user.displayName || "" };
     }
@@ -2839,22 +2717,8 @@ elements.googleLoginBtn.addEventListener("click", async () => {
     }
   }
 });
-elements.naverLoginBtn.addEventListener("click", signInWithNaver);
 elements.profileForm.addEventListener("submit", handleProfileSave);
 elements.logoutBtn.addEventListener("click", logout);
-
-// Google now signs in via a popup (see googleLoginBtn above), which resolves
-// its own promise directly — no page reload, so nothing needs recovering
-// here for it. Naver is still a full-page redirect (nid.naver.com has no
-// popup-postMessage option we control), so its return still has to be
-// handled at startup, same as before: this must fully resolve BEFORE
-// onAuthStateChanged is even registered below, since Naver's sign-in
-// completes *inside* this call (it ends by awaiting signInWithCustomToken),
-// and onAuthStateChanged's first firing needs pendingSocialSignup already
-// set by the time it happens, not racing to catch up with it.
-async function resolvePendingSocialRedirect() {
-  await handleNaverRedirectReturn();
-}
 
 elements.darkModeToggle.checked = document.documentElement.getAttribute("data-theme") === "dark";
 elements.darkModeToggle.addEventListener("change", () => {
@@ -2955,8 +2819,9 @@ async function handleAuthStateChange(firebaseUser) {
     }
 
     if (pendingSocialSignup) {
-      state.firebaseUser = firebaseUser;
-      showSocialProfileStep(pendingSocialSignup.name);
+      const name = pendingSocialSignup.name;
+      pendingSocialSignup = null;
+      await createSocialUser(firebaseUser, name);
       return;
     }
 
@@ -2979,9 +2844,7 @@ async function handleAuthStateChange(firebaseUser) {
   }
 }
 
-resolvePendingSocialRedirect().finally(() => {
-  auth.onAuthStateChanged(handleAuthStateChange);
-});
+auth.onAuthStateChanged(handleAuthStateChange);
 
 // Declared here (rather than down in the "add to home screen" section below
 // where it's actually populated, via the `beforeinstallprompt` listener) so

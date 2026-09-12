@@ -17,12 +17,10 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
-const { getAuth } = require("firebase-admin/auth");
 
 initializeApp();
 const db = getFirestore();
@@ -412,53 +410,3 @@ exports.onUserNotificationSettingsWritten = onDocumentWritten(
     await ensurePlanForDay(uid, date, clampDailyCount(after.momentVerseDailyCount), timeToMinutes(hhmm));
   }
 );
-
-// -------------------------------------------------------- social login ----
-
-// Firebase Auth has no built-in Naver provider. The client does a raw OAuth
-// redirect to Naver and hands us just the resulting access token — this is
-// the one thing that actually verifies it: we call Naver's own profile API
-// with that token ourselves (never trusting anything the client claims
-// about who they are), then mint a Firebase custom token for a UID derived
-// from Naver's numeric user id. One Naver account always maps to the same
-// `naver:{id}` Firebase UID, so signing in again just reuses that user.
-exports.naverSignIn = onCall({ region: "asia-northeast3" }, async (request) => {
-  const accessToken = request.data?.accessToken;
-  if (!accessToken || typeof accessToken !== "string") {
-    throw new HttpsError("invalid-argument", "accessToken is required");
-  }
-
-  let profile;
-  try {
-    const res = await fetch("https://openapi.naver.com/v1/nid/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    profile = await res.json();
-  } catch (err) {
-    logger.error("naverSignIn: profile fetch failed", err);
-    throw new HttpsError("unavailable", "Could not reach Naver");
-  }
-
-  if (profile?.resultcode !== "00" || !profile.response?.id) {
-    throw new HttpsError("unauthenticated", "Invalid Naver access token");
-  }
-
-  const { id: naverId, name, nickname, email } = profile.response;
-  const uid = `naver:${naverId}`;
-  const auth = getAuth();
-
-  let isNewUser = false;
-  try {
-    await auth.getUser(uid);
-  } catch (err) {
-    if (err.code !== "auth/user-not-found") throw err;
-    const newUser = {};
-    if (email) newUser.email = email;
-    if (name || nickname) newUser.displayName = name || nickname;
-    await auth.createUser({ uid, ...newUser });
-    isNewUser = true;
-  }
-
-  const customToken = await auth.createCustomToken(uid);
-  return { customToken, isNewUser, name: name || nickname || "" };
-});
