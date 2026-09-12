@@ -1571,22 +1571,36 @@ h3 {
   color: var(--blue);
 }
 
-/* Sticks near the bottom of the viewport (same mechanism as .mobile-tabbar
-   below) so it stays reachable regardless of scroll position in a long
-   chapter. Hidden by default; .is-visible shown when a verse is selected. */
+/* Floats just above the center "성경" tab-bar button, as if blooming out of
+   it — a small fixed-appearance pill, not a full-width bar. Deliberately
+   ignores the light/dark theme tokens (always black-on-white) since it
+   visually belongs to the tab bar's own always-dark fab button, not to the
+   reading card behind it.
+   Position math: .app-shell is the actual phone-frame box (position:
+   relative), so position:absolute here is relative to ITS edges, which is
+   what we want on the paused desktop/tablet card layout. At real mobile
+   widths (<=520px) .app-shell fills the true viewport edge-to-edge, and
+   .mobile-tabbar itself switches to position:fixed there (iOS Safari's
+   sticky-in-a-flex-column bug — see that rule below) so this pill is
+   switched to fixed too, for the same reason.
+   77px = the tab bar's own fixed vertical padding/button-height geometry
+   (independent of safe-area) measured from its `bottom` sticky/fixed
+   anchor up to the fab button's top edge, plus this pill's own 5px gap. */
 .verse-copy-bar {
   display: none;
-  position: sticky;
-  bottom: 16px;
-  z-index: 5;
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(2px, env(safe-area-inset-bottom)) + 77px);
+  transform: translateX(-50%);
+  z-index: 60;
   align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 10px 10px 10px 16px;
-  border: 2.1px solid var(--ink);
-  border-radius: 16px;
-  background: var(--paper);
-  box-shadow: var(--neu-raised);
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 14px;
+  border: 2.1px solid #000000;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
 }
 
 .verse-copy-bar.is-visible {
@@ -1597,21 +1611,22 @@ h3 {
 @keyframes verseCopyBarIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateX(-50%) translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
 .verse-copy-preview {
   flex: 1;
   min-width: 0;
+  max-width: 160px;
   margin: 0;
   overflow: hidden;
-  color: var(--ink);
-  font-size: 14px;
+  color: #211c16;
+  font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1619,11 +1634,11 @@ h3 {
 
 .verse-copy-btn {
   flex-shrink: 0;
-  min-height: 38px;
-  padding: 0 18px;
-  border: 2.1px solid var(--ink);
-  border-radius: 12px;
-  background: var(--ink);
+  min-height: 36px;
+  padding: 0 16px;
+  border: 2.1px solid #000000;
+  border-radius: 999px;
+  background: #000000;
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
@@ -1631,8 +1646,8 @@ h3 {
 }
 
 .verse-copy-btn.copied {
-  background: var(--green);
-  border-color: var(--green);
+  background: #2fae6c;
+  border-color: #2fae6c;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2943,12 +2958,6 @@ h3 {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  /* Clears the sticky mobile-tabbar above (~70px tall, stuck at bottom:10px)
-     so the copy bar never sits underneath it. */
-  .verse-copy-bar {
-    bottom: 92px;
-  }
 }
 
 @media (max-width: 420px) {
@@ -3863,6 +3872,13 @@ body {
     right: 8px;
     bottom: max(2px, env(safe-area-inset-bottom));
     margin-top: 0;
+  }
+
+  /* Same reasoning as .mobile-tabbar above — .app-shell equals the real
+     viewport here, so position:fixed is both safe and the more reliable
+     engine path. */
+  .verse-copy-bar {
+    position: fixed;
   }
 }
 
