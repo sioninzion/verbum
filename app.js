@@ -257,6 +257,7 @@ const state = {
   bookSearchQuery: "",
   bookTestamentFilter: "old",
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
+  selectedVerse: null, // { verse: "3", text: "..." } — tap-to-select-and-copy in the reading panel
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -367,6 +368,9 @@ const elements = {
   readingBackBtn: document.querySelector("#readingBackBtn"),
   readingKicker: document.querySelector("#readingKicker"),
   readingText: document.querySelector("#readingText"),
+  verseCopyBar: document.querySelector("#verseCopyBar"),
+  verseCopyPreview: document.querySelector("#verseCopyPreview"),
+  verseCopyBtn: document.querySelector("#verseCopyBtn"),
   readingSizeButtons: document.querySelectorAll("[data-font-size]"),
   readingSizeThumb: document.querySelector("#readingSizeThumb"),
   readingBoldBtn: document.querySelector("#readingBoldBtn"),
@@ -1903,6 +1907,10 @@ async function renderReading() {
   const chapter = getCurrentChapter();
   elements.readingKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
   elements.readingText.replaceChildren();
+  // A fresh chapter is loading — any previous tap-to-select selection no
+  // longer points at visible DOM, so drop it rather than leave a stale copy
+  // bar showing.
+  clearVerseSelection();
   const loading = document.createElement("p");
   loading.className = "reading-loading";
   loading.textContent = "본문을 불러오는 중...";
@@ -1941,6 +1949,8 @@ async function renderReading() {
       }
       const line = document.createElement("p");
       line.className = "reading-verse";
+      line.dataset.verse = String(verse.v);
+      line.dataset.text = verse.t;
       const num = document.createElement("span");
       num.className = "v-num";
       num.textContent = verse.v;
@@ -1949,6 +1959,72 @@ async function renderReading() {
       return nodes;
     })
   );
+}
+
+// --- Tap-to-select-and-copy a verse (reading panel only) -----------------
+
+function clearVerseSelection() {
+  state.selectedVerse = null;
+  elements.readingText
+    .querySelectorAll(".reading-verse.verse-selected")
+    .forEach((el) => el.classList.remove("verse-selected"));
+  elements.verseCopyBar.classList.remove("is-visible");
+}
+
+function selectVerseForCopy(line) {
+  const verse = line.dataset.verse;
+  const text = line.dataset.text || "";
+  if (state.selectedVerse && state.selectedVerse.verse === verse) {
+    clearVerseSelection();
+    return;
+  }
+  elements.readingText
+    .querySelectorAll(".reading-verse.verse-selected")
+    .forEach((el) => el.classList.remove("verse-selected"));
+  line.classList.add("verse-selected");
+  state.selectedVerse = { verse, text };
+  elements.verseCopyPreview.textContent = text;
+  elements.verseCopyBtn.textContent = "복사";
+  elements.verseCopyBtn.classList.remove("copied");
+  elements.verseCopyBar.classList.add("is-visible");
+}
+
+async function copySelectedVerse() {
+  if (!state.selectedVerse) return;
+  const chapter = getCurrentChapter();
+  const reference = `${chapter.book} ${chapter.chapter}:${state.selectedVerse.verse}`;
+  const payload = `${state.selectedVerse.text}\n${reference}`;
+
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(payload);
+    copied = true;
+  } catch {
+    // Clipboard API unavailable or blocked (older WebView, insecure
+    // context) — fall back to the classic hidden-textarea + execCommand
+    // trick, which works in far more environments.
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = payload;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.append(textarea);
+      textarea.focus();
+      textarea.select();
+      copied = document.execCommand("copy");
+      textarea.remove();
+    } catch {
+      copied = false;
+    }
+  }
+
+  elements.verseCopyBtn.textContent = copied ? "복사됨" : "복사 실패";
+  elements.verseCopyBtn.classList.toggle("copied", copied);
+  setTimeout(() => {
+    if (!state.selectedVerse) return;
+    elements.verseCopyBtn.textContent = "복사";
+    elements.verseCopyBtn.classList.remove("copied");
+  }, 1500);
 }
 
 async function openVerseReader(chapterId) {
@@ -2566,6 +2642,14 @@ elements.readingSizeButtons.forEach((button) => {
 });
 
 elements.readingBoldBtn.addEventListener("click", toggleReadingBold);
+
+elements.readingText.addEventListener("click", (event) => {
+  const line = event.target.closest(".reading-verse");
+  if (!line) return;
+  selectVerseForCopy(line);
+});
+
+elements.verseCopyBtn.addEventListener("click", copySelectedVerse);
 
 elements.quizBackBtn.addEventListener("click", () => {
   state.quizStep = "reading";
