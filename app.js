@@ -199,6 +199,19 @@ const db = firebase.firestore();
 // ratio > 4/5). String MUST match the @media prelude in styles.css verbatim.
 const COVER_MQ = window.matchMedia("(max-width: 430px) and (min-aspect-ratio: 3/5) and (max-aspect-ratio: 4/5)");
 
+// Wide-screen breakpoint — string MUST match the @media prelude at the end of
+// styles.css verbatim (tablet, foldable unfolded, desktop). Foldable/Duo
+// unfolded are near-square and can be <768 wide, hence the second clause; the
+// min-height clause keeps phone-landscape out.
+const WIDE_MQ = window.matchMedia("(min-width: 768px), (min-width: 620px) and (min-height: 720px)");
+
+// Sub-range of the wide layout (Task 9) where the Bible screen's left column
+// (library + chapter panels) is narrow enough that a collapse toggle is
+// worth offering. Deliberately separate from WIDE_MQ above — this is NOT a
+// redefinition of "wide", just the band within wide where the toggle button
+// shows. At >=900px the toggle stays hidden and the pane is always expanded.
+const NARROW_WIDE_MQ = window.matchMedia("(min-width: 620px) and (max-width: 899px)");
+
 db.enablePersistence().catch(() => {
   // Multiple tabs open, or the browser doesn't support persistence — offline
   // reads/writes just won't be queued locally, which is fine, not fatal.
@@ -258,6 +271,7 @@ const state = {
   bookTestamentFilter: "old",
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
   selectedVerse: null, // { verse: "3", text: "..." } — tap-to-select-and-copy in the reading panel
+  biblePaneCollapsed: false,
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -354,6 +368,7 @@ const elements = {
   bookSearchInput: document.querySelector("#bookSearchInput"),
   bookGridEmpty: document.querySelector("#bookGridEmpty"),
   librarySubtitle: document.querySelector("#librarySubtitle"),
+  biblePaneToggle: document.querySelector("#biblePaneToggle"),
   librarySectionLabel: document.querySelector("#librarySectionLabel"),
   librarySectionCount: document.querySelector("#librarySectionCount"),
   testamentToggleButtons: document.querySelectorAll("#testamentToggle [data-testament]"),
@@ -1682,6 +1697,8 @@ function renderView() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
   });
+
+  applyBiblePane();
 }
 
 function renderAuthGate() {
@@ -1707,10 +1724,53 @@ function animateBookGridFill() {
 }
 
 function renderQuizStep() {
+  // Wide layout (Task 6's 2-column Bible grid) keeps library+chapter panels
+  // both visible in the left column while reading/quiz alternate on the
+  // right — narrow phones keep the original one-panel-at-a-time behavior.
+  //
+  // Spec §2.2 asks for empty-state placeholders in wide mode here ("왼쪽에서
+  // 장을 선택하세요" for an unselected reading pane, "책을 먼저 선택하세요" for an
+  // unselected chapter pane), but that state is provably unreachable, so no
+  // placeholder is intentionally implemented — shipping it would be dead UI.
+  // Every write site of state.selectedBook / state.selectedChapterId assigns
+  // a real record: the initial state object and resetProgress() seed them from
+  // DATA.books[0].name / DATA.chapters[0].id; syncUser() only assigns inside
+  // `if (chapter)`; selectBook() falls back to `chaptersByBook[bookName][0].id`
+  // when nothing is incomplete; selectChapter() reads chapter.book/chapter.id.
+  // Neither can ever be falsy. Traced three times: Task 7's implementer,
+  // Task 7's reviewer, and the final-review fix pass (finding I6).
+  const wide = WIDE_MQ.matches && state.activeView === "quiz";
   document.querySelectorAll("[data-quiz-step]").forEach((panel) => {
-    panel.classList.toggle("step-active", panel.dataset.quizStep === state.quizStep);
+    const step = panel.dataset.quizStep;
+    let active;
+    if (wide) {
+      if (step === "books" || step === "chapters") active = true;
+      else if (step === "reading") active = state.quizStep !== "quiz";
+      else if (step === "quiz") active = state.quizStep === "quiz";
+      else active = step === state.quizStep;
+    } else {
+      active = step === state.quizStep;
+    }
+    panel.classList.toggle("step-active", active);
   });
   if (state.quizStep === "books") animateBookGridFill();
+  applyBiblePane();
+}
+
+// Task 9: collapsible Bible left pane, 620-899px only (NARROW_WIDE_MQ above).
+// The toggle button only ever shows in that sub-range while the Bible/quiz
+// tab is active; outside it (phones, or >=900px) the pane is always
+// expanded and the button stays hidden, regardless of state.biblePaneCollapsed.
+// Also requires WIDE_MQ.matches: NARROW_WIDE_MQ's 620-899 range has no
+// min-height clause, so on its own it would also match phone-landscape
+// (e.g. 667x375) — widths WIDE_MQ deliberately excludes via its height
+// clause (see WIDE_MQ's comment above). Gating on both keeps the toggle
+// from appearing on phones turned sideways, where there is no 2-column
+// grid to collapse in the first place.
+function applyBiblePane() {
+  const inRange = NARROW_WIDE_MQ.matches && WIDE_MQ.matches;
+  elements.biblePaneToggle.hidden = !inRange || state.activeView !== "quiz";
+  elements.dashboard.classList.toggle("bible-pane-collapsed", inRange && state.biblePaneCollapsed);
 }
 
 function render() {
@@ -3113,3 +3173,17 @@ if (elements.notificationInstallActionBtn) {
 if (elements.notificationInstallTutorialBtn) {
   elements.notificationInstallTutorialBtn.addEventListener("click", showInstallTutorial);
 }
+
+// Foldable fold/unfold or a window resize across the wide breakpoint needs a
+// full re-render — the Bible pane layout and every wide CSS grid flip at once.
+WIDE_MQ.addEventListener("change", () => {
+  renderQuizStep();
+  render();
+});
+
+// Task 9: Bible left-pane collapse toggle, 620-899px sub-range only.
+elements.biblePaneToggle.addEventListener("click", () => {
+  state.biblePaneCollapsed = !state.biblePaneCollapsed;
+  applyBiblePane();
+});
+NARROW_WIDE_MQ.addEventListener("change", applyBiblePane);

@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260912-2" />
+    <link rel="stylesheet" href="styles.css?v=20260912-3" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -353,6 +353,15 @@
             </table>
           </div>
         </section>
+
+        <!-- Direct child of .dashboard on purpose: it must NOT be a descendant of
+             .library-panel / .chapter-panel / .reading-panel / .quiz-panel, all of
+             which get hidden by .step-active or .bible-pane-collapsed gating. Inside
+             .library-panel it disappeared together with the pane it collapsed, so the
+             collapse was one-way. It stays `hidden` (display:none, no grid item) at
+             every width except the 620-899px band, where app.js applyBiblePane()
+             un-hides it and styles.css places it in its own grid row. -->
+        <button class="bible-pane-toggle" id="biblePaneToggle" type="button" aria-label="책·장 목록 접기/펼치기" hidden>☰</button>
 
         <section class="panel library-panel" data-view-panel="quiz" data-quiz-step="books" aria-label="성경 권 선택">
           <div class="panel-heading library-heading">
@@ -738,6 +747,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-15"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260912-2"></script>
+    <script src="app.js?v=20260912-3"></script>
   </body>
 </html>
