@@ -337,6 +337,8 @@ const elements = {
   jumpButtons: document.querySelectorAll("[data-jump-view]"),
   homeTitle: document.querySelector("#homeTitle"),
   homeGreeting: document.querySelector("#homeGreeting"),
+  dailyVerseText: document.querySelector("#dailyVerseText"),
+  dailyVerseRef: document.querySelector("#dailyVerseRef"),
   homeStreak: document.querySelector("#homeStreak"),
   homeNextBtn: document.querySelector("#homeNextBtn"),
   nextChapterTitle: document.querySelector("#nextChapterTitle"),
@@ -1157,6 +1159,11 @@ function updateHome() {
 
   elements.homeTitle.textContent = state.user.title;
   elements.homeGreeting.textContent = `${state.user.nickname || state.user.name}님, ${getTimeGreeting()}`;
+  // Wide-layout only (styles.css hides #homeDailyVerse on mobile) — still
+  // safe to always fill in, and state.dailyVerse is re-rolled every time
+  // setView("home") runs, so it changes each visit like it used to.
+  elements.dailyVerseText.textContent = state.dailyVerse.text;
+  elements.dailyVerseRef.textContent = state.dailyVerse.ref;
   elements.nextChapterTitle.textContent = `${next.book} ${next.chapter}장`;
   elements.heroBookEnglish.textContent = BOOK_ENGLISH_NAMES[next.book] || "";
   elements.homeTotalDone.textContent = done;

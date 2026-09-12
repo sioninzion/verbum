@@ -258,7 +258,12 @@ h3 {
   line-height: 1.16;
 }
 
+/* Mobile-hidden (feature removed pre-redesign there) — the wide-layout
+   @media block near the end of this file turns it back on for
+   tablet/foldable-unfolded/desktop only. See index.html's #homeDailyVerse
+   and app.js updateHome(). */
 .daily-verse {
+  display: none;
   margin: 14px 0 18px;
   border-radius: 16px;
   padding: 14px 16px;
@@ -4229,8 +4234,12 @@ body {
    One block, must stay last in the file so it wins over .dashboard{1fr} at ~L3551.
    Query string is duplicated verbatim as WIDE_MQ in app.js — keep them identical. */
 @media (min-width: 768px), (min-width: 620px) and (min-height: 720px) {
+  /* Cap raised 1200px -> 1600px: at genuine desktop window widths (1440px+)
+     the old 1200px cap left ~120-380px of dead margin on each side — iPad/
+     foldable widths (the primary wide target, <=1180px or so) never hit
+     either cap, so this only changes anything above ~1360px viewport. */
   .app-shell {
-    width: min(1200px, calc(100% - 48px));
+    width: min(1600px, calc(100% - 48px));
     margin-inline: auto;
   }
 
@@ -4257,8 +4266,12 @@ body {
      wide mode. `.panel.home-panel.view-active` (0,3,0) beats the base rule
      when the panel really is active and correctly falls back to the base
      `.panel { display: none }` (styles.css:177) when it is not. */
+  /* Was min(1040px, ...) — narrower than the app-shell's own cap, so home
+     carried an extra inset on top of the shell's edge margin that
+     profile/quiz never had. Matched to the shell width so all wide-mode
+     screens share one consistent edge margin. */
   .dashboard[data-view="home"] {
-    width: min(1040px, calc(100% - 48px));
+    width: min(1600px, calc(100% - 48px));
   }
 
   .panel.home-panel.view-active {
@@ -4272,6 +4285,14 @@ body {
   .home-panel .home-hero,
   .home-panel .home-stats-grid,
   .home-panel .testament-cards {
+    grid-column: 1 / -1;
+  }
+
+  /* Brought back for wide mode only — see the .daily-verse comment near its
+     other rule (styles.css ~261) for why it's mobile-hidden. Full-width row
+     right under the greeting, above .next-card/.week-strip. */
+  .home-panel .daily-verse {
+    display: block;
     grid-column: 1 / -1;
   }
 
@@ -4302,6 +4323,11 @@ body {
      .view-active` above — `.panel.profile-panel` (0,2,0) tied the base
      `.panel.view-active { display: block }` rule and won on source order
      alone, so the Profile panel was `display: grid` on every tab. */
+  /* Kept narrower than the shell's 1600px cap (unlike home/achievements) —
+     the settings-style cards here (short label + toggle/select) don't have
+     enough content to fill a 500px+ column and looked visibly empty when
+     measured at 1600px on a 1920px-wide screenshot; 1200px keeps 3 columns
+     of a comfortable width instead. */
   .dashboard[data-view="profile"] {
     width: min(1200px, calc(100% - 48px));
   }
@@ -4326,8 +4352,10 @@ body {
      `display` on .achievements-panel itself, so the .panel.view-active
      specificity trap (styles.css:183) does not apply — a bare selector is
      fine. */
+  /* Matched to the shell's own cap — see the home-dashboard comment above
+     for why (was min(1040px, ...), an extra inset beyond the shell). */
   .dashboard[data-view="achievements"] {
-    width: min(1040px, calc(100% - 48px));
+    width: min(1600px, calc(100% - 48px));
   }
 
   .achievements-panel .achievement-grid {
@@ -4567,7 +4595,7 @@ body {
   }
 
   /* Final-review finding I7 (spec §1.2): the tab bar must stay phone-sized
-     in wide mode instead of stretching across the (up to 1200px) shell.
+     in wide mode instead of stretching across the (up to 1600px) shell.
      `width` rather than the spec's `max-width`: .mobile-tabbar is a flex
      item of the column-flex .app-shell, and per css-flexbox-1 §9.6 an item
      with an auto margin in the cross axis does not stretch — with

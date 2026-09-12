@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260912-3" />
+    <link rel="stylesheet" href="styles.css?v=20260912-4" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -217,6 +217,14 @@
               <p class="eyebrow" id="homeTitle">성경 통독자</p>
               <h2 id="homeGreeting">방문자님, 오늘도 한 장씩 가볼까요?</h2>
             </div>
+          </div>
+
+          <!-- Wide-screen layout only (styles.css hides this by default;
+               the wide @media block turns it back on) — see app.js
+               updateHome() for the text/citation fill-in. -->
+          <div class="daily-verse" id="homeDailyVerse">
+            <p id="dailyVerseText"></p>
+            <cite id="dailyVerseRef"></cite>
           </div>
 
           <div class="next-card">
@@ -747,6 +755,6 @@
     <script src="data/bible-data.js?v=20260824-3"></script>
     <script src="data/achievements.js?v=20260909-15"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260912-3"></script>
+    <script src="app.js?v=20260912-4"></script>
   </body>
 </html>
