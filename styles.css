@@ -4008,6 +4008,13 @@ body {
   touch-action: pan-y;
 }
 .verse-reader-bar {
+  position: relative;    /* same stacking fix as .verse-reader-quiz below: the bar is a
+                            static (unpositioned) child, so the absolutely-positioned
+                            .verse-reader-zone-* siblings paint — and hit-test — above it.
+                            The overlap grows with env(safe-area-inset-top), which pushes
+                            the bar past the zones' hardcoded top: 48px and slides part of
+                            #verseReaderBackBtn under .verse-reader-zone-left. */
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -4029,10 +4036,22 @@ body {
 .verse-reader-stage {
   position: relative;
   flex: 1;
+  min-height: 0;               /* a column flex item defaults to min-height:auto, which
+                                  refuses to shrink below its content — a long verse at
+                                  특대 would then grow the stage past the bottom of the
+                                  fixed overlay and push #verseReaderQuizBtn off-screen */
+  overflow-y: auto;            /* ...so scroll instead. Reachable only because
+                                  .verse-reader-zone is pointer-events:none (below) */
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  justify-content: safe center; /* centered while it fits; falls back to flex-start once
+                                   it overflows, so the top of the verse stays scrollable
+                                   to (plain `center` overflows both ends equally and the
+                                   top half becomes unreachable). Older engines that don't
+                                   parse `safe` keep the plain `center` above. */
   gap: 16px;
   padding: 24px 22px 40px;
   text-align: center;
@@ -4074,6 +4093,12 @@ body {
   border: 0;
   background: transparent;
   padding: 0;
+  pointer-events: none;        /* tap navigation is now one coordinate-based click
+                                  listener on .verse-reader-stage (app.js). These
+                                  elements stay only as keyboard-reachable
+                                  prev/next controls — with pointer events off they
+                                  can no longer swallow the touches that need to
+                                  reach the scrollable stage underneath. */
 }
 .verse-reader-zone-left  { left: 0;  width: 33.333%; }
 .verse-reader-zone-right { right: 0; width: 66.667%; }

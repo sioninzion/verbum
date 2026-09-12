@@ -418,6 +418,7 @@ const elements = {
   calendarNextBtn: document.querySelector("#calendarNextBtn"),
   calendarCloseBtn: document.querySelector("#calendarCloseBtn"),
   verseReader: document.querySelector("#verseReader"),
+  verseReaderStage: document.querySelector(".verse-reader-stage"),
   verseReaderTitle: document.querySelector("#verseReaderTitle"),
   verseReaderCounter: document.querySelector("#verseReaderCounter"),
   verseReaderHeading: document.querySelector("#verseReaderHeading"),
@@ -2596,9 +2597,15 @@ elements.hintBtn.addEventListener("click", () => {
 elements.nextBtn.addEventListener("click", goToNextChapter);
 elements.homeNextBtn.addEventListener("click", goToNextIncomplete);
 elements.verseReaderBackBtn.addEventListener("click", () => history.back());
+// The .verse-reader-zone-* elements are pointer-events:none (styles.css) so they
+// can't swallow touches meant for the now-scrollable stage. They stay in the DOM
+// purely as keyboard-reachable prev/next controls — a keyboard-activated click
+// still targets them (pointer-events only gates *pointer* hit-testing), and the
+// stage handler below bails out on it so it doesn't also fire.
 elements.verseReaderZoneRight.addEventListener("click", () => verseReaderGo(1));
 elements.verseReaderZoneLeft.addEventListener("click", () => verseReaderGo(-1));
 let vrTouchX = null;
+let vrSwiped = false;
 elements.verseReader.addEventListener("touchstart", (e) => {
   vrTouchX = e.changedTouches[0].clientX;
 }, { passive: true });
@@ -2607,19 +2614,50 @@ elements.verseReader.addEventListener("touchend", (e) => {
   const dx = e.changedTouches[0].clientX - vrTouchX;
   vrTouchX = null;
   if (Math.abs(dx) < 40) return;
+  // Chrome normally cancels the compatibility click once the touch moves past its
+  // slop threshold, but don't rely on it: swallow one click for a moment so a
+  // recognised swipe can't also register as a tap and advance two verses.
+  vrSwiped = true;
+  setTimeout(() => { vrSwiped = false; }, 250);
   verseReaderGo(dx < 0 ? 1 : -1); // swipe left (finger R→L) = next
+});
+// One coordinate-based tap handler on the stage, replacing the two overlaid zone
+// elements: left third = previous verse, right two-thirds = next. The stage spans
+// exactly the area below the bar, so the split matches the old zones while letting
+// the stage scroll when a long verse overflows.
+elements.verseReaderStage.addEventListener("click", (event) => {
+  if (!state.verseReader.open) return;
+  if (vrSwiped) { vrSwiped = false; return; }
+  // Real interactive controls keep their own behaviour and must not also navigate.
+  if (event.target.closest("#verseReaderBackBtn, #verseReaderQuizBtn, .verse-reader-zone")) return;
+  const rect = elements.verseReaderStage.getBoundingClientRect();
+  verseReaderGo(event.clientX - rect.left < rect.width / 3 ? -1 : 1);
 });
 elements.verseReaderQuizBtn.addEventListener("click", () => {
   closeVerseReader();
+  // Consume the entry openVerseReader() pushed, otherwise it outlives the reader
+  // and the user's next back press is silently swallowed by the popstate handler
+  // below (which finds verseReader.open already false). back() is async — the
+  // popstate lands in a later task, after the setView/startQuiz calls here, and
+  // no-ops harmlessly.
+  history.back();
   setView("quiz");
   startQuiz();
 });
 window.addEventListener("popstate", () => {
   if (state.verseReader.open) closeVerseReader();
 });
-// If the device leaves cover mode while the reader is open (unfold), drop it.
+// If the device leaves cover mode while the reader is open (unfold), drop it and
+// land on the normal reading panel for the same chapter (spec §10.6) rather than
+// on whatever was behind the overlay. openVerseReader() already ran
+// selectChapter(), so state.quizStep is "reading" and setView("quiz") shows the
+// reading panel. history.back() consumes the reader's own entry, same as above.
 COVER_MQ.addEventListener("change", (e) => {
-  if (!e.matches && state.verseReader.open) closeVerseReader();
+  if (!e.matches && state.verseReader.open) {
+    closeVerseReader();
+    history.back();
+    setView("quiz");
+  }
 });
 elements.undoBtn.addEventListener("click", async () => {
   const chapter = getCurrentChapter();

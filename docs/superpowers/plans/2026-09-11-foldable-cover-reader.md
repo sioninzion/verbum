@@ -306,7 +306,7 @@ git commit -m "cover-reader: open/close, home button branch, back/popstate handl
 - Consumes: `state.verseReader`, `renderVerseReader()`, `elements.verseReaderZoneLeft/Right`, `elements.verseReader`.
 - Produces: `verseReaderGo(dir)` where `dir` is `1` (next) or `-1` (prev).
 
-- [ ] **Step 1: Write `verseReaderGo`**
+- [x] **Step 1: Write `verseReaderGo`**
 
 After `renderVerseReader()`:
 ```js
@@ -333,7 +333,7 @@ function verseReaderGo(dir) {
 }
 ```
 
-- [ ] **Step 2: Tap-zone listeners**
+- [x] **Step 2: Tap-zone listeners**
 
 Near end-of-file wiring:
 ```js
@@ -341,7 +341,7 @@ elements.verseReaderZoneRight.addEventListener("click", () => verseReaderGo(1));
 elements.verseReaderZoneLeft.addEventListener("click", () => verseReaderGo(-1));
 ```
 
-- [ ] **Step 3: Swipe on the overlay**
+- [x] **Step 3: Swipe on the overlay**
 
 ```js
 let vrTouchX = null;
@@ -357,12 +357,12 @@ elements.verseReader.addEventListener("touchend", (e) => {
 });
 ```
 
-- [ ] **Step 4: `node --check` + verify**
+- [x] **Step 4: `node --check` + verify**
 
 `node --check app.js` → exit 0.
 Manual pass at 360×572: enter reader, tap the right 2/3 repeatedly → verses advance with a left slide; tap the left 1/3 → verses go back with a right slide; on verse 1, left tap → the verse nudges and stays. On a touch-capable emulation, swipe left/right does the same. Screenshot mid-chapter → `/tmp/b3_mid.png`.
 
-- [ ] **Step 5: Bump cache + commit**
+- [x] **Step 5: Bump cache + commit**
 
 ```bash
 git add app.js index.html service-worker.js
@@ -381,7 +381,7 @@ git commit -m "cover-reader: tap zones, swipe, slide transition"
 - Consumes: `elements.verseReaderQuizBtn`, `closeVerseReader()`, `startQuiz()` (`app.js:1938` — sets `state.quizStep = "quiz"; renderQuizStep()`), `setView("quiz")`.
 - The current chapter is already `selectChapter`-ed in `openVerseReader` Step 1, so `getCurrentChapter()` inside the quiz resolves correctly.
 
-- [ ] **Step 1: Wire the button**
+- [x] **Step 1: Wire the button**
 
 ```js
 elements.verseReaderQuizBtn.addEventListener("click", () => {
@@ -391,13 +391,13 @@ elements.verseReaderQuizBtn.addEventListener("click", () => {
 });
 ```
 
-- [ ] **Step 2: `node --check` + verify the full flow**
+- [x] **Step 2: `node --check` + verify the full flow**
 
 `node --check app.js` → exit 0.
 Manual pass at 360×572: enter reader via "이어서 읽기", page to the last verse → "문제 풀기" button shows under the verse; right-tap does nothing; tap "문제 풀기" → reader closes and the quiz for that chapter appears; answer correctly → chapter marked complete (check the 성경 tab / home progress afterwards). Screenshot last verse → `/tmp/b4_last.png`, quiz → `/tmp/b4_quiz.png`.
 NOTE: the quiz panel at 360px wide is the existing phone quiz layout — confirm it's not visually broken at this narrow width; if it is, that's a pre-existing phone-width issue, log it but do not fix here.
 
-- [ ] **Step 3: Bump cache + commit**
+- [x] **Step 3: Bump cache + commit**
 
 ```bash
 git add app.js index.html service-worker.js
@@ -416,7 +416,7 @@ git commit -m "cover-reader: last-verse quiz hand-off"
 **Interfaces:**
 - Consumes: `state.readingPrefs` (`{ size, bold }`, sizes `small|medium|large|xlarge`), `renderVerseReader()`.
 
-- [ ] **Step 1: Size classes in `styles.css`** (inside the cover-reader section)
+- [x] **Step 1: Size classes in `styles.css`** (inside the cover-reader section)
 
 ```css
 .verse-reader-verse[data-size="small"]  { font-size: 18px; }
@@ -426,7 +426,7 @@ git commit -m "cover-reader: last-verse quiz hand-off"
 .verse-reader-verse.bold { font-weight: 900; }
 ```
 
-- [ ] **Step 2: Apply in `renderVerseReader()`**
+- [x] **Step 2: Apply in `renderVerseReader()`**
 
 Add at the top of `renderVerseReader()`:
 ```js
@@ -435,12 +435,12 @@ Add at the top of `renderVerseReader()`:
   elements.verseReaderVerse.classList.toggle("bold", !!state.readingPrefs?.bold);
 ```
 
-- [ ] **Step 3: `node --check` + verify**
+- [x] **Step 3: `node --check` + verify**
 
 `node --check app.js` → exit 0.
 Manual: set font to 특대 on the normal reading screen, then open the cover reader → verse text is large. Screenshot → `/tmp/b5_xl.png`.
 
-- [ ] **Step 4: Bump cache + commit**
+- [x] **Step 4: Bump cache + commit**
 
 ```bash
 git add app.js styles.css index.html service-worker.js
@@ -453,7 +453,7 @@ git commit -m "cover-reader: reuse reading font-size setting"
 
 **Files:** `index.html`, `service-worker.js` (final cache-bust only if the sweep changes anything)
 
-- [ ] **Step 1: Screenshot matrix**
+- [x] **Step 1: Screenshot matrix**
 
 ```bash
 python -m http.server 8892 &
@@ -469,7 +469,7 @@ Read each. Expected:
 - `360,400` (Flip-cover-ish, ratio 0.9 > 0.8) — `COVER_MQ` false.
 - `768,1024` / `1024,900` — unaffected.
 
-- [ ] **Step 2: `matchMedia` truth check**
+- [x] **Step 2: `matchMedia` truth check**
 
 Create `/tmp/mq.html`:
 ```html
@@ -477,11 +477,11 @@ Create `/tmp/mq.html`:
 ```
 Serve it and `--dump-dom` at `360,572` (expect title `true`), `390,844` (`false`), `360,400` (`false`). This confirms the gate independent of the ~500px headless min-width quirk.
 
-- [ ] **Step 3: Phone byte-regression gate**
+- [x] **Step 3: Phone byte-regression gate**
 
 Screenshot `390,844` on `HEAD` vs the pre-plan commit (checkout `styles.css`+`app.js`+`index.html`, screenshot, restore). Read both — must be pixel-identical.
 
-- [ ] **Step 4: Final commit**
+- [x] **Step 4: Final commit**
 
 If a fix was needed, bump `?v=` + `CACHE_VERSION` and commit `cover-reader: regression sweep fixes`. Else note "sweep clean".
 
