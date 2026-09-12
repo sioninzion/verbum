@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PROJECT_ROOT = 'c:/Users/nohsi/OneDrive - 경희대학교/바탕 화면/성경통독';
+const PROJECT_ROOT = path.join(__dirname, '..');
 const RETRY_LIMIT = 3;
 
 function loadChapters() {

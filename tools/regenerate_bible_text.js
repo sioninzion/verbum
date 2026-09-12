@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadChapters, getBookCode, extractFromPage } = require('./verify_bible_text_lib.js');
 
-const PROJECT_ROOT = 'c:/Users/nohsi/OneDrive - 경희대학교/바탕 화면/성경통독';
+const PROJECT_ROOT = path.join(__dirname, '..');
 const LOG_PATH = path.join(__dirname, 'regenerate.log.jsonl');
 const CONCURRENCY = 6;
 const RETRY_LIMIT = 4;
