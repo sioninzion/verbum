@@ -311,16 +311,27 @@ const chaptersByBook = DATA.books.reduce((map, book) => {
 const chaptersById = new Map(DATA.chapters.map((chapter) => [chapter.id, chapter]));
 
 const READING_PREFS_KEY = "readingPrefs";
+const READING_FONT_MIN = 12;
+const READING_FONT_MAX = 28;
+const READING_FONT_DEFAULT = 16;
+// Older versions only offered these four presets — map them to the px value
+// they used to render at, so upgrading users keep the same visual size.
+const LEGACY_READING_FONT_SIZES = { small: 14, medium: 16, large: 19, xlarge: 22 };
+
+function clampReadingFontSize(size) {
+  return Math.min(READING_FONT_MAX, Math.max(READING_FONT_MIN, size));
+}
 
 function loadReadingPrefs() {
   try {
     const parsed = JSON.parse(localStorage.getItem(READING_PREFS_KEY));
+    const rawSize = typeof parsed?.size === "string" ? LEGACY_READING_FONT_SIZES[parsed.size] : parsed?.size;
     return {
-      size: ["small", "medium", "large"].includes(parsed?.size) ? parsed.size : "medium",
+      size: Number.isFinite(rawSize) ? clampReadingFontSize(rawSize) : READING_FONT_DEFAULT,
       bold: Boolean(parsed?.bold),
     };
   } catch {
-    return { size: "medium", bold: false };
+    return { size: READING_FONT_DEFAULT, bold: false };
   }
 }
 
@@ -453,8 +464,9 @@ const elements = {
   verseCopyBar: document.querySelector("#verseCopyBar"),
   verseCopyPreview: document.querySelector("#verseCopyPreview"),
   verseCopyBtn: document.querySelector("#verseCopyBtn"),
-  readingSizeButtons: document.querySelectorAll("[data-font-size]"),
-  readingSizeThumb: document.querySelector("#readingSizeThumb"),
+  readingSizeDecreaseBtn: document.querySelector("#readingSizeDecreaseBtn"),
+  readingSizeIncreaseBtn: document.querySelector("#readingSizeIncreaseBtn"),
+  readingSizeValue: document.querySelector("#readingSizeValue"),
   readingBoldBtn: document.querySelector("#readingBoldBtn"),
   startQuizBtn: document.querySelector("#startQuizBtn"),
   chapterKicker: document.querySelector("#chapterKicker"),
@@ -2033,18 +2045,16 @@ function saveReadingPrefs() {
 
 function applyReadingPrefs() {
   const { size, bold } = state.readingPrefs;
-  elements.readingText.dataset.fontSize = size;
+  elements.readingText.style.setProperty("--reading-font-size", `${size}px`);
   elements.readingText.classList.toggle("bold", bold);
-  elements.readingSizeButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.fontSize === size);
-  });
-  const sizePosition = { medium: " position-medium", large: " position-large", xlarge: " position-xlarge" }[size] || "";
-  elements.readingSizeThumb.className = "reading-size-toggle-thumb" + sizePosition;
+  elements.readingSizeValue.textContent = `${size}px`;
+  elements.readingSizeDecreaseBtn.disabled = size <= READING_FONT_MIN;
+  elements.readingSizeIncreaseBtn.disabled = size >= READING_FONT_MAX;
   elements.readingBoldBtn.setAttribute("aria-pressed", String(bold));
 }
 
-function setReadingFontSize(size) {
-  state.readingPrefs.size = size;
+function adjustReadingFontSize(delta) {
+  state.readingPrefs.size = clampReadingFontSize(state.readingPrefs.size + delta);
   saveReadingPrefs();
   applyReadingPrefs();
 }
@@ -2217,8 +2227,12 @@ function closeVerseReader() {
 }
 
 function renderVerseReader() {
-  const size = state.readingPrefs?.size || "large"; // cover default = large
-  elements.verseReaderVerse.dataset.size = size;
+  // The cover reader is read from further away than the in-app text, so it
+  // renders visibly larger than the base reading size rather than matching
+  // it 1:1 — 1.3x roughly matches the old small/medium/large/xlarge presets'
+  // own ratio to their reading-panel counterparts (14→18, 16→21, 19→25, 22→30).
+  const size = Math.round(clampReadingFontSize(state.readingPrefs?.size || READING_FONT_DEFAULT) * 1.3);
+  elements.verseReaderVerse.style.fontSize = `${size}px`;
   elements.verseReaderVerse.classList.toggle("bold", !!state.readingPrefs?.bold);
   const { verses, index, chapterId } = state.verseReader;
   const chapter = DATA.chapters.find((c) => c.id === chapterId);
@@ -2677,9 +2691,8 @@ elements.startQuizBtn.addEventListener("click", () => {
   startQuiz();
 });
 
-elements.readingSizeButtons.forEach((button) => {
-  button.addEventListener("click", () => setReadingFontSize(button.dataset.fontSize));
-});
+elements.readingSizeDecreaseBtn.addEventListener("click", () => adjustReadingFontSize(-1));
+elements.readingSizeIncreaseBtn.addEventListener("click", () => adjustReadingFontSize(1));
 
 elements.readingBoldBtn.addEventListener("click", toggleReadingBold);
 
