@@ -14,6 +14,7 @@
   --line: #eae2d2;
   --red: #e2574c;
   --red-soft: #fde6e4;
+  --gray: #9a9488;
   --green: #2fae6c;
   --green-soft: #e2f6ec;
   --blue: #c1662e;
@@ -1377,8 +1378,8 @@ h3 {
   vertical-align: -1px;
 }
 
-.dot.red {
-  background: var(--red);
+.dot.gray {
+  background: var(--gray);
 }
 
 .dot.green {
@@ -1401,7 +1402,7 @@ h3 {
   border: 0;
   border-radius: 8px;
   color: white;
-  background: var(--red);
+  background: var(--gray);
   font-size: 15px;
   font-weight: 900;
   box-shadow: inset 0 -2px 0 rgba(33, 28, 22, 0.16);
@@ -3925,6 +3926,7 @@ body {
   --line: #322d22;
   --red: #ff7a6e;
   --red-soft: #3a2220;
+  --gray: #a39a8c;
   --green: #4cd08a;
   --green-soft: #163227;
   --blue: #e8823f;
