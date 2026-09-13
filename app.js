@@ -167,6 +167,78 @@ const BOOK_ENGLISH_NAMES = {
   요한계시록: "Revelation",
 };
 
+// Standard Korean-church grouping, in canonical Bible order — DATA.books is
+// already ordered this way, so grouping just means watching for where this
+// value changes as renderBookGrid walks the (already-ordered) book list.
+const BOOK_CATEGORIES = {
+  창세기: "모세오경",
+  출애굽기: "모세오경",
+  레위기: "모세오경",
+  민수기: "모세오경",
+  신명기: "모세오경",
+  여호수아: "역사서",
+  사사기: "역사서",
+  룻기: "역사서",
+  사무엘상: "역사서",
+  사무엘하: "역사서",
+  열왕기상: "역사서",
+  열왕기하: "역사서",
+  역대상: "역사서",
+  역대하: "역사서",
+  에스라: "역사서",
+  느헤미야: "역사서",
+  에스더: "역사서",
+  욥기: "시가서",
+  시편: "시가서",
+  잠언: "시가서",
+  전도서: "시가서",
+  아가: "시가서",
+  이사야: "대선지서",
+  예레미야: "대선지서",
+  예레미야애가: "대선지서",
+  에스겔: "대선지서",
+  다니엘: "대선지서",
+  호세아: "소선지서",
+  요엘: "소선지서",
+  아모스: "소선지서",
+  오바댜: "소선지서",
+  요나: "소선지서",
+  미가: "소선지서",
+  나훔: "소선지서",
+  하박국: "소선지서",
+  스바냐: "소선지서",
+  학개: "소선지서",
+  스가랴: "소선지서",
+  말라기: "소선지서",
+  마태복음: "복음서",
+  마가복음: "복음서",
+  누가복음: "복음서",
+  요한복음: "복음서",
+  사도행전: "역사서",
+  로마서: "바울서신",
+  고린도전서: "바울서신",
+  고린도후서: "바울서신",
+  갈라디아서: "바울서신",
+  에베소서: "바울서신",
+  빌립보서: "바울서신",
+  골로새서: "바울서신",
+  데살로니가전서: "바울서신",
+  데살로니가후서: "바울서신",
+  디모데전서: "바울서신",
+  디모데후서: "바울서신",
+  디도서: "바울서신",
+  빌레몬서: "바울서신",
+  히브리서: "공동서신",
+  야고보서: "공동서신",
+  베드로전서: "공동서신",
+  베드로후서: "공동서신",
+  요한일서: "공동서신",
+  요한이서: "공동서신",
+  요한삼서: "공동서신",
+  유다서: "공동서신",
+  요한계시록: "계시록",
+};
+
 // DAILY_VERSES ({ref, text}[]) comes from data/verses.js.
 function pickRandomVerse() {
   return DAILY_VERSES[Math.floor(Math.random() * DAILY_VERSES.length)];
@@ -1389,26 +1461,47 @@ function renderBookGrid() {
     elements.librarySectionCount.textContent = `${books.length}권 · ${testamentChapters.length}장`;
   }
 
-  elements.bookGrid.replaceChildren(
-    ...books.map((book) => {
-      const chapters = chaptersByBook[book.name];
-      const done = getCompletedCount(chapters);
-      const bookPercent = percent(done, chapters.length);
-      const tier = getBookColorTier(bookPercent, done);
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = `book-tile ${tier}${book.name === state.selectedBook ? " active" : ""}`;
-      button.setAttribute("aria-label", `${book.name} (${done} / ${chapters.length}장, ${bookPercent}% 완료)`);
-      button.innerHTML = `
-        <span class="book-tile-code">${book.name}</span>
-        <span class="book-tile-name">${BOOK_ENGLISH_NAMES[book.name] || ""}</span>
-        <span class="book-tile-meta">${done} / ${chapters.length}</span>
-        <span class="book-tile-bar"><i style="width: ${bookPercent}%"></i></span>
-      `;
-      button.addEventListener("click", () => selectBook(book.name));
-      return button;
-    })
-  );
+  const bookTile = (book) => {
+    const chapters = chaptersByBook[book.name];
+    const done = getCompletedCount(chapters);
+    const bookPercent = percent(done, chapters.length);
+    const tier = getBookColorTier(bookPercent, done);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `book-tile ${tier}${book.name === state.selectedBook ? " active" : ""}`;
+    button.setAttribute("aria-label", `${book.name} (${done} / ${chapters.length}장, ${bookPercent}% 완료)`);
+    button.innerHTML = `
+      <span class="book-tile-code">${book.name}</span>
+      <span class="book-tile-name">${BOOK_ENGLISH_NAMES[book.name] || ""}</span>
+      <span class="book-tile-meta">${done} / ${chapters.length}</span>
+      <span class="book-tile-bar"><i style="width: ${bookPercent}%"></i></span>
+    `;
+    button.addEventListener("click", () => selectBook(book.name));
+    return button;
+  };
+
+  if (isSearching) {
+    elements.bookGrid.replaceChildren(...books.map(bookTile));
+  } else {
+    // books is already in canonical Bible order (same order as DATA.books),
+    // which is also category order, so a category header just goes wherever
+    // BOOK_CATEGORIES changes from the book before it — no separate sort/group
+    // pass needed.
+    const nodes = [];
+    let currentCategory = null;
+    for (const book of books) {
+      const category = BOOK_CATEGORIES[book.name] || "";
+      if (category !== currentCategory) {
+        currentCategory = category;
+        const heading = document.createElement("h3");
+        heading.className = "book-category-heading";
+        heading.textContent = category;
+        nodes.push(heading);
+      }
+      nodes.push(bookTile(book));
+    }
+    elements.bookGrid.replaceChildren(...nodes);
+  }
 
   if (elements.bookGridEmpty) {
     elements.bookGridEmpty.hidden = books.length > 0;

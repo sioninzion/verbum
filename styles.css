@@ -1159,6 +1159,19 @@ h3 {
   gap: 10px;
 }
 
+.book-category-heading {
+  grid-column: 1 / -1;
+  margin: 14px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.book-category-heading:first-child {
+  margin-top: 0;
+}
+
 .book-tile {
   position: relative;
   display: flex;
