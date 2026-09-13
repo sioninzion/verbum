@@ -801,6 +801,15 @@ function getBookMeta(bookName) {
   return DATA.books.find((book) => book.name === bookName);
 }
 
+// 시편은 "장"이 아니라 "편"으로 센다(시편 23편, not 시편 23장) — 다른 65권은 전부 "장".
+function chapterUnitLabel(bookName, count = 1) {
+  return bookName === "시편" ? `${count}편` : `${count}장`;
+}
+
+function chapterFullLabel(bookName, chapterNumber) {
+  return `${bookName} ${chapterNumber}${bookName === "시편" ? "편" : "장"}`;
+}
+
 function getCompletedCount(chapters, progress = state.progress) {
   return chapters.filter((chapter) => Boolean(progress.completed?.[chapter.id])).length;
 }
@@ -1241,7 +1250,7 @@ function updateHome() {
   // setView("home") runs, so it changes each visit like it used to.
   elements.dailyVerseText.textContent = state.dailyVerse.text;
   elements.dailyVerseRef.textContent = state.dailyVerse.ref;
-  elements.nextChapterTitle.textContent = `${next.book} ${next.chapter}장`;
+  elements.nextChapterTitle.textContent = chapterFullLabel(next.book, next.chapter);
   elements.heroBookEnglish.textContent = BOOK_ENGLISH_NAMES[next.book] || "";
   elements.homeTotalDone.textContent = done;
   elements.homeTotalCount.textContent = DATA.chapters.length;
@@ -1529,7 +1538,7 @@ function renderChapters() {
   elements.selectedTestament.textContent = book.testament === "old" ? "구약" : "신약";
   elements.selectedBook.textContent = state.selectedBook;
   elements.bookPercent.textContent = `${bookPercent}%`;
-  elements.bookCount.textContent = `${done} / ${chapters.length}장`;
+  elements.bookCount.textContent = `${done} / ${chapterUnitLabel(state.selectedBook, chapters.length)}`;
 
   elements.chapterGrid.replaceChildren(
     ...chapters.map((chapter) => {
@@ -1543,7 +1552,7 @@ function renderChapters() {
         .filter(Boolean)
         .join(" ");
       button.textContent = chapter.chapter;
-      button.setAttribute("aria-label", `${chapter.book} ${chapter.chapter}장`);
+      button.setAttribute("aria-label", chapterFullLabel(chapter.book, chapter.chapter));
       button.addEventListener("click", () => selectChapter(chapter.id));
       return button;
     })
@@ -1555,7 +1564,7 @@ function renderQuiz() {
   const complete = isComplete(chapter.id);
   const attempt = state.progress.attempts[chapter.id];
 
-  elements.chapterKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
+  elements.chapterKicker.textContent = chapterFullLabel(chapter.book, chapter.chapter);
   elements.chapterStatus.textContent = complete ? "완료" : "미완료";
   elements.chapterStatus.classList.toggle("done", complete);
   elements.questionText.textContent = chapter.question;
@@ -2068,7 +2077,7 @@ function toggleReadingBold() {
 async function renderReading() {
   applyReadingPrefs();
   const chapter = getCurrentChapter();
-  elements.readingKicker.textContent = `${chapter.book} ${chapter.chapter}장`;
+  elements.readingKicker.textContent = chapterFullLabel(chapter.book, chapter.chapter);
   elements.readingText.replaceChildren();
   // A fresh chapter is loading — any previous tap-to-select selection no
   // longer points at visible DOM, so drop it rather than leave a stale copy
@@ -2239,7 +2248,7 @@ function renderVerseReader() {
   const verse = verses[index];
   if (!verse) return;
   const isLast = index === verses.length - 1;
-  elements.verseReaderTitle.textContent = `${chapter.book} ${chapter.chapter}장`;
+  elements.verseReaderTitle.textContent = chapterFullLabel(chapter.book, chapter.chapter);
   elements.verseReaderCounter.textContent = `${index + 1} / ${verses.length}`;
   elements.verseReaderHeading.hidden = !(index === 0 && verse.h);
   if (index === 0 && verse.h) elements.verseReaderHeading.textContent = verse.h;
