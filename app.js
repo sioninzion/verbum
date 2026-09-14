@@ -353,7 +353,7 @@ const state = {
   bookSearchQuery: "",
   bookTestamentFilter: "old",
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
-  selectedVerse: null, // { verse: "3", text: "..." } — tap-to-select-and-copy in the reading panel
+  verseSelection: null, // { start: 3, end: 5 } — tap-to-select-and-copy in the reading panel; end always >= start
   biblePaneCollapsed: false,
 };
 
@@ -2136,36 +2136,84 @@ async function renderReading() {
 // --- Tap-to-select-and-copy a verse (reading panel only) -----------------
 
 function clearVerseSelection() {
-  state.selectedVerse = null;
+  state.verseSelection = null;
   elements.readingText
     .querySelectorAll(".reading-verse.verse-selected")
     .forEach((el) => el.classList.remove("verse-selected"));
   elements.verseCopyBar.classList.remove("is-visible");
 }
 
-function selectVerseForCopy(line) {
-  const verse = line.dataset.verse;
-  const text = line.dataset.text || "";
-  if (state.selectedVerse && state.selectedVerse.verse === verse) {
-    clearVerseSelection();
-    return;
-  }
+// Every .reading-verse whose verse number falls within [start, end], in
+// document order (which is already reading order) — the shared source of
+// truth for both the live preview and the final copy payload.
+function getSelectedVerseLines(start, end) {
+  return [...elements.readingText.querySelectorAll(".reading-verse")].filter((el) => {
+    const v = Number(el.dataset.verse);
+    return v >= start && v <= end;
+  });
+}
+
+function applyVerseSelection(start, end) {
+  state.verseSelection = { start, end };
+  const lines = getSelectedVerseLines(start, end);
   elements.readingText
     .querySelectorAll(".reading-verse.verse-selected")
     .forEach((el) => el.classList.remove("verse-selected"));
-  line.classList.add("verse-selected");
-  state.selectedVerse = { verse, text };
-  elements.verseCopyPreview.textContent = text;
+  lines.forEach((el) => el.classList.add("verse-selected"));
+  elements.verseCopyPreview.textContent = lines.map((el) => el.dataset.text || "").join(" ");
   elements.verseCopyBtn.textContent = "복사";
   elements.verseCopyBtn.classList.remove("copied");
   elements.verseCopyBar.classList.add("is-visible");
 }
 
+// Tapping a verse with nothing selected starts a single-verse selection.
+// With a selection active, tapping the verse immediately before/after it
+// grows the range by exactly that one verse — so a multi-verse selection
+// only ever forms by walking outward one step at a time, never by jumping
+// straight to a far verse and sweeping in everything between. Tapping
+// anything else (a non-adjacent verse, including one already inside the
+// range) drops the old selection and starts fresh at the tapped verse;
+// tapping the sole selected verse again clears it entirely.
+function selectVerseForCopy(line) {
+  const verseNum = Number(line.dataset.verse);
+  const sel = state.verseSelection;
+
+  if (!sel) {
+    applyVerseSelection(verseNum, verseNum);
+    return;
+  }
+
+  if (sel.start === sel.end && verseNum === sel.start) {
+    clearVerseSelection();
+    return;
+  }
+
+  if (verseNum === sel.end + 1) {
+    applyVerseSelection(sel.start, verseNum);
+    return;
+  }
+
+  if (verseNum === sel.start - 1) {
+    applyVerseSelection(verseNum, sel.end);
+    return;
+  }
+
+  applyVerseSelection(verseNum, verseNum);
+}
+
 async function copySelectedVerse() {
-  if (!state.selectedVerse) return;
+  const sel = state.verseSelection;
+  if (!sel) return;
   const chapter = getCurrentChapter();
-  const reference = `${chapter.book} ${chapter.chapter}:${state.selectedVerse.verse}`;
-  const payload = `${state.selectedVerse.text}\n${reference}`;
+  const isRange = sel.start !== sel.end;
+  const lines = getSelectedVerseLines(sel.start, sel.end);
+  const body = isRange
+    ? lines.map((el) => `${el.dataset.verse} ${el.dataset.text || ""}`).join("\n")
+    : lines[0]?.dataset.text || "";
+  const reference = isRange
+    ? `${chapter.book} ${chapter.chapter}:${sel.start}-${sel.end}`
+    : `${chapter.book} ${chapter.chapter}:${sel.start}`;
+  const payload = `${body}\n${reference}`;
 
   let copied = false;
   try {
@@ -2193,7 +2241,7 @@ async function copySelectedVerse() {
   elements.verseCopyBtn.textContent = copied ? "복사됨" : "복사 실패";
   elements.verseCopyBtn.classList.toggle("copied", copied);
   setTimeout(() => {
-    if (!state.selectedVerse) return;
+    if (!state.verseSelection) return;
     elements.verseCopyBtn.textContent = "복사";
     elements.verseCopyBtn.classList.remove("copied");
   }, 1500);
