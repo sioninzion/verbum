@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v167";
+const CACHE_VERSION = "v168";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 // --- Firebase Cloud Messaging -----------------------------------------
@@ -109,6 +109,19 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// The entry document decides which *versioned* app.js/styles.css URLs get
+// loaded next (index.html?v= itself never changes) — serving it stale from
+// cache-first, as everything else here does, means a fresh deploy silently
+// keeps running yesterday's app.js/styles.css until a *second* visit, since
+// the first visit's stale HTML still points at the old versioned URLs. Any
+// bug already fixed in that deploy looks like it needs "one more try" to go
+// away, which is exactly the symptom this fixes. Network-first here instead:
+// try the network so a deploy takes effect on the very next visit, falling
+// back to cache only when actually offline.
+function isEntryDocument(request, url) {
+  return request.mode === "navigate" || url.pathname === "/" || url.pathname.endsWith("/index.html");
+}
+
 // Cache-first with background revalidation: serve instantly from cache when
 // available (and works offline), while quietly refreshing the cache from the
 // network for next time. Only same-origin GET requests are handled here —
@@ -119,6 +132,20 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (isEntryDocument(request, url)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
