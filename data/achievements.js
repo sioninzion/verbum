@@ -168,4 +168,9 @@ window.ACHIEVEMENTS = [
   { id: "not-really", rarity: "hidden", name: "이게 진짜일 리 없어", condition: "25장 이상 통독한 상태에서 통독 진행도를 초기화하세요.", check: () => false },
   { id: "flawless-hundred", rarity: "hidden", name: "백발백중", condition: "퀴즈를 100문제 연속으로 맞히세요.", check: (ctx) => ctx.quizCorrectStreak >= 100 },
   { id: "full-canon-order", rarity: "hidden", name: "1189", condition: "창세기 1장부터 요한계시록 22장까지 성경 1,189장을 정순으로 완독하세요.", check: (ctx) => ctx.readInCanonicalOrder },
+  { id: "yhwh-yireh", rarity: "hidden", name: "YHWH Yir’eh", condition: "창세기 22장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "창세기", 22) },
+  { id: "yhwh-nissi", rarity: "hidden", name: "YHWH Nissi", condition: "출애굽기 17장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "출애굽기", 17) },
+  { id: "yhwh-rapha", rarity: "hidden", name: "YHWH Rapha", condition: "출애굽기 15장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "출애굽기", 15) },
+  { id: "yhwh-shalom", rarity: "hidden", name: "YHWH Shalom", condition: "사사기 6장을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "사사기", 6) },
+  { id: "yhwh-roi", rarity: "hidden", name: "YHWH Ro’i", condition: "시편 23편을 읽으세요.", check: (ctx) => hasReadChapter(ctx, "시편", 23) },
 ];
