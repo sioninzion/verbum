@@ -341,6 +341,7 @@ const state = {
   selectedBook: DATA.books[0].name,
   selectedChapterId: DATA.chapters[0].id,
   isAuthenticated: false,
+  isGuest: false,
   firebaseUser: null,
   creatingAccount: false,
   user: getSignedOutUser(),
@@ -372,6 +373,7 @@ const elements = {
   gateLoginPassword: document.querySelector("#gateLoginPassword"),
   forgotPasswordBtn: document.querySelector("#forgotPasswordBtn"),
   googleLoginBtn: document.querySelector("#googleLoginBtn"),
+  guestLoginBtn: document.querySelector("#guestLoginBtn"),
   socialLoginRow: document.querySelector("#socialLoginRow"),
   gateSignupForm: document.querySelector("#gateSignupForm"),
   gateSignupEmail: document.querySelector("#gateSignupEmail"),
@@ -1601,7 +1603,8 @@ function renderQuiz() {
 }
 
 function renderProfile() {
-  elements.logoutBtn.hidden = !state.isAuthenticated;
+  elements.logoutBtn.hidden = !(state.isAuthenticated || state.isGuest);
+  elements.logoutBtn.textContent = state.isGuest ? "둘러보기 종료" : "로그아웃";
   elements.accountEmail.textContent = state.user.email || "-";
   elements.accountName.textContent = state.user.name || "-";
   elements.profileNickname.value = state.user.nickname;
@@ -1816,9 +1819,10 @@ function renderView() {
 }
 
 function renderAuthGate() {
-  elements.appShell.classList.toggle("app-locked", !state.isAuthenticated);
-  elements.appShell.setAttribute("aria-hidden", state.isAuthenticated ? "false" : "true");
-  elements.loginGate.classList.toggle("login-hidden", state.isAuthenticated);
+  const unlocked = state.isAuthenticated || state.isGuest;
+  elements.appShell.classList.toggle("app-locked", !unlocked);
+  elements.appShell.setAttribute("aria-hidden", unlocked ? "false" : "true");
+  elements.loginGate.classList.toggle("login-hidden", unlocked);
 }
 
 function animateBookGridFill() {
@@ -2596,6 +2600,14 @@ async function handleProfileSave(event) {
 }
 
 async function logout() {
+  if (state.isGuest) {
+    state.isGuest = false;
+    state.user = getSignedOutUser();
+    state.progress = createProgress();
+    setView("home");
+    render();
+    return;
+  }
   await auth.signOut();
 }
 
@@ -2880,6 +2892,14 @@ elements.googleLoginBtn.addEventListener("click", async () => {
     }
   }
 });
+elements.guestLoginBtn.addEventListener("click", () => {
+  setAuthBanner("");
+  state.isGuest = true;
+  state.user = getSignedOutUser();
+  state.progress = createProgress();
+  setView("home");
+  render();
+});
 elements.profileForm.addEventListener("submit", handleProfileSave);
 elements.logoutBtn.addEventListener("click", logout);
 
@@ -2973,10 +2993,15 @@ async function handleAuthStateChange(firebaseUser) {
     if (!firebaseUser) {
       state.isAuthenticated = false;
       state.firebaseUser = null;
-      state.user = getSignedOutUser();
-      state.progress = createProgress();
-      state.leaderboard = [];
-      setView("home");
+      // A guest session already set up its own signed-out-shaped state by the
+      // time this fires (it can arrive late — Firebase resolves the persisted
+      // session asynchronously). Don't stomp on progress they've made since.
+      if (!state.isGuest) {
+        state.user = getSignedOutUser();
+        state.progress = createProgress();
+        state.leaderboard = [];
+        setView("home");
+      }
       render();
       return;
     }

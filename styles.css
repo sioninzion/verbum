@@ -3375,6 +3375,11 @@ body {
   gap: 14px;
 }
 
+.guest-login-link {
+  text-align: center;
+  justify-self: center;
+}
+
 .social-login-btn {
   display: grid;
   place-items: center;
