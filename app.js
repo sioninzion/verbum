@@ -1604,7 +1604,7 @@ function renderQuiz() {
 
 function renderProfile() {
   elements.logoutBtn.hidden = !(state.isAuthenticated || state.isGuest);
-  elements.logoutBtn.textContent = state.isGuest ? "둘러보기 종료" : "로그아웃";
+  elements.logoutBtn.textContent = state.isGuest && !state.firebaseUser ? "둘러보기 종료" : "로그아웃";
   elements.accountEmail.textContent = state.user.email || "-";
   elements.accountName.textContent = state.user.name || "-";
   elements.profileNickname.value = state.user.nickname;
@@ -2600,6 +2600,10 @@ async function handleProfileSave(event) {
 }
 
 async function logout() {
+  if (state.firebaseUser) {
+    await auth.signOut();
+    return;
+  }
   if (state.isGuest) {
     state.isGuest = false;
     state.user = getSignedOutUser();
@@ -2893,6 +2897,7 @@ elements.googleLoginBtn.addEventListener("click", async () => {
   }
 });
 elements.guestLoginBtn.addEventListener("click", () => {
+  if (state.isAuthenticated) return;
   setAuthBanner("");
   state.isGuest = true;
   state.user = getSignedOutUser();
@@ -3015,6 +3020,7 @@ async function handleAuthStateChange(firebaseUser) {
 
     state.isAuthenticated = true;
     state.firebaseUser = firebaseUser;
+    state.isGuest = false;
     const { user, progress } = await loadUserProfile(firebaseUser);
     syncUser(user, progress);
     await saveProgress();
