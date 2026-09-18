@@ -354,7 +354,7 @@ const state = {
   bookSearchQuery: "",
   bookTestamentFilter: "old",
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
-  verseSelection: null, // { start: 3, end: 5 } — tap-to-select-and-copy in the reading panel; end always >= start
+  verseSelection: null, // Set<number> of selected verse numbers (tap-to-select-and-copy in the reading panel), or null when empty
   biblePaneCollapsed: false,
 };
 
@@ -2147,19 +2147,18 @@ function clearVerseSelection() {
   elements.verseCopyBar.classList.remove("is-visible");
 }
 
-// Every .reading-verse whose verse number falls within [start, end], in
-// document order (which is already reading order) — the shared source of
-// truth for both the live preview and the final copy payload.
-function getSelectedVerseLines(start, end) {
-  return [...elements.readingText.querySelectorAll(".reading-verse")].filter((el) => {
-    const v = Number(el.dataset.verse);
-    return v >= start && v <= end;
-  });
+// Every .reading-verse whose verse number is in verseSet, in document order
+// (which is already reading order) — the shared source of truth for both the
+// live preview and the final copy payload.
+function getSelectedVerseLines(verseSet) {
+  return [...elements.readingText.querySelectorAll(".reading-verse")].filter((el) =>
+    verseSet.has(Number(el.dataset.verse))
+  );
 }
 
-function applyVerseSelection(start, end) {
-  state.verseSelection = { start, end };
-  const lines = getSelectedVerseLines(start, end);
+function applyVerseSelection(verseSet) {
+  state.verseSelection = verseSet;
+  const lines = getSelectedVerseLines(verseSet);
   elements.readingText
     .querySelectorAll(".reading-verse.verse-selected")
     .forEach((el) => el.classList.remove("verse-selected"));
@@ -2170,53 +2169,49 @@ function applyVerseSelection(start, end) {
   elements.verseCopyBar.classList.add("is-visible");
 }
 
-// Tapping a verse with nothing selected starts a single-verse selection.
-// With a selection active, tapping the verse immediately before/after it
-// grows the range by exactly that one verse — so a multi-verse selection
-// only ever forms by walking outward one step at a time, never by jumping
-// straight to a far verse and sweeping in everything between. Tapping
-// anything else (a non-adjacent verse, including one already inside the
-// range) drops the old selection and starts fresh at the tapped verse;
-// tapping the sole selected verse again clears it entirely.
+// Each tap toggles that verse in or out of the selection, regardless of
+// whether it's adjacent to anything already selected — so gapped selections
+// like {2, 5, 9} work. Untoggling the last selected verse clears the bar.
 function selectVerseForCopy(line) {
   const verseNum = Number(line.dataset.verse);
-  const sel = state.verseSelection;
+  const next = new Set(state.verseSelection);
+  if (!next.delete(verseNum)) next.add(verseNum);
 
-  if (!sel) {
-    applyVerseSelection(verseNum, verseNum);
-    return;
-  }
-
-  if (sel.start === sel.end && verseNum === sel.start) {
+  if (next.size === 0) {
     clearVerseSelection();
-    return;
+  } else {
+    applyVerseSelection(next);
   }
+}
 
-  if (verseNum === sel.end + 1) {
-    applyVerseSelection(sel.start, verseNum);
-    return;
+// [2,3,4,7,9,10] -> "2-4,7,9-10"
+function formatVerseRanges(sortedVerses) {
+  const parts = [];
+  let start = sortedVerses[0];
+  let prev = start;
+  for (let i = 1; i <= sortedVerses.length; i++) {
+    const v = sortedVerses[i];
+    if (v === prev + 1) {
+      prev = v;
+      continue;
+    }
+    parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+    start = prev = v;
   }
-
-  if (verseNum === sel.start - 1) {
-    applyVerseSelection(verseNum, sel.end);
-    return;
-  }
-
-  applyVerseSelection(verseNum, verseNum);
+  return parts.join(",");
 }
 
 async function copySelectedVerse() {
   const sel = state.verseSelection;
   if (!sel) return;
   const chapter = getCurrentChapter();
-  const isRange = sel.start !== sel.end;
-  const lines = getSelectedVerseLines(sel.start, sel.end);
-  const body = isRange
+  const lines = getSelectedVerseLines(sel);
+  const isMulti = lines.length > 1;
+  const body = isMulti
     ? lines.map((el) => `${el.dataset.verse} ${el.dataset.text || ""}`).join("\n")
     : lines[0]?.dataset.text || "";
-  const reference = isRange
-    ? `${chapter.book} ${chapter.chapter}:${sel.start}-${sel.end}`
-    : `${chapter.book} ${chapter.chapter}:${sel.start}`;
+  const sortedVerses = lines.map((el) => Number(el.dataset.verse));
+  const reference = `${chapter.book} ${chapter.chapter}:${formatVerseRanges(sortedVerses)}`;
   const payload = `${body}\n${reference}`;
 
   let copied = false;
