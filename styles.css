@@ -3893,18 +3893,20 @@ body {
    shrinks and the label slides down out from under it. */
 .mobile-tabbar {
   /* Fallback for engines without linear(); replaced by a damped spring
-     (about 30 percent first overshoot, settles inside 350ms) below. */
+     (about 30 percent first overshoot, settles inside 300ms) below. */
   --fab-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @supports (transition-timing-function: linear(0, 1)) {
   .mobile-tabbar {
-    --fab-spring: linear(0, 1);
+    --fab-spring: linear(0, 0.15, 0.487, 0.853, 1.136, 1.284, 1.303, 1.23, 1.118, 1.011, 0.937, 0.906, 0.912, 0.94, 0.976, 1.006, 1.024, 1.03, 1.025, 1.015, 1.004, 0.996, 0.991, 0.991, 0.993, 0.997, 1, 1.002, 1.003, 1.003, 1.002, 1.001, 1);
   }
 }
 
 .mobile-tabbar button.tabbar-fab {
-  transform: translateY(-12px) scale(1.2);
+  /* Big/unselected: disc centre sits ~60% up the 66px bar (translateY -4.6px);
+     selected/small rises to its resting spot (-12px, ~71%). */
+  transform: translateY(-4.6px) scale(1.2);
   width: 50px;
   height: 50px;
   min-height: 50px;
@@ -3914,7 +3916,7 @@ body {
   box-shadow: none;
   color: #ffffff;
   transition:
-    transform 350ms var(--fab-spring),
+    transform 300ms var(--fab-spring),
     color 180ms ease;
 }
 
@@ -3929,7 +3931,7 @@ body {
 }
 
 .mobile-tabbar button.tabbar-fab:active {
-  transform: translateY(-12px) scale(1.2) scale(0.94);
+  transform: translateY(-4.6px) scale(1.2) scale(0.94);
 }
 
 .mobile-tabbar button.tabbar-fab.active {
@@ -3966,15 +3968,15 @@ body {
   scale: 0.8333;
   transition:
     translate 200ms ease-in,
-    scale 350ms var(--fab-spring);
+    scale 300ms var(--fab-spring);
 }
 
 .mobile-tabbar button.tabbar-fab.active span:not(.tabbar-fab-icon) {
   translate: 0 0;
   scale: 1;
   transition:
-    translate 350ms cubic-bezier(0.22, 1, 0.36, 1) 60ms,
-    scale 350ms var(--fab-spring);
+    translate 260ms cubic-bezier(0.22, 1, 0.36, 1) 40ms,
+    scale 300ms var(--fab-spring);
 }
 
 @media (prefers-reduced-motion: reduce) {
