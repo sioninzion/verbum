@@ -1560,6 +1560,36 @@ h3 {
   font-weight: 700;
 }
 
+/* Saved 형광펜 color. The pastel fill is fixed (not themed), so the text on it
+   is pinned dark too or it would vanish in dark mode. Sits before the
+   selected / jump-flash rules so those still win while active. */
+.reading-verse[data-hl] {
+  color: #211c16;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: 0 -6px;
+}
+
+.reading-verse[data-hl] .v-num {
+  color: rgba(33, 28, 22, 0.55);
+}
+
+.reading-verse[data-hl="pink"] {
+  background: #f8ccd8;
+}
+
+.reading-verse[data-hl="yellow"] {
+  background: #fff1a8;
+}
+
+.reading-verse[data-hl="green"] {
+  background: #cdefcf;
+}
+
+.reading-verse[data-hl="sky"] {
+  background: #bde9f7;
+}
+
 /* Briefly marks the verse a "순간의 말씀" notification click jumped to. */
 .reading-verse.verse-highlight {
   background: var(--gold);
@@ -1609,7 +1639,7 @@ h3 {
   align-items: center;
   gap: 10px;
   max-width: calc(100% - 32px);
-  padding: 8px 8px 8px 14px;
+  padding: 8px 8px 8px 12px;
   border: 2.1px solid #000000;
   border-radius: 999px;
   background: #ffffff;
@@ -1632,17 +1662,46 @@ h3 {
   }
 }
 
-.verse-copy-preview {
-  flex: 1;
-  min-width: 0;
-  max-width: 160px;
-  margin: 0;
-  overflow: hidden;
-  color: #211c16;
-  font-size: 13px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.hl-palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hl-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1.3px solid var(--hl-strong);
+  border-radius: 50%;
+  background: var(--hl-base);
+}
+
+.hl-btn[data-hl-color="pink"] {
+  --hl-base: #f8ccd8;
+  --hl-strong: #dc819d;
+}
+
+.hl-btn[data-hl-color="yellow"] {
+  --hl-base: #fff1a8;
+  --hl-strong: #e8c84a;
+}
+
+.hl-btn[data-hl-color="green"] {
+  --hl-base: #cdefcf;
+  --hl-strong: #69b873;
+}
+
+.hl-btn[data-hl-color="sky"] {
+  --hl-base: #bde9f7;
+  --hl-strong: #54b9d3;
+}
+
+.hl-btn.hl-erase {
+  --hl-base: #ffffff;
+  --hl-strong: #8a8a8a;
+  border-style: dashed;
 }
 
 .verse-copy-btn {

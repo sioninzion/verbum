@@ -17,6 +17,15 @@ service cloud.firestore {
       allow get, list: if request.auth != null
         && (request.auth.uid == userId || resource.data.share == true);
 
+      // Verse 형광펜 highlights, one document per chapter. Owner-only.
+      match /highlights/{chapterId} {
+        allow create, update, delete: if request.auth != null
+          && request.auth.uid == userId;
+
+        allow get, list: if request.auth != null
+          && request.auth.uid == userId;
+      }
+
       // FCM registration tokens, one document per device. Fully private —
       // no `share`-style public read, since these are just push targets.
       match /notificationDevices/{deviceId} {

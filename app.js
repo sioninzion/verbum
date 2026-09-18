@@ -464,7 +464,7 @@ const elements = {
   readingKicker: document.querySelector("#readingKicker"),
   readingText: document.querySelector("#readingText"),
   verseCopyBar: document.querySelector("#verseCopyBar"),
-  verseCopyPreview: document.querySelector("#verseCopyPreview"),
+  hlPalette: document.querySelector("#hlPalette"),
   verseCopyBtn: document.querySelector("#verseCopyBtn"),
   readingSizeDecreaseBtn: document.querySelector("#readingSizeDecreaseBtn"),
   readingSizeIncreaseBtn: document.querySelector("#readingSizeIncreaseBtn"),
@@ -2095,8 +2095,12 @@ async function renderReading() {
   const requestedChapterId = chapter.id;
   let verses = [];
   let failed = false;
+  let highlights = {};
   try {
-    verses = await loadChapterVerses(chapter);
+    [verses, highlights] = await Promise.all([
+      loadChapterVerses(chapter),
+      loadChapterHighlights(requestedChapterId),
+    ]);
   } catch (err) {
     failed = true;
   }
@@ -2127,6 +2131,7 @@ async function renderReading() {
       line.className = "reading-verse";
       line.dataset.verse = String(verse.v);
       line.dataset.text = verse.t;
+      if (highlights[verse.v]) line.dataset.hl = highlights[verse.v];
       const num = document.createElement("span");
       num.className = "v-num";
       num.textContent = verse.v;
@@ -2163,7 +2168,6 @@ function applyVerseSelection(verseSet) {
     .querySelectorAll(".reading-verse.verse-selected")
     .forEach((el) => el.classList.remove("verse-selected"));
   lines.forEach((el) => el.classList.add("verse-selected"));
-  elements.verseCopyPreview.textContent = lines.map((el) => el.dataset.text || "").join(" ");
   elements.verseCopyBtn.textContent = "복사";
   elements.verseCopyBtn.classList.remove("copied");
   elements.verseCopyBar.classList.add("is-visible");
@@ -2181,6 +2185,118 @@ function selectVerseForCopy(line) {
     clearVerseSelection();
   } else {
     applyVerseSelection(next);
+  }
+}
+
+// --- 형광펜 (verse highlights) --------------------------------------------
+// One Firestore doc per chapter: users/{uid}/highlights/{chapterId} with
+// { verses: { "2": "pink", ... } }. Writes are per-verse merges (never a
+// whole-map overwrite) so a chapter whose read failed can't clobber what's
+// already saved, and they're batched behind a short debounce so painting
+// ten verses costs one write, not ten. Guests keep highlights in memory only.
+
+const HIGHLIGHT_COLORS = new Set(["pink", "yellow", "green", "sky"]);
+const HIGHLIGHT_SAVE_DELAY_MS = 3000;
+const highlightCache = new Map(); // chapterId -> { [verse]: color }
+const pendingHighlightChanges = new Map(); // chapterId -> { [verse]: color | null }
+let highlightSaveTimer = null;
+
+function canPersistHighlights() {
+  return state.isAuthenticated && Boolean(state.firebaseUser);
+}
+
+function resetHighlights() {
+  clearTimeout(highlightSaveTimer);
+  highlightSaveTimer = null;
+  highlightCache.clear();
+  pendingHighlightChanges.clear();
+}
+
+async function loadChapterHighlights(chapterId) {
+  if (highlightCache.has(chapterId)) return highlightCache.get(chapterId);
+
+  const verses = {};
+  if (canPersistHighlights()) {
+    try {
+      const snapshot = await getUserDocRef().collection("highlights").doc(String(chapterId)).get();
+      const saved = snapshot.exists ? snapshot.data().verses || {} : {};
+      for (const [verse, color] of Object.entries(saved)) {
+        if (HIGHLIGHT_COLORS.has(color)) verses[verse] = color;
+      }
+    } catch {
+      // Offline or rules not deployed yet — show the chapter unhighlighted
+      // and don't cache, so the next open retries the read.
+      return verses;
+    }
+    const pending = pendingHighlightChanges.get(chapterId);
+    if (pending) {
+      for (const [verse, color] of Object.entries(pending)) {
+        if (color) verses[verse] = color;
+        else delete verses[verse];
+      }
+    }
+  }
+  highlightCache.set(chapterId, verses);
+  return verses;
+}
+
+function applyHighlightToSelection(color) {
+  const sel = state.verseSelection;
+  if (!sel) return;
+  const chapterId = state.selectedChapterId;
+  const cached = highlightCache.get(chapterId);
+  const persist = canPersistHighlights();
+
+  for (const el of getSelectedVerseLines(sel)) {
+    const verse = el.dataset.verse;
+    const current = el.dataset.hl || null;
+    if (current === color) continue;
+
+    if (color) el.dataset.hl = color;
+    else delete el.dataset.hl;
+    if (cached) {
+      if (color) cached[verse] = color;
+      else delete cached[verse];
+    }
+    if (persist) {
+      const changes = pendingHighlightChanges.get(chapterId) || {};
+      changes[verse] = color;
+      pendingHighlightChanges.set(chapterId, changes);
+    }
+  }
+
+  clearVerseSelection();
+  if (persist && pendingHighlightChanges.size) {
+    clearTimeout(highlightSaveTimer);
+    highlightSaveTimer = setTimeout(flushHighlights, HIGHLIGHT_SAVE_DELAY_MS);
+  }
+}
+
+async function flushHighlights() {
+  clearTimeout(highlightSaveTimer);
+  highlightSaveTimer = null;
+  if (!canPersistHighlights() || !pendingHighlightChanges.size) return;
+
+  const inFlight = new Map(pendingHighlightChanges);
+  pendingHighlightChanges.clear();
+  const batch = db.batch();
+  for (const [chapterId, changes] of inFlight) {
+    const verses = {};
+    for (const [verse, color] of Object.entries(changes)) {
+      verses[verse] = color || firebase.firestore.FieldValue.delete();
+    }
+    batch.set(getUserDocRef().collection("highlights").doc(String(chapterId)), { verses }, { merge: true });
+  }
+
+  try {
+    await batch.commit();
+  } catch {
+    // Put the changes back (newer taps made meanwhile win) and try again on
+    // the next trigger instead of dropping the user's highlights.
+    for (const [chapterId, changes] of inFlight) {
+      const pending = pendingHighlightChanges.get(chapterId) || {};
+      pendingHighlightChanges.set(chapterId, { ...changes, ...pending });
+    }
   }
 }
 
@@ -2596,10 +2712,12 @@ async function handleProfileSave(event) {
 
 async function logout() {
   if (state.firebaseUser) {
+    await flushHighlights();
     await auth.signOut();
     return;
   }
   if (state.isGuest) {
+    resetHighlights();
     state.isGuest = false;
     state.user = getSignedOutUser();
     state.progress = createProgress();
@@ -2771,6 +2889,15 @@ elements.readingText.addEventListener("click", (event) => {
 });
 
 elements.verseCopyBtn.addEventListener("click", copySelectedVerse);
+elements.hlPalette.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-hl-color]");
+  if (!button) return;
+  const color = button.dataset.hlColor;
+  applyHighlightToSelection(color === "erase" ? null : color);
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushHighlights();
+});
 
 elements.quizBackBtn.addEventListener("click", () => {
   state.quizStep = "reading";
@@ -2894,6 +3021,7 @@ elements.googleLoginBtn.addEventListener("click", async () => {
 elements.guestLoginBtn.addEventListener("click", () => {
   if (state.isAuthenticated) return;
   setAuthBanner("");
+  resetHighlights();
   state.isGuest = true;
   state.user = getSignedOutUser();
   state.progress = createProgress();
@@ -2997,6 +3125,7 @@ async function handleAuthStateChange(firebaseUser) {
       // time this fires (it can arrive late — Firebase resolves the persisted
       // session asynchronously). Don't stomp on progress they've made since.
       if (!state.isGuest) {
+        resetHighlights();
         state.user = getSignedOutUser();
         state.progress = createProgress();
         state.leaderboard = [];
@@ -3016,6 +3145,7 @@ async function handleAuthStateChange(firebaseUser) {
     state.isAuthenticated = true;
     state.firebaseUser = firebaseUser;
     state.isGuest = false;
+    resetHighlights();
     const { user, progress } = await loadUserProfile(firebaseUser);
     syncUser(user, progress);
     await saveProgress();
