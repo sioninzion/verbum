@@ -3893,13 +3893,13 @@ body {
    shrinks and the label slides down out from under it. */
 .mobile-tabbar {
   /* Fallback for engines without linear(); replaced by a damped spring
-     (about 30 percent first overshoot, settles inside 300ms) below. */
+     (about 20 percent first overshoot, settles inside 300ms) below. */
   --fab-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @supports (transition-timing-function: linear(0, 1)) {
   .mobile-tabbar {
-    --fab-spring: linear(0, 0.15, 0.487, 0.853, 1.136, 1.284, 1.303, 1.23, 1.118, 1.011, 0.937, 0.906, 0.912, 0.94, 0.976, 1.006, 1.024, 1.03, 1.025, 1.015, 1.004, 0.996, 0.991, 0.991, 0.993, 0.997, 1, 1.002, 1.003, 1.003, 1.002, 1.001, 1);
+    --fab-spring: linear(0, 0.144, 0.453, 0.776, 1.023, 1.159, 1.196, 1.166, 1.105, 1.042, 0.994, 0.968, 0.961, 0.968, 0.98, 0.992, 1.001, 1.006, 1.008, 1.006, 1.004, 1.001, 1, 0.999, 0.999, 0.999, 0.999, 1, 1, 1, 1, 1, 1);
   }
 }
 
