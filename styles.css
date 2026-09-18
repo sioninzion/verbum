@@ -3887,6 +3887,22 @@ body {
   white-space: nowrap;
 }
 
+/* The 성경 fab: the button itself only scales/lifts; the dark disc is its
+   ::before (z-index 1) so the "성경" label can sit BEHIND it. Unselected =
+   big disc with the label tucked out of sight behind it; selected = disc
+   shrinks and the label slides down out from under it. */
+.mobile-tabbar {
+  /* Fallback for engines without linear(); replaced by a damped spring
+     (about 30 percent first overshoot, settles inside 350ms) below. */
+  --fab-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  .mobile-tabbar {
+    --fab-spring: linear(0, 1);
+  }
+}
+
 .mobile-tabbar button.tabbar-fab {
   transform: translateY(-12px) scale(1.2);
   width: 50px;
@@ -3894,33 +3910,22 @@ body {
   min-height: 50px;
   margin: 0 auto;
   border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 12px 22px rgba(33, 28, 22, 0.32);
+  background: transparent;
+  box-shadow: none;
   color: #ffffff;
   transition:
-    transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 180ms ease,
-    background-color 180ms ease,
+    transform 350ms var(--fab-spring),
     color 180ms ease;
 }
 
-/* Damped-spring curve (about 30 percent first overshoot, settles inside the
-   350ms) for engines with linear() easing; the cubic-bezier above is the
-   fallback. */
-@supports (transition-timing-function: linear(0, 1)) {
-  .mobile-tabbar button.tabbar-fab {
-    transition:
-      transform 350ms linear(0, 0.15, 0.487, 0.853, 1.136, 1.284, 1.303, 1.23, 1.118, 1.011, 0.937, 0.906, 0.912, 0.94, 0.976, 1.006, 1.024, 1.03, 1.025, 1.015, 1.004, 0.996, 0.991, 0.991, 0.993, 0.997, 1, 1.002, 1.003, 1.003, 1.002, 1.001, 1),
-      box-shadow 180ms ease,
-      background-color 180ms ease,
-      color 180ms ease;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mobile-tabbar button.tabbar-fab {
-    transition-duration: 0.01ms;
-  }
+.mobile-tabbar button.tabbar-fab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 12px 22px rgba(33, 28, 22, 0.32);
 }
 
 .mobile-tabbar button.tabbar-fab:active {
@@ -3929,9 +3934,9 @@ body {
 
 .mobile-tabbar button.tabbar-fab.active {
   transform: translateY(-12px) scale(1);
-  background: var(--ink);
+  background: transparent;
   color: #ffffff;
-  box-shadow: 0 12px 22px rgba(33, 28, 22, 0.32);
+  box-shadow: none;
 }
 
 .mobile-tabbar button.tabbar-fab.active:active {
@@ -3943,11 +3948,42 @@ body {
   height: 26px;
 }
 
+.mobile-tabbar button.tabbar-fab .tabbar-fab-icon {
+  position: relative;
+  z-index: 2;
+}
+
+/* Label stays at its small (selected-state) size the whole time: while the
+   button is scaled up 1.2x it is counter-scaled by 1/1.2, on the same spring
+   curve so the two cancel out mid-animation too. */
 .mobile-tabbar button.tabbar-fab span:not(.tabbar-fab-icon) {
   position: absolute;
+  z-index: 0;
   bottom: -18px;
   font-size: 11px;
   color: var(--muted);
+  translate: 0 -34px;
+  scale: 0.8333;
+  transition:
+    translate 200ms ease-in,
+    scale 350ms var(--fab-spring);
+}
+
+.mobile-tabbar button.tabbar-fab.active span:not(.tabbar-fab-icon) {
+  translate: 0 0;
+  scale: 1;
+  transition:
+    translate 350ms cubic-bezier(0.22, 1, 0.36, 1) 60ms,
+    scale 350ms var(--fab-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-tabbar button.tabbar-fab,
+  .mobile-tabbar button.tabbar-fab span:not(.tabbar-fab-icon),
+  .mobile-tabbar button.tabbar-fab.active span:not(.tabbar-fab-icon) {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
 }
 
 @media (max-width: 520px) {
@@ -4047,9 +4083,11 @@ body {
 :root[data-theme="dark"] .start-quiz-btn,
 :root[data-theme="dark"] .reading-bold-toggle[aria-pressed="true"],
 :root[data-theme="dark"] .testament-toggle-thumb,
-:root[data-theme="dark"] .reading-size-stepper button:active,
-:root[data-theme="dark"] .mobile-tabbar button.tabbar-fab,
-:root[data-theme="dark"] .mobile-tabbar button.tabbar-fab.active {
+:root[data-theme="dark"] .reading-size-stepper button:active {
+  background: #2b2820;
+}
+
+:root[data-theme="dark"] .mobile-tabbar button.tabbar-fab::before {
   background: #2b2820;
 }
 
