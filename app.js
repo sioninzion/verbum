@@ -25,7 +25,17 @@ function localDateStr(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-const TODAY = localDateStr();
+let TODAY = localDateStr();
+
+// An installed PWA can stay open for days, so TODAY has to follow the real
+// date. A frozen TODAY files reads made after midnight under yesterday, which
+// leaves the new day empty and shortens the streak. Returns true on rollover.
+function refreshToday() {
+  const now = localDateStr();
+  if (now === TODAY) return false;
+  TODAY = now;
+  return true;
+}
 const OPTION_MARKS = ["①", "②", "③", "④"];
 const DEFAULT_TITLE = "성경 통독자";
 
@@ -840,6 +850,11 @@ function getWeeklyChapterCount(progress, boundary = getCurrentWeekBoundary()) {
   }).length;
 }
 
+function refreshDateViews() {
+  updateHome();
+  updateOverview();
+}
+
 function updateLeaderboardCountdown() {
   const now = new Date();
   const nextReset = getCurrentWeekBoundary(now);
@@ -1041,15 +1056,13 @@ async function handleMomentVerseToggleChange() {
   }
 }
 
-function buildProfilePayload() {
+function buildProfilePayload({ withTitle = false } = {}) {
   const done = getCompletedCount(DATA.chapters);
-  return {
+  const payload = {
     uid: state.firebaseUser.uid,
     email: state.firebaseUser.email,
     name: state.user.name,
     nickname: state.user.nickname,
-    title: state.user.title,
-    titleAchievementId: state.user.titleAchievementId || null,
     share: Boolean(state.user.share),
     hasSeenTutorial: Boolean(state.user.hasSeenTutorial),
     notificationSettings: normalizeNotificationSettings(state.user.notificationSettings),
@@ -1060,12 +1073,22 @@ function buildProfilePayload() {
     lastActive: TODAY,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
+  // The chosen title is only written when the user actually edits it. Routine
+  // saves (quiz, reading, settings) come from whatever this device last
+  // loaded, so writing it every time let a stale device revert a title that
+  // was changed elsewhere.
+  if (withTitle) {
+    payload.title = state.user.title;
+    payload.titleAchievementId = state.user.titleAchievementId || null;
+  }
+  return payload;
 }
 
-async function saveProgress() {
+async function saveProgress({ withTitle = false } = {}) {
   if (!state.isAuthenticated || !state.firebaseUser) return;
+  refreshToday();
   state.progress.lastActive = TODAY;
-  await getUserDocRef().set(buildProfilePayload(), { merge: true });
+  await getUserDocRef().set(buildProfilePayload({ withTitle }), { merge: true });
 }
 
 async function loadUserProfile(firebaseUser) {
@@ -2459,6 +2482,7 @@ async function selectChapter(chapterId) {
 }
 
 async function answerQuiz(selected) {
+  refreshToday();
   const chapter = getCurrentChapter();
   const correct = selected === chapter.answer;
   state.progress.attempts[chapter.id] = {
@@ -2701,7 +2725,7 @@ async function handleProfileSave(event) {
   state.user.title = computeDisplayTitle(state.user.titleAchievementId);
 
   try {
-    await saveProgress();
+    await saveProgress({ withTitle: true });
     await refreshLeaderboard();
     elements.profileMessage.textContent = "내 정보가 저장되었습니다.";
     render();
@@ -2897,6 +2921,7 @@ elements.hlPalette.addEventListener("click", (event) => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") flushHighlights();
+  else if (refreshToday()) refreshDateViews();
 });
 
 elements.quizBackBtn.addEventListener("click", () => {
@@ -3181,7 +3206,10 @@ setTimeout(() => {
 }, 2000);
 
 updateLeaderboardCountdown();
-setInterval(updateLeaderboardCountdown, 1000);
+setInterval(() => {
+  updateLeaderboardCountdown();
+  if (refreshToday()) refreshDateViews();
+}, 1000);
 
 // ── "Add to home screen" install banner (login screen + home screen) ─────
 
