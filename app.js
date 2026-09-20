@@ -3206,10 +3206,20 @@ setTimeout(() => {
 }, 2000);
 
 updateLeaderboardCountdown();
-setInterval(() => {
-  updateLeaderboardCountdown();
-  if (refreshToday()) refreshDateViews();
-}, 1000);
+setInterval(updateLeaderboardCountdown, 1000);
+
+// One timer aimed at the next local midnight instead of polling the date. If
+// the device slept through it, the visibilitychange handler and the checks
+// before each save/answer catch the rollover instead.
+function scheduleMidnightRefresh() {
+  const next = new Date();
+  next.setHours(24, 0, 1, 0);
+  setTimeout(() => {
+    if (refreshToday()) refreshDateViews();
+    scheduleMidnightRefresh();
+  }, next - Date.now());
+}
+scheduleMidnightRefresh();
 
 // ── "Add to home screen" install banner (login screen + home screen) ─────
 
