@@ -352,6 +352,7 @@ const state = {
   selectedChapterId: DATA.chapters[0].id,
   isAuthenticated: false,
   isGuest: false,
+  profileLoaded: false, // true only once the account's real progress has been read from the server
   firebaseUser: null,
   creatingAccount: false,
   user: getSignedOutUser(),
@@ -1091,19 +1092,156 @@ function buildProfilePayload({ withTitle = false } = {}) {
   return payload;
 }
 
-async function saveProgress({ withTitle = false } = {}) {
-  if (!state.isAuthenticated || !state.firebaseUser) return;
+// --- Saving progress without clobbering other devices ----------------------
+// Writing `progress: state.progress` replaced the whole map with whatever this
+// device had in memory, so a stale device (or one that never managed to load
+// the account) erased newer reads and streak days. Saves now send only what
+// THIS device changed since it last loaded/saved (progressBase):
+//   - chapter/attempt/achievement entries: only the added or changed keys
+//   - readDates: arrayUnion of new dates
+//   - counters: increment by this device's delta
+//   - a map this device emptied (finished a read-through / reset): replaced whole
+// so untouched data on the server is never overwritten.
+const PROGRESS_COUNTER_KEYS = ["totalChaptersRead", "earlyMorningCount", "midnightCount", "cycles"];
+const PROGRESS_KEYED_MAPS = ["completed", "attempts", "unlockedAchievements"];
+let progressBase = null; // deep copy of progress as last loaded from / written to the server
+
+function cloneProgress(progress) {
+  return JSON.parse(JSON.stringify(progress));
+}
+
+function sameValue(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function diffProgress(current, base) {
+  const FieldValue = firebase.firestore.FieldValue;
+  const merge = {};
+  const replace = {};
+
+  for (const key of PROGRESS_KEYED_MAPS) {
+    const cur = current[key] || {};
+    const prev = base[key] || {};
+    if (Object.keys(prev).some((id) => !(id in cur))) {
+      replace[`progress.${key}`] = cur;
+      continue;
+    }
+    const changed = {};
+    for (const [id, entry] of Object.entries(cur)) {
+      if (entry !== undefined && !sameValue(entry, prev[id])) changed[id] = entry;
+    }
+    if (Object.keys(changed).length) merge[key] = changed;
+  }
+
+  const addedDates = (current.readDates || []).filter((date) => !(base.readDates || []).includes(date));
+  if (addedDates.length) merge.readDates = FieldValue.arrayUnion(...addedDates);
+
+  for (const key of PROGRESS_COUNTER_KEYS) {
+    const delta = (current[key] || 0) - (base[key] || 0);
+    if (delta) merge[key] = FieldValue.increment(delta);
+  }
+
+  const handled = new Set([...PROGRESS_KEYED_MAPS, "readDates", ...PROGRESS_COUNTER_KEYS]);
+  for (const [key, value] of Object.entries(current)) {
+    if (!handled.has(key) && value !== undefined && !sameValue(value, base[key])) merge[key] = value;
+  }
+  return { merge, replace };
+}
+
+// Saves run one at a time: each one diffs against what the previous one
+// already sent, so overlapping saves can't double-apply an increment.
+let saveQueue = Promise.resolve();
+
+function saveProgress(options) {
+  const run = () => writeProgress(options);
+  const result = saveQueue.then(run, run);
+  saveQueue = result.catch(() => {});
+  return result;
+}
+
+async function writeProgress({ withTitle = false } = {}) {
+  // Never write before the account's real data has been read: an unloaded
+  // (failed-to-load) session holds an empty progress that would wipe it.
+  if (!state.isAuthenticated || !state.firebaseUser || !state.profileLoaded || !progressBase) return;
   refreshToday();
   state.progress.lastActive = TODAY;
-  await getUserDocRef().set(buildProfilePayload({ withTitle }), { merge: true });
+
+  const { merge, replace } = diffProgress(state.progress, progressBase);
+  const payload = buildProfilePayload({ withTitle });
+  payload.progress = merge;
+  const sent = cloneProgress(state.progress);
+
+  const ref = getUserDocRef();
+  const batch = db.batch();
+  batch.set(ref, payload, { merge: true });
+  if (Object.keys(replace).length) batch.update(ref, replace);
+  await batch.commit();
+  progressBase = sent;
 }
+
+// --- Loading the account, and what to do when that fails ------------------
+let profileRetryTimer = null;
+
+function setSyncNotice(visible) {
+  let notice = document.querySelector("#syncNotice");
+  if (!notice && visible) {
+    notice = document.createElement("div");
+    notice.id = "syncNotice";
+    notice.className = "sync-notice";
+    notice.setAttribute("role", "status");
+    notice.textContent = "내 기록을 서버에서 불러오지 못했어요. 연결되면 자동으로 다시 시도하고, 그동안은 기록이 저장되지 않아요.";
+    document.body.append(notice);
+  }
+  if (notice) notice.hidden = !visible;
+}
+
+// Takes what loadUserProfile() returned and either adopts it as the account's
+// real state or, if the read failed, keeps the app usable but write-locked.
+function adoptLoadedProfile(loaded) {
+  const base = loaded.loadFailed ? null : loaded.unsaved ? {} : cloneProgress(loaded.progress);
+  syncUser(loaded.user, loaded.progress);
+  clearTimeout(profileRetryTimer);
+  profileRetryTimer = null;
+  if (loaded.loadFailed) {
+    state.profileLoaded = false;
+    progressBase = null;
+    setSyncNotice(true);
+    profileRetryTimer = setTimeout(retryProfileLoad, 15000);
+  } else {
+    state.profileLoaded = true;
+    progressBase = base;
+    setSyncNotice(false);
+  }
+}
+
+async function retryProfileLoad() {
+  clearTimeout(profileRetryTimer);
+  profileRetryTimer = null;
+  const firebaseUser = state.firebaseUser;
+  if (!state.isAuthenticated || !firebaseUser || state.profileLoaded) return;
+
+  const loaded = await loadUserProfile(firebaseUser);
+  if (state.firebaseUser !== firebaseUser || state.profileLoaded) return;
+  adoptLoadedProfile(loaded);
+  if (!state.profileLoaded) return;
+  await saveProgress();
+  await refreshLeaderboard().catch(() => {});
+  render();
+}
+
+window.addEventListener("online", () => {
+  if (state.isAuthenticated && !state.profileLoaded) retryProfileLoad();
+});
 
 async function loadUserProfile(firebaseUser) {
   let snapshot;
   try {
     snapshot = await getUserDocRef(firebaseUser.uid).get();
   } catch {
+    // Couldn't read the account — this stand-in is display-only. loadFailed
+    // keeps handleAuthStateChange from ever saving it over the real data.
     return {
+      loadFailed: true,
       user: {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -1150,6 +1288,7 @@ async function loadUserProfile(firebaseUser) {
     notificationSettings: normalizeNotificationSettings(),
   };
   const progress = loadLegacyProgress();
+  let unsaved = false;
   try {
     await getUserDocRef(firebaseUser.uid).set({
       ...user,
@@ -1164,8 +1303,9 @@ async function loadUserProfile(firebaseUser) {
     });
   } catch {
     // Keep Auth login usable even when Firestore rules are not deployed yet.
+    unsaved = true;
   }
-  return { user, progress };
+  return { user, progress, unsaved };
 }
 
 function syncUser(user, progress) {
@@ -1197,7 +1337,7 @@ async function refreshLeaderboard() {
     .map((item) => {
       const data = item.data();
       const progress = { ...createProgress(), ...(data.progress || {}) };
-      const done = data.completedCount ?? getCompletedCount(DATA.chapters, progress);
+      const done = getCompletedCount(DATA.chapters, progress);
       // Completing a read-through resets `completed` (and so `done`) back to 0
       // for the next cycle, so the leaderboard percent has to fold in cycles
       // already finished — otherwise it would cap at 100% forever instead of
@@ -2494,6 +2634,10 @@ async function selectChapter(chapterId) {
 }
 
 async function answerQuiz(selected) {
+  if (state.isAuthenticated && !state.profileLoaded) {
+    elements.feedback.textContent = "내 기록을 불러오지 못해 지금은 정답을 저장할 수 없어요. 연결을 확인한 뒤 다시 시도해 주세요.";
+    return;
+  }
   refreshToday();
   const chapter = getCurrentChapter();
   const correct = selected === chapter.answer;
@@ -2664,11 +2808,15 @@ async function handleSignup(event) {
     lastActive: TODAY,
   };
 
+  let signupDocWritten = true;
   try {
     await getUserDocRef(credential.user.uid).set(profilePayload);
   } catch {
+    signupDocWritten = false;
     signupNotice = "계정은 만들어졌습니다. 다만 Firestore 프로필 저장은 규칙 배포 후 다시 동기화됩니다.";
   }
+  state.profileLoaded = true;
+  progressBase = signupDocWritten ? cloneProgress(progress) : {};
 
   elements.gateSignupForm.reset();
   setSubmitLoading(elements.signupSubmitBtn, false);
@@ -2719,6 +2867,8 @@ async function createSocialUser(firebaseUser, name) {
 
   state.isAuthenticated = true;
   state.firebaseUser = firebaseUser;
+  state.profileLoaded = true;
+  progressBase = cloneProgress(progress);
   syncUser(user, progress);
   await refreshLeaderboard().catch(() => {});
   setView("home");
@@ -2729,6 +2879,10 @@ async function createSocialUser(firebaseUser, name) {
 async function handleProfileSave(event) {
   event.preventDefault();
   if (!state.isAuthenticated) return;
+  if (!state.profileLoaded) {
+    elements.profileMessage.textContent = "내 기록을 불러오지 못해 지금은 저장할 수 없어요. 연결을 확인한 뒤 다시 시도해 주세요.";
+    return;
+  }
 
   state.progress.dailyTarget = Math.max(1, Number(elements.profileDailyTarget.value) || 3);
   state.user.nickname = elements.profileNickname.value.trim() || state.user.nickname;
@@ -2765,6 +2919,10 @@ async function logout() {
 }
 
 async function resetProgress() {
+  if (state.isAuthenticated && !state.profileLoaded) {
+    window.alert("내 기록을 불러오지 못해 지금은 초기화할 수 없어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+    return;
+  }
   const ok = window.confirm(
     "현재 계정의 통독 진행도를 초기화할까요? (이미 획득한 칭호와 완독 횟수는 유지됩니다)"
   );
@@ -3161,6 +3319,11 @@ async function handleAuthStateChange(firebaseUser) {
       // A guest session already set up its own signed-out-shaped state by the
       // time this fires (it can arrive late — Firebase resolves the persisted
       // session asynchronously). Don't stomp on progress they've made since.
+      state.profileLoaded = false;
+      progressBase = null;
+      clearTimeout(profileRetryTimer);
+      profileRetryTimer = null;
+      setSyncNotice(false);
       if (!state.isGuest) {
         resetHighlights();
         state.user = getSignedOutUser();
@@ -3182,11 +3345,12 @@ async function handleAuthStateChange(firebaseUser) {
     state.isAuthenticated = true;
     state.firebaseUser = firebaseUser;
     state.isGuest = false;
+    state.profileLoaded = false;
+    progressBase = null;
     resetHighlights();
-    const { user, progress } = await loadUserProfile(firebaseUser);
-    syncUser(user, progress);
+    adoptLoadedProfile(await loadUserProfile(firebaseUser));
     await saveProgress();
-    await refreshLeaderboard();
+    await refreshLeaderboard().catch(() => {});
     setView("home");
     render();
     if (!state.user.hasSeenTutorial) {
