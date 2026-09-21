@@ -874,7 +874,14 @@ function updateLeaderboardCountdown() {
 }
 
 function calculateStreak(progress = state.progress) {
-  const days = new Set(Object.values(progress.completed || {}).map((entry) => entry.date));
+  // readDates is the permanent log of every day something was read. `completed`
+  // alone can't be trusted for this: re-answering a chapter overwrites its date,
+  // and finishing a full read-through empties it, either of which would erase
+  // past days and shorten the streak.
+  const days = new Set([
+    ...(progress.readDates || []),
+    ...Object.values(progress.completed || {}).map((entry) => entry?.date),
+  ]);
   const cursor = new Date(`${TODAY}T00:00:00`);
 
   // Not read yet today doesn't mean the streak is broken — the day isn't
@@ -1204,7 +1211,9 @@ async function refreshLeaderboard() {
         weeklyCount: getWeeklyChapterCount(progress, weekBoundary),
         totalPercent: percent(cycles * DATA.chapters.length + done, DATA.chapters.length),
         today: getTodayCompleted(progress),
-        streak: data.streakDays ?? calculateStreak(progress),
+        // Recomputed for today rather than read from data.streakDays, which is
+        // frozen at that user's last save and never decays while they're away.
+        streak: calculateStreak(progress),
         target: data.dailyTarget || progress.dailyTarget || 3,
       };
     })
@@ -1697,11 +1706,12 @@ function renderLeaderboard() {
       const rankClass = rank <= 3 ? ` rank-${rank}` : "";
       const item = document.createElement("article");
       item.className = `leader-row${row.uid === state.firebaseUser?.uid ? " mine" : ""}${rankClass}`;
+      // name/title are user-chosen, so they go in as text, never as HTML.
       item.innerHTML = `
         <div class="rank">${index + 1}</div>
         <div>
-          <strong>${row.name}</strong>
-          <span>${row.title}</span>
+          <strong></strong>
+          <span></span>
         </div>
         <div class="leader-stats">
           <span>이번 주 ${row.weeklyCount}장</span>
@@ -1709,6 +1719,8 @@ function renderLeaderboard() {
           <span>${row.streak}일 연속</span>
         </div>
       `;
+      item.querySelector("strong").textContent = row.name;
+      item.querySelector("div > span").textContent = row.title;
       return item;
     })
   );
