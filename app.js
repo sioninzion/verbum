@@ -1112,17 +1112,17 @@ function buildProfilePayload({ withTitle = false } = {}) {
 //   - chapter/attempt/achievement entries: only the added or changed keys
 //   - readDates: arrayUnion of new dates
 //   - counters: increment by this device's delta
-//   - a map this device emptied (finished a read-through / reset): replaced whole
-// so untouched data on the server is never overwritten.
+//   - an entry THIS device removed (undo, a finished read-through, or an
+//     explicit reset): deleted by its own id, never a whole-map replace
+// so untouched data — including anything a different device added since this
+// one last synced — is never overwritten.
 const PROGRESS_COUNTER_KEYS = ["totalChaptersRead", "earlyMorningCount", "midnightCount", "cycles"];
 const PROGRESS_KEYED_MAPS = ["completed", "attempts", "unlockedAchievements"];
 // Achievements have no "revoke" feature anywhere in the app, so this map
 // should never legitimately shrink — unlike completed/attempts (which really
-// do get wiped wholesale on a finished read-through or an explicit reset).
-// Letting it take the same "fewer keys than base ⇒ this device emptied it"
-// inference risked a stale/racing tab reading it as an intentional wipe and
-// replacing it outright, erasing achievements another tab or device had
-// since added. Merge-only means the worst a stale tab can do is a no-op.
+// do lose entries: undo, a finished read-through, an explicit reset). Never
+// even considering it for removal means a stale/racing tab can't misread a
+// merge gap as a deletion and erase achievements another tab has since added.
 const NEVER_SHRINKS_KEYS = new Set(["unlockedAchievements"]);
 let progressBase = null; // deep copy of progress as last loaded from / written to the server
 
@@ -1137,14 +1137,18 @@ function sameValue(a, b) {
 function diffProgress(current, base) {
   const FieldValue = firebase.firestore.FieldValue;
   const merge = {};
-  const replace = {};
+  const deletes = {};
 
   for (const key of PROGRESS_KEYED_MAPS) {
     const cur = current[key] || {};
     const prev = base[key] || {};
-    if (!NEVER_SHRINKS_KEYS.has(key) && Object.keys(prev).some((id) => !(id in cur))) {
-      replace[`progress.${key}`] = cur;
-      continue;
+    // Delete exactly the ids THIS device knows it removed, one field path
+    // each — never the whole map — so an id neither side mentions (added by
+    // another device in the meantime) is left alone either way.
+    if (!NEVER_SHRINKS_KEYS.has(key)) {
+      for (const id of Object.keys(prev)) {
+        if (!(id in cur)) deletes[`progress.${key}.${id}`] = FieldValue.delete();
+      }
     }
     const changed = {};
     for (const [id, entry] of Object.entries(cur)) {
@@ -1165,7 +1169,7 @@ function diffProgress(current, base) {
   for (const [key, value] of Object.entries(current)) {
     if (!handled.has(key) && value !== undefined && !sameValue(value, base[key])) merge[key] = value;
   }
-  return { merge, replace };
+  return { merge, deletes };
 }
 
 // Saves run one at a time: each one diffs against what the previous one
@@ -1186,7 +1190,7 @@ async function writeProgress({ withTitle = false } = {}) {
   refreshToday();
   state.progress.lastActive = TODAY;
 
-  const { merge, replace } = diffProgress(state.progress, progressBase);
+  const { merge, deletes } = diffProgress(state.progress, progressBase);
   const payload = buildProfilePayload({ withTitle });
   // Firestore's set(..., {merge:true}) treats a field whose value is an empty
   // object as "set this field to {}", not "nothing to merge here" — so on a
@@ -1200,7 +1204,7 @@ async function writeProgress({ withTitle = false } = {}) {
   const ref = getUserDocRef();
   const batch = db.batch();
   batch.set(ref, payload, { merge: true });
-  if (Object.keys(replace).length) batch.update(ref, replace);
+  if (Object.keys(deletes).length) batch.update(ref, deletes);
   await batch.commit();
   progressBase = sent;
 }
