@@ -1704,6 +1704,29 @@ h3 {
   }
 }
 
+/* Same floating position as .verse-copy-bar, but just the one button with no
+   padded/bordered shell around it — that shell only earns its keep when it's
+   framing a whole toolbar (copy button + highlight palette). */
+.text-search-jump-bar {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(max(2px, env(safe-area-inset-bottom)) + 77px);
+  transform: translateX(-50%);
+  z-index: 60;
+}
+
+.text-search-jump-bar.is-visible {
+  display: flex;
+  animation: verseCopyBarIn 220ms ease;
+}
+
+@media (max-width: 520px) {
+  .text-search-jump-bar {
+    position: fixed;
+  }
+}
+
 .hl-palette {
   display: flex;
   align-items: center;
