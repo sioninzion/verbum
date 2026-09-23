@@ -365,6 +365,7 @@ const state = {
   bookSearchQuery: "",
   bookTestamentFilter: "old",
   textSearchOpenBook: null, // book name currently drilled into for 본문검색 results, or null while browsing the match list
+  textSearchSelectedVerse: null, // { chapter, verse } tapped in 본문검색 results, showing the 바로가기 jump bar
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
   verseSelection: null, // Set<number> of selected verse numbers (tap-to-select-and-copy in the reading panel), or null when empty
   biblePaneCollapsed: false,
@@ -467,6 +468,8 @@ const elements = {
   textSearchResultsTitle: document.querySelector("#textSearchResultsTitle"),
   textSearchResultsBody: document.querySelector("#textSearchResultsBody"),
   textSearchBackBtn: document.querySelector("#textSearchBackBtn"),
+  textSearchJumpBar: document.querySelector("#textSearchJumpBar"),
+  textSearchJumpBtn: document.querySelector("#textSearchJumpBtn"),
   librarySubtitle: document.querySelector("#librarySubtitle"),
   biblePaneToggle: document.querySelector("#biblePaneToggle"),
   librarySectionLabel: document.querySelector("#librarySectionLabel"),
@@ -2264,6 +2267,7 @@ function renderTextSearch() {
 
   if (!isSearching) {
     state.textSearchOpenBook = null;
+    state.textSearchSelectedVerse = null;
     elements.librarySearchArea.hidden = false;
     elements.textSearchSection.hidden = true;
     elements.textSearchResults.hidden = true;
@@ -2305,6 +2309,7 @@ function renderTextSearch() {
           btn.textContent = book.name;
           btn.addEventListener("click", () => {
             state.textSearchOpenBook = book.name;
+            state.textSearchSelectedVerse = null;
             renderTextSearch();
           });
           return btn;
@@ -2352,6 +2357,8 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
           run.forEach((verse) => {
             const line = document.createElement("p");
             line.className = "reading-verse";
+            line.dataset.chapter = String(chapterNum);
+            line.dataset.verse = String(verse.v);
             const num = document.createElement("span");
             num.className = "v-num";
             num.textContent = verse.v;
@@ -2374,6 +2381,7 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
       });
 
       elements.textSearchResultsBody.replaceChildren(...nodes);
+      applyTextSearchVerseSelection();
     })
     .catch(() => {
       if (state.textSearchOpenBook !== bookName) return;
@@ -2382,6 +2390,62 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
       failed.textContent = "본문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
       elements.textSearchResultsBody.replaceChildren(failed);
     });
+}
+
+function applyTextSearchVerseSelection() {
+  const sel = state.textSearchSelectedVerse;
+  elements.textSearchResultsBody
+    .querySelectorAll(".reading-verse.verse-selected")
+    .forEach((el) => el.classList.remove("verse-selected"));
+
+  if (!sel) {
+    elements.textSearchJumpBar.classList.remove("is-visible");
+    return;
+  }
+
+  const line = elements.textSearchResultsBody.querySelector(
+    `.reading-verse[data-chapter="${sel.chapter}"][data-verse="${sel.verse}"]`
+  );
+  if (line) {
+    line.classList.add("verse-selected");
+    elements.textSearchJumpBar.classList.add("is-visible");
+  } else {
+    elements.textSearchJumpBar.classList.remove("is-visible");
+  }
+}
+
+// Tapping a verse in 본문검색 results only ever targets one jump destination
+// (unlike the reading panel's multi-select-for-copy), so a second tap on the
+// same verse just deselects it instead of toggling a set.
+function selectTextSearchVerse(line) {
+  const chapter = Number(line.dataset.chapter);
+  const verse = Number(line.dataset.verse);
+  const current = state.textSearchSelectedVerse;
+  state.textSearchSelectedVerse =
+    current && current.chapter === chapter && current.verse === verse ? null : { chapter, verse };
+  applyTextSearchVerseSelection();
+}
+
+// Same "load the chapter, scroll to the verse, flash it" pattern as
+// openPendingMomentVerseLink's notification-link jump.
+async function jumpToTextSearchVerse() {
+  const sel = state.textSearchSelectedVerse;
+  const bookName = state.textSearchOpenBook;
+  if (!sel || !bookName) return;
+  const chapter = chaptersByBook[bookName]?.find((item) => item.chapter === sel.chapter);
+  if (!chapter) return;
+
+  await selectChapter(chapter.id);
+  await renderReading();
+
+  const verseEl = Array.from(elements.readingText.querySelectorAll(".reading-verse")).find(
+    (line) => line.querySelector(".v-num")?.textContent === String(sel.verse)
+  );
+  if (verseEl) {
+    verseEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    verseEl.classList.add("verse-highlight");
+    setTimeout(() => verseEl.classList.remove("verse-highlight"), 4000);
+  }
 }
 
 function saveReadingPrefs() {
@@ -3208,14 +3272,24 @@ elements.jumpButtons.forEach((button) => {
 elements.bookSearchInput.addEventListener("input", (event) => {
   state.bookSearchQuery = event.target.value;
   state.textSearchOpenBook = null;
+  state.textSearchSelectedVerse = null;
   renderBookGrid();
   renderTextSearch();
 });
 
 elements.textSearchBackBtn.addEventListener("click", () => {
   state.textSearchOpenBook = null;
+  state.textSearchSelectedVerse = null;
   renderTextSearch();
 });
+
+elements.textSearchResultsBody.addEventListener("click", (event) => {
+  const line = event.target.closest(".reading-verse");
+  if (!line) return;
+  selectTextSearchVerse(line);
+});
+
+elements.textSearchJumpBtn.addEventListener("click", jumpToTextSearchVerse);
 
 elements.testamentToggleButtons.forEach((button) => {
   button.addEventListener("click", () => {
