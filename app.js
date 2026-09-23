@@ -1198,6 +1198,11 @@ async function writeProgress({ withTitle = false } = {}) {
   // opening the app, or already holding every achievement you qualify for),
   // sending `progress: {}` wiped the entire map on the server. Omit the key
   // entirely instead, so an empty diff truly touches nothing.
+  // buildProfilePayload() pre-fills `progress` with this device's WHOLE
+  // in-memory state, so the key has to be dropped explicitly — otherwise an
+  // empty diff still writes that full state, and a device holding an empty or
+  // stale copy zeroes the real account.
+  delete payload.progress;
   if (Object.keys(merge).length) payload.progress = merge;
   const sent = cloneProgress(state.progress);
 
