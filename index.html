@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260921-1" />
+    <link rel="stylesheet" href="styles.css?v=20260924-3" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -361,6 +361,7 @@
               <h2>성경</h2>
               <p class="library-subtitle" id="librarySubtitle">66권 · 1,189장</p>
             </div>
+            <button class="mini-button register-open-btn" id="registerOpenBtn" type="button">등록하기</button>
           </div>
 
           <div class="book-search-row">
@@ -426,6 +427,7 @@
           <div class="legend">
             <span><i class="dot gray"></i>퀴즈 전</span>
             <span><i class="dot green"></i>완료</span>
+            <span><i class="dot yellow"></i>등록(퀴즈 전)</span>
             <span><i class="dot blue"></i>현재</span>
           </div>
 
@@ -670,6 +672,38 @@
       </div>
     </div>
 
+    <div class="calendar-modal-overlay" id="registerModal" hidden>
+      <div class="calendar-modal-card register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+        <div class="register-head">
+          <button class="back-button back-button-plain" id="registerBackBtn" type="button" aria-label="이전 단계" hidden><img src="icon-assets/glyphs/chevron-left.png" alt="" aria-hidden="true" /></button>
+          <div>
+            <h2 id="registerTitle">어떤 책을 읽으셨나요?</h2>
+            <p class="register-hint" id="registerHint">종이 성경이나 다른 앱에서 읽은 책을 골라 주세요.</p>
+          </div>
+        </div>
+
+        <div class="register-book-list" id="registerBookList"></div>
+
+        <div class="register-chapter-step" id="registerChapterStep" hidden>
+          <p class="register-legend">
+            <span><i class="dot green"></i>퀴즈 완료</span>
+            <span><i class="dot yellow"></i>등록·선택</span>
+          </p>
+          <div class="chapter-grid register-chapter-grid" id="registerChapterGrid"></div>
+        </div>
+
+        <div class="register-confirm" id="registerConfirm" hidden>
+          <p class="register-confirm-summary" id="registerConfirmSummary"></p>
+          <p class="register-confirm-question">정말 읽으셨나요?</p>
+        </div>
+
+        <p class="register-message" id="registerMessage" role="status" aria-live="polite"></p>
+        <button class="primary-button" id="registerNextBtn" type="button" hidden>등록하기</button>
+        <button class="primary-button" id="registerSubmitBtn" type="button" hidden>네, 읽었어요. 등록하기</button>
+        <button class="ghost-button" id="registerCloseBtn" type="button">닫기</button>
+      </div>
+    </div>
+
     <div class="tutorial-modal-overlay" id="tutorialModal" hidden>
       <div class="tutorial-modal-card">
         <button class="tutorial-skip-btn" id="tutorialSkipBtn" type="button">건너뛰기</button>
@@ -765,6 +799,6 @@
     <script src="data/bible-data.js?v=20260916-2"></script>
     <script src="data/achievements.js?v=20260917-1"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20260923-1"></script>
+    <script src="app.js?v=20260924-3"></script>
   </body>
 </html>

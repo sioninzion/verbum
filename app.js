@@ -369,6 +369,9 @@ const state = {
   verseReader: { chapterId: null, verses: [], index: 0, open: false },
   verseSelection: null, // Set<number> of selected verse numbers (tap-to-select-and-copy in the reading panel), or null when empty
   biblePaneCollapsed: false,
+  registerStep: "books", // 등록하기 modal step: "books" | "chapters" | "confirm"
+  registerBook: null, // book whose chapters are being picked in the 등록하기 modal
+  registerSelection: new Set(), // chapter ids ticked for that book
 };
 
 // Debug hook only — lets you inspect/mutate state from the browser console.
@@ -537,6 +540,20 @@ const elements = {
   calendarModal: document.querySelector("#calendarModal"),
   calendarMonthLabel: document.querySelector("#calendarMonthLabel"),
   calendarGrid: document.querySelector("#calendarGrid"),
+  registerOpenBtn: document.querySelector("#registerOpenBtn"),
+  registerModal: document.querySelector("#registerModal"),
+  registerBackBtn: document.querySelector("#registerBackBtn"),
+  registerTitle: document.querySelector("#registerTitle"),
+  registerHint: document.querySelector("#registerHint"),
+  registerBookList: document.querySelector("#registerBookList"),
+  registerChapterStep: document.querySelector("#registerChapterStep"),
+  registerChapterGrid: document.querySelector("#registerChapterGrid"),
+  registerConfirm: document.querySelector("#registerConfirm"),
+  registerConfirmSummary: document.querySelector("#registerConfirmSummary"),
+  registerMessage: document.querySelector("#registerMessage"),
+  registerNextBtn: document.querySelector("#registerNextBtn"),
+  registerSubmitBtn: document.querySelector("#registerSubmitBtn"),
+  registerCloseBtn: document.querySelector("#registerCloseBtn"),
   calendarPrevBtn: document.querySelector("#calendarPrevBtn"),
   calendarNextBtn: document.querySelector("#calendarNextBtn"),
   calendarCloseBtn: document.querySelector("#calendarCloseBtn"),
@@ -1578,6 +1595,169 @@ function closeCalendarModal() {
   elements.calendarModal.hidden = true;
 }
 
+// ── 등록하기: mark chapters read elsewhere (paper Bible, other apps) ─────
+// A three-step popup (book → chapters → "정말 읽으셨나요?"). Registered chapters
+// count exactly like quiz-completed ones everywhere (진행도, 칭호, 빌보드) and
+// differ only in colour: their entry carries source:"manual", which is what
+// isRegistered() reads. Quiz-completed chapters can't be picked, so a chapter
+// already done keeps its original date.
+
+function isRegistered(chapterId) {
+  return state.progress.completed[chapterId]?.source === "manual";
+}
+
+// Share of a book's chapters that were registered rather than quizzed. At 90%
+// or more the book tile turns yellow instead of following the usual tiers.
+function getRegisteredShare(chapters) {
+  if (!chapters.length) return 0;
+  return chapters.filter((chapter) => isRegistered(chapter.id)).length / chapters.length;
+}
+
+function formatChapterSelection(bookName, ids) {
+  const numbers = ids.map((id) => chaptersById.get(id).chapter).sort((a, b) => a - b);
+  return `${bookName} ${formatVerseRanges(numbers)}${chapterUnitLabel(bookName, numbers.length).replace(/^\d+/, "")}`;
+}
+
+function renderRegisterModal() {
+  const step = state.registerStep;
+  const picked = [...state.registerSelection];
+  const book = state.registerBook;
+
+  elements.registerBookList.hidden = step !== "books";
+  elements.registerChapterStep.hidden = step !== "chapters";
+  elements.registerConfirm.hidden = step !== "confirm";
+  elements.registerBackBtn.hidden = step === "books";
+  elements.registerNextBtn.hidden = !(step === "chapters" && picked.length > 0);
+  elements.registerSubmitBtn.hidden = step !== "confirm";
+
+  if (step === "books") {
+    elements.registerTitle.textContent = "어떤 책을 읽으셨나요?";
+    elements.registerHint.textContent = "종이 성경이나 다른 앱에서 읽은 책을 골라 주세요.";
+  } else if (step === "chapters") {
+    elements.registerTitle.textContent = book;
+    elements.registerHint.textContent = "읽은 장을 모두 눌러 주세요.";
+    elements.registerNextBtn.textContent = `${picked.length}장 등록하기`;
+    elements.registerChapterGrid.replaceChildren(
+      ...chaptersByBook[book].map((chapter) => {
+        const done = isComplete(chapter.id);
+        const isPicked = state.registerSelection.has(chapter.id);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = [
+          "chapter-btn",
+          done ? (isRegistered(chapter.id) ? "registered" : "completed") : "",
+          isPicked ? "selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        button.textContent = chapter.chapter;
+        button.disabled = done;
+        button.setAttribute("aria-label", `${chapterFullLabel(chapter.book, chapter.chapter)}${done ? " (이미 완료)" : ""}`);
+        button.setAttribute("aria-pressed", String(isPicked));
+        button.addEventListener("click", () => {
+          if (state.registerSelection.has(chapter.id)) state.registerSelection.delete(chapter.id);
+          else state.registerSelection.add(chapter.id);
+          renderRegisterModal();
+        });
+        return button;
+      })
+    );
+  } else {
+    elements.registerTitle.textContent = "등록 확인";
+    elements.registerHint.textContent = "";
+    elements.registerConfirmSummary.textContent = formatChapterSelection(book, picked);
+  }
+}
+
+function buildRegisterBookList() {
+  const nodes = [];
+  [["old", "구약"], ["new", "신약"]].forEach(([testament, label]) => {
+    const heading = document.createElement("h3");
+    heading.className = "register-book-heading";
+    heading.textContent = label;
+    nodes.push(heading);
+    const grid = document.createElement("div");
+    grid.className = "register-book-grid";
+    DATA.books
+      .filter((book) => book.testament === testament)
+      .forEach((book) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "register-book-btn";
+        button.textContent = book.name;
+        button.addEventListener("click", () => {
+          state.registerBook = book.name;
+          state.registerSelection = new Set();
+          state.registerStep = "chapters";
+          elements.registerMessage.textContent = "";
+          renderRegisterModal();
+        });
+        grid.append(button);
+      });
+    nodes.push(grid);
+  });
+  elements.registerBookList.replaceChildren(...nodes);
+}
+
+function openRegisterModal() {
+  if (!elements.registerBookList.childElementCount) buildRegisterBookList();
+  state.registerStep = "books";
+  state.registerBook = null;
+  state.registerSelection = new Set();
+  elements.registerMessage.textContent = "";
+  renderRegisterModal();
+  elements.registerModal.hidden = false;
+}
+
+function closeRegisterModal() {
+  elements.registerModal.hidden = true;
+}
+
+function registerGoBack() {
+  elements.registerMessage.textContent = "";
+  if (state.registerStep === "confirm") {
+    state.registerStep = "chapters";
+  } else {
+    state.registerStep = "books";
+    state.registerSelection = new Set();
+  }
+  renderRegisterModal();
+}
+
+async function submitRegistration() {
+  if (state.isAuthenticated && !state.profileLoaded) {
+    elements.registerMessage.textContent = "내 기록을 불러오지 못해 지금은 등록할 수 없어요. 연결을 확인한 뒤 다시 시도해 주세요.";
+    return;
+  }
+  const ids = [...state.registerSelection].filter((id) => !isComplete(id)).sort((a, b) => a - b);
+  if (!ids.length) return;
+
+  refreshToday();
+  const completedAt = new Date().toISOString();
+  ids.forEach((id) => {
+    state.progress.completed[id] = { date: TODAY, completedAt, source: "manual" };
+  });
+  state.progress.totalChaptersRead = (state.progress.totalChaptersRead || 0) + ids.length;
+  const newlyUnlocked = runAchievementPipeline(state.progress);
+
+  const summary = formatChapterSelection(state.registerBook, ids);
+  state.registerSelection = new Set();
+  state.registerStep = "books";
+  state.registerBook = null;
+  renderRegisterModal();
+  elements.registerMessage.textContent = `${summary} 등록 완료`;
+  render();
+
+  try {
+    await saveProgress();
+  } catch {
+    elements.registerMessage.textContent = `${summary} 등록은 됐지만 저장하지 못했어요. 연결을 확인해 주세요.`;
+  }
+  await refreshLeaderboard().catch(() => {});
+  render();
+  queueAchievementUnlocks(newlyUnlocked);
+}
+
 let tutorialStepIndex = 0;
 
 function renderTutorialStep() {
@@ -1697,7 +1877,7 @@ function renderBookGrid() {
     const chapters = chaptersByBook[book.name];
     const done = getCompletedCount(chapters);
     const bookPercent = percent(done, chapters.length);
-    const tier = getBookColorTier(bookPercent, done);
+    const tier = getRegisteredShare(chapters) >= 0.9 ? "tier-registered" : getBookColorTier(bookPercent, done);
     const button = document.createElement("button");
     button.type = "button";
     button.className = `book-tile ${tier}${book.name === state.selectedBook ? " active" : ""}`;
@@ -1757,7 +1937,7 @@ function renderChapters() {
       button.type = "button";
       button.className = [
         "chapter-btn",
-        isComplete(chapter.id) ? "completed" : "",
+        isComplete(chapter.id) ? (isRegistered(chapter.id) ? "registered" : "completed") : "",
         chapter.id === state.selectedChapterId ? "current" : "",
       ]
         .filter(Boolean)
@@ -1772,11 +1952,14 @@ function renderChapters() {
 
 function renderQuiz() {
   const chapter = getCurrentChapter();
-  const complete = isComplete(chapter.id);
+  // A registered (등록하기) chapter counts as read but its quiz is still open:
+  // solving it upgrades the yellow chapter to a green, quiz-verified one.
+  const registered = isRegistered(chapter.id);
+  const complete = isComplete(chapter.id) && !registered;
   const attempt = state.progress.attempts[chapter.id];
 
   elements.chapterKicker.textContent = chapterFullLabel(chapter.book, chapter.chapter);
-  elements.chapterStatus.textContent = complete ? "완료" : "미완료";
+  elements.chapterStatus.textContent = complete ? "완료" : registered ? "등록 (퀴즈 전)" : "미완료";
   elements.chapterStatus.classList.toggle("done", complete);
   elements.questionText.textContent = chapter.question;
   elements.hintText.textContent = chapter.hint;
@@ -2897,17 +3080,28 @@ async function answerQuiz(selected) {
 
   let newlyUnlocked = [];
   if (correct) {
-    state.progress.completed[chapter.id] = {
-      date: TODAY,
-      answer: selected,
-      completedAt: new Date().toISOString(),
-    };
-    state.progress.totalChaptersRead = (state.progress.totalChaptersRead || 0) + 1;
-    const hour = new Date().getHours();
-    if (hour < 4) {
-      state.progress.midnightCount = (state.progress.midnightCount || 0) + 1;
-    } else if (hour < 6) {
-      state.progress.earlyMorningCount = (state.progress.earlyMorningCount || 0) + 1;
+    if (isRegistered(chapter.id)) {
+      // Already counted (totalChaptersRead, date, achievements) when it was
+      // registered — only the proof changes. `source` is overwritten rather
+      // than removed because a merge-save can't delete a nested field.
+      state.progress.completed[chapter.id] = {
+        ...state.progress.completed[chapter.id],
+        answer: selected,
+        source: "quiz",
+      };
+    } else {
+      state.progress.completed[chapter.id] = {
+        date: TODAY,
+        answer: selected,
+        completedAt: new Date().toISOString(),
+      };
+      state.progress.totalChaptersRead = (state.progress.totalChaptersRead || 0) + 1;
+      const hour = new Date().getHours();
+      if (hour < 4) {
+        state.progress.midnightCount = (state.progress.midnightCount || 0) + 1;
+      } else if (hour < 6) {
+        state.progress.earlyMorningCount = (state.progress.earlyMorningCount || 0) + 1;
+      }
     }
     state.progress.quizCorrectStreak = (state.progress.quizCorrectStreak || 0) + 1;
     newlyUnlocked = runAchievementPipeline(state.progress);
@@ -3208,6 +3402,21 @@ async function resetProgress() {
 }
 
 elements.achievementModalCloseBtn.addEventListener("click", showNextAchievementModal);
+
+elements.registerOpenBtn.addEventListener("click", openRegisterModal);
+elements.registerCloseBtn.addEventListener("click", closeRegisterModal);
+elements.registerModal.addEventListener("click", (event) => {
+  if (event.target === elements.registerModal) closeRegisterModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !elements.registerModal.hidden) closeRegisterModal();
+});
+elements.registerBackBtn.addEventListener("click", registerGoBack);
+elements.registerNextBtn.addEventListener("click", () => {
+  state.registerStep = "confirm";
+  renderRegisterModal();
+});
+elements.registerSubmitBtn.addEventListener("click", submitRegistration);
 
 elements.viewRecordsBtn.addEventListener("click", openCalendarModal);
 elements.calendarCloseBtn.addEventListener("click", closeCalendarModal);

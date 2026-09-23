@@ -17,6 +17,8 @@
   --gray: #9a9488;
   --green: #2fae6c;
   --green-soft: #e2f6ec;
+  --yellow: #f2c230;
+  --yellow-soft: #fdf3cc;
   --blue: #c1662e;
   --blue-soft: #f7e3ce;
   --purple: #8b7cf6;
@@ -1203,6 +1205,10 @@ h3 {
   background: var(--green-soft);
 }
 
+.book-tile.tier-registered {
+  background: var(--yellow-soft);
+}
+
 .book-tile.tier-empty {
   background: #f5f1eb;
 }
@@ -1271,6 +1277,10 @@ h3 {
 
 .book-tile.tier-complete .book-tile-bar i {
   background: var(--green);
+}
+
+.book-tile.tier-registered .book-tile-bar i {
+  background: var(--yellow);
 }
 
 .book-tile.tier-empty .book-tile-bar i {
@@ -1427,6 +1437,10 @@ h3 {
   background: var(--green);
 }
 
+.dot.yellow {
+  background: var(--yellow);
+}
+
 .dot.blue {
   background: var(--blue);
 }
@@ -1466,6 +1480,11 @@ h3 {
 
 .chapter-btn.completed {
   background: var(--green);
+}
+
+.chapter-btn.registered {
+  color: var(--ink);
+  background: var(--yellow);
 }
 
 .chapter-btn.current {
@@ -4119,6 +4138,8 @@ body {
   --gray: #a39a8c;
   --green: #4cd08a;
   --green-soft: #163227;
+  --yellow: #f2c230;
+  --yellow-soft: #3a3116;
   --blue: #e8823f;
   --blue-soft: #3a2b1c;
   --purple: #a79bff;
@@ -4823,5 +4844,189 @@ body {
 }
 
 .sync-notice[hidden] {
+  display: none;
+}
+
+/* 등록하기: header button beside the 성경 title, and its 3-step popup
+   (book → chapters → confirm). The heading is a grid on narrow screens
+   (.panel-heading), so this pins it back to a row with the button on the right. */
+.panel-heading.library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.register-open-btn {
+  min-height: 36px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+/* Fixed-height column: only the book list / chapter grid scrolls, so the
+   action buttons stay in view even for Psalms (150 chapters). */
+.register-modal-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: min(640px, 90vh);
+}
+
+.register-modal-card > * {
+  flex: 0 0 auto;
+}
+
+.register-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.register-head .back-button[hidden] {
+  display: none;
+}
+
+.register-modal-card h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  text-align: left;
+}
+
+.register-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.register-hint:empty {
+  display: none;
+}
+
+.register-book-list,
+.register-chapter-step {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.register-book-list[hidden],
+.register-chapter-step[hidden],
+.register-confirm[hidden] {
+  display: none;
+}
+
+.register-chapter-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-book-heading {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.register-book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.register-book-btn {
+  min-height: 42px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--neu-raised-sm);
+}
+
+.register-book-btn:active {
+  transform: scale(0.96);
+}
+
+.register-legend {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.register-chapter-grid {
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  align-content: start;
+  gap: 6px;
+  padding: 4px 2px 8px;
+}
+
+/* Quiz-completed and already-registered chapters can't be picked again. */
+.register-chapter-grid .chapter-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: inset 0 -2px 0 rgba(33, 28, 22, 0.16);
+}
+
+.register-chapter-grid .chapter-btn.selected {
+  color: var(--ink);
+  background: var(--yellow);
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.register-confirm {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.register-confirm-summary {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.register-confirm-question {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.register-message {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.register-message:empty {
+  display: none;
+}
+
+.register-modal-card .primary-button {
+  width: 100%;
+  background: var(--yellow);
+  color: #211c16;
+}
+
+.register-modal-card .primary-button[hidden] {
   display: none;
 }
