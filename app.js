@@ -1116,6 +1116,14 @@ function buildProfilePayload({ withTitle = false } = {}) {
 // so untouched data on the server is never overwritten.
 const PROGRESS_COUNTER_KEYS = ["totalChaptersRead", "earlyMorningCount", "midnightCount", "cycles"];
 const PROGRESS_KEYED_MAPS = ["completed", "attempts", "unlockedAchievements"];
+// Achievements have no "revoke" feature anywhere in the app, so this map
+// should never legitimately shrink — unlike completed/attempts (which really
+// do get wiped wholesale on a finished read-through or an explicit reset).
+// Letting it take the same "fewer keys than base ⇒ this device emptied it"
+// inference risked a stale/racing tab reading it as an intentional wipe and
+// replacing it outright, erasing achievements another tab or device had
+// since added. Merge-only means the worst a stale tab can do is a no-op.
+const NEVER_SHRINKS_KEYS = new Set(["unlockedAchievements"]);
 let progressBase = null; // deep copy of progress as last loaded from / written to the server
 
 function cloneProgress(progress) {
@@ -1134,7 +1142,7 @@ function diffProgress(current, base) {
   for (const key of PROGRESS_KEYED_MAPS) {
     const cur = current[key] || {};
     const prev = base[key] || {};
-    if (Object.keys(prev).some((id) => !(id in cur))) {
+    if (!NEVER_SHRINKS_KEYS.has(key) && Object.keys(prev).some((id) => !(id in cur))) {
       replace[`progress.${key}`] = cur;
       continue;
     }
