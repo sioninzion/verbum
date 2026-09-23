@@ -1188,7 +1188,13 @@ async function writeProgress({ withTitle = false } = {}) {
 
   const { merge, replace } = diffProgress(state.progress, progressBase);
   const payload = buildProfilePayload({ withTitle });
-  payload.progress = merge;
+  // Firestore's set(..., {merge:true}) treats a field whose value is an empty
+  // object as "set this field to {}", not "nothing to merge here" — so on a
+  // save where nothing in progress actually changed (extremely common: just
+  // opening the app, or already holding every achievement you qualify for),
+  // sending `progress: {}` wiped the entire map on the server. Omit the key
+  // entirely instead, so an empty diff truly touches nothing.
+  if (Object.keys(merge).length) payload.progress = merge;
   const sent = cloneProgress(state.progress);
 
   const ref = getUserDocRef();
