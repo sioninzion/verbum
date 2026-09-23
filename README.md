@@ -18,6 +18,7 @@
 - `index.html` / `styles.css` / `app.js`: 화면, 스타일, 앱 로직 전체(진행도 저장, 로그인, 읽기, 퀴즈, 알림 설정 등)
 - `data/bible-data.js`: 66권 1,189장의 메타데이터와 퀴즈
 - `data/bible-text/{책코드}/{장}.json`: 장별 개역개정 본문(읽을 때 필요한 장만 불러옴)
+- `data/bible-search-index.json`: 본문검색(단어 검색)용 전체 구절 인덱스(책코드별 장·절·본문 한 파일), `tools/build_search_index.js`가 생성
 - `data/achievements.js`: 칭호 목록과 달성 조건
 - `data/verses.js`: 앱에서 무작위로 보여주는 "오늘의 말씀" 구절 목록
 - `service-worker.js`, `manifest.json`: PWA 캐시·설치·푸시 수신
@@ -26,6 +27,7 @@
 - `tools/`: 데이터 생성·검증 스크립트
   - `export_bible_data.py`: 엑셀의 퀴즈 데이터를 `data/bible-data.js`로 변환
   - `regenerate_bible_text.js`: 대한성서공회 개역개정 페이지에서 `data/bible-text`를 다시 생성
+  - `build_search_index.js`: `data/bible-text`에서 `data/bible-search-index.json`을 만듦(본문이 바뀌면 다시 실행)
   - `verify_bible_text.js`: 본문 데이터를 대한성서공회 페이지와 대조해 장/절 수 차이를 찾음
   - `convert_bible_text.py`: 예전 방식(`개역개정-text/*.txt` 변환)
 

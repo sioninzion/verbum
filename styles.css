@@ -1277,6 +1277,47 @@ h3 {
   background: var(--muted);
 }
 
+.book-grid.search-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 10px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.book-grid.search-row .book-tile {
+  flex: 0 0 92px;
+}
+
+.text-search-section {
+  margin-top: 18px;
+}
+
+.text-search-book-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.text-search-results .panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.text-search-group-heading {
+  margin: 18px 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.text-search-group-heading:first-child {
+  margin-top: 0;
+}
+
 .heading-lead {
   display: flex;
   align-items: center;

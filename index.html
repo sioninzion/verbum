@@ -368,22 +368,40 @@
             <input class="book-search" id="bookSearchInput" type="search" placeholder="책 이름으로 검색" autocomplete="off" />
           </div>
 
-          <div class="testament-toggle" id="testamentToggle">
-            <span class="testament-toggle-thumb" id="testamentToggleThumb" aria-hidden="true"></span>
-            <button class="testament-toggle-btn active" data-testament="old" type="button">구약</button>
-            <button class="testament-toggle-btn" data-testament="new" type="button">신약</button>
-          </div>
-
-          <div class="library-section-heading">
-            <div>
-              <span id="librarySectionLabel">구약</span>
-              <span id="librarySectionCount">39권 · 929장</span>
+          <div id="librarySearchArea">
+            <div class="testament-toggle" id="testamentToggle">
+              <span class="testament-toggle-thumb" id="testamentToggleThumb" aria-hidden="true"></span>
+              <button class="testament-toggle-btn active" data-testament="old" type="button">구약</button>
+              <button class="testament-toggle-btn" data-testament="new" type="button">신약</button>
             </div>
-            <img class="library-section-arrow" src="icon-assets/glyphs/chevron-next.png" alt="" aria-hidden="true" />
+
+            <div class="library-section-heading">
+              <div>
+                <span id="librarySectionLabel">구약</span>
+                <span id="librarySectionCount">39권 · 929장</span>
+              </div>
+              <img class="library-section-arrow" src="icon-assets/glyphs/chevron-next.png" alt="" aria-hidden="true" />
+            </div>
+
+            <div class="book-grid" id="bookGrid"></div>
+            <p class="empty-state" id="bookGridEmpty" hidden>검색 결과가 없습니다.</p>
+
+            <div class="text-search-section" id="textSearchSection" hidden>
+              <div class="library-section-heading">
+                <div><span>본문검색</span></div>
+              </div>
+              <div class="text-search-book-row" id="textSearchBookRow"></div>
+              <p class="empty-state" id="textSearchEmpty" hidden></p>
+            </div>
           </div>
 
-          <div class="book-grid" id="bookGrid"></div>
-          <p class="empty-state" id="bookGridEmpty" hidden>검색 결과가 없습니다.</p>
+          <div class="text-search-results" id="textSearchResults" hidden>
+            <div class="panel-heading">
+              <button class="back-button" id="textSearchBackBtn" type="button" aria-label="본문검색 결과로 돌아가기"><span class="icon-mask" style="--icon-src:url('icon-assets/glyphs/back.png')" aria-hidden="true"></span></button>
+              <h3 id="textSearchResultsTitle"></h3>
+            </div>
+            <div class="reading-text" id="textSearchResultsBody"></div>
+          </div>
         </section>
 
         <section class="panel chapter-panel" data-view-panel="quiz" data-quiz-step="chapters" aria-label="장 목록">
