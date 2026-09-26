@@ -3853,7 +3853,7 @@ document.documentElement.dataset.appReady = "true";
 
 setTimeout(() => {
   elements.splashScreen.classList.add("splash-hidden");
-}, 2000);
+}, 1200);
 
 updateLeaderboardCountdown();
 setInterval(updateLeaderboardCountdown, 1000);
