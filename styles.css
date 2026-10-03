@@ -4484,45 +4484,79 @@ body {
      carried an extra inset on top of the shell's edge margin that
      profile/quiz never had. Matched to the shell width so all wide-mode
      screens share one consistent edge margin. */
+  /* Capped at 1280px and centred: wider than that, the hero card turns
+     into a thin banner. width:100% (not 100% - 48px) because .app-shell
+     already supplies the edge gutter — the old extra inset was left-aligned
+     and piled up as dead space on the right. */
   .dashboard[data-view="home"] {
-    width: min(1600px, calc(100% - 48px));
+    width: min(1280px, 100%);
+    margin-inline: auto;
+    grid-template-columns: minmax(0, 1fr);
+    /* Fill the shell's height and centre the home block in it, rather than
+       leaving it pinned to the top over a blank lower half. */
+    flex: 1 1 auto;
+    align-content: center;
   }
 
+  /* Two columns: the 오늘의 통독 card on the left runs the full height of
+     the right column (week strip, stats, 구약/신약), so the whole home fits
+     one screen instead of a giant hero followed by giant testament tiles. */
   .panel.home-panel.view-active {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    align-items: start;
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas:
+      "banner banner"
+      "hero   verse"
+      "next   week"
+      "next   stats"
+      "next   testa";
+    /* stats/testa rows are flexible so a tall hero card grows them (their
+       cards stretch to fill) instead of opening gaps between them. */
+    grid-template-rows: auto auto auto minmax(auto, 1fr) minmax(auto, 1fr);
+    align-items: stretch;
+    gap: 14px 20px;
   }
 
-  .home-panel .home-install-banner,
-  .home-panel .home-hero,
-  .home-panel .home-stats-grid,
-  .home-panel .testament-cards {
-    grid-column: 1 / -1;
-  }
+  .home-panel .home-install-banner { grid-area: banner; }
+  .home-panel .home-hero { grid-area: hero; align-self: end; margin: 0; }
+  .home-panel .next-card { grid-area: next; }
+  .home-panel .week-strip { grid-area: week; margin: 0; align-self: start; }
+  .home-panel .home-stats-grid { grid-area: stats; margin: 0; }
+  .home-panel .testament-cards { grid-area: testa; margin: 0; }
 
   /* Brought back for wide mode only — see the .daily-verse comment near its
-     other rule (styles.css ~261) for why it's mobile-hidden. Full-width row
-     right under the greeting, above .next-card/.week-strip. */
+     other rule (styles.css ~261) for why it's mobile-hidden. */
   .home-panel .daily-verse {
     display: block;
-    grid-column: 1 / -1;
-  }
-
-  .home-panel .week-strip {
-    /* reset mobile stacking margin so it lines up with .next-card's top
-       edge when the two sit side by side (align-items: start) */
+    grid-area: verse;
+    align-self: end;
     margin: 0;
   }
 
-  .home-panel .home-stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: 1fr;
+  /* Height comes from the right column now, not the image's aspect ratio
+     (which made it ~410px tall); the CTA sits at the bottom edge. */
+  .home-panel .next-card {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    aspect-ratio: auto;
+    min-height: clamp(300px, 46vh, 480px);
+    padding: 28px 32px;
+    border-radius: 26px;
   }
 
-  .home-panel .home-stats-grid .total-progress-card {
-    grid-row: auto;
+  .home-panel .next-card h3 {
+    font-size: clamp(42px, 4.4vw, 60px);
+  }
+
+  .home-panel .next-card-cta {
+    margin-top: auto;
+  }
+
+  .home-panel .testament-card {
+    aspect-ratio: auto;
+    min-height: 96px;
   }
 
   /* Profile: .panel-heading then 5 direct-child cards — .account-card,
@@ -4805,6 +4839,61 @@ body {
     .dashboard.bible-pane-collapsed[data-view="quiz"] > .quiz-panel {
       grid-column: 1;
       grid-row: 2;
+    }
+  }
+
+  /* >=900px: three columns at 1:3:1 — books | reading/quiz | chapters,
+     each pair split by a 4.5px divider. The 620-899 band above keeps its
+     2-col + collapse-toggle layout. */
+  @media (min-width: 900px) {
+    .dashboard[data-view="quiz"] {
+      /* .app-shell already supplies the outer gutter; an extra -48px here
+         left-aligned the grid and piled all of it up on the right edge. */
+      width: 100%;
+      /* Panes run down under the floating tab bar instead of stopping
+         80px above it (the bar pulls itself up over them, see below). */
+      --bible-pane-h: calc(min(932px, 100dvh - 28px) - var(--app-shell-pad-top) - 6px);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      column-gap: 0;
+      align-items: stretch;
+    }
+
+    .dashboard[data-view="quiz"] > .library-panel {
+      grid-column: 1;
+      grid-row: 1;
+      max-height: 100%;
+      padding-right: 16px;
+      border-right: 4.5px solid var(--line);
+    }
+
+    .dashboard[data-view="quiz"] > .reading-panel,
+    .dashboard[data-view="quiz"] > .quiz-panel {
+      grid-column: 2;
+      grid-row: 1;
+      padding-inline: 24px;
+    }
+
+    .dashboard[data-view="quiz"] > .chapter-panel {
+      grid-column: 3;
+      grid-row: 1;
+      padding-left: 16px;
+      border-left: 4.5px solid var(--line);
+    }
+
+    /* Bottom room so each pane's last row can scroll clear of the bar. */
+    .dashboard[data-view="quiz"] > .library-panel,
+    .dashboard[data-view="quiz"] > .reading-panel,
+    .dashboard[data-view="quiz"] > .quiz-panel,
+    .dashboard[data-view="quiz"] > .chapter-panel {
+      padding-bottom: 96px;
+      margin-top: 0;
+    }
+
+    .dashboard[data-view="quiz"] ~ .mobile-tabbar {
+      margin-top: -66px;
+      position: relative;
+      z-index: 5;
     }
   }
 
