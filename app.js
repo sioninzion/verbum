@@ -2472,6 +2472,27 @@ function getBookCode(chapter) {
   return match ? match[1] : null;
 }
 
+// 개역개정 prints a few passages as one combined verse ("1-3"). Such an
+// entry keeps its first number in `v` (what highlights and selection key on)
+// and carries its last number in `e`.
+function verseLabel(verse) {
+  return verse.e ? `${verse.v}-${verse.e}` : String(verse.v);
+}
+
+function verseLineLabel(line) {
+  return line.dataset.verseEnd ? `${line.dataset.verse}-${line.dataset.verseEnd}` : line.dataset.verse;
+}
+
+// The reading-panel line holding verseNum — for a combined verse, any number
+// in its range lands on it.
+function findReadingVerseLine(verseNum) {
+  const target = Number(verseNum);
+  return Array.from(elements.readingText.querySelectorAll(".reading-verse")).find((line) => {
+    const start = Number(line.dataset.verse);
+    return target >= start && target <= Number(line.dataset.verseEnd || start);
+  });
+}
+
 async function loadChapterVerses(chapter) {
   const code = getBookCode(chapter);
   if (!code) return [];
@@ -2602,7 +2623,8 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
           if (!run.length) return;
           const heading = document.createElement("p");
           heading.className = "text-search-group-heading";
-          const range = run.length === 1 ? `${run[0].v}절` : `${run[0].v}~${run[run.length - 1].v}절`;
+          const last = run[run.length - 1];
+          const range = run.length === 1 ? `${verseLabel(last)}절` : `${run[0].v}~${last.e || last.v}절`;
           heading.textContent = `${chapterNum}장 : ${range}`;
           nodes.push(heading);
           run.forEach((verse) => {
@@ -2612,7 +2634,7 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
             line.dataset.verse = String(verse.v);
             const num = document.createElement("span");
             num.className = "v-num";
-            num.textContent = verse.v;
+            num.textContent = verseLabel(verse);
             line.append(num, document.createTextNode(verse.t));
             nodes.push(line);
           });
@@ -2621,7 +2643,8 @@ function renderTextSearchDetail(bookName, rawQuery, query) {
 
         verses.forEach((verse) => {
           const matches = verse.t.toLowerCase().includes(query);
-          if (matches && (!run.length || verse.v === run[run.length - 1].v + 1)) {
+          const prev = run[run.length - 1];
+          if (matches && (!prev || verse.v === (prev.e || prev.v) + 1)) {
             run.push(verse);
           } else {
             flushRun();
@@ -2689,9 +2712,7 @@ async function jumpToTextSearchVerse() {
   await selectChapter(chapter.id);
   await renderReading();
 
-  const verseEl = Array.from(elements.readingText.querySelectorAll(".reading-verse")).find(
-    (line) => line.querySelector(".v-num")?.textContent === String(sel.verse)
-  );
+  const verseEl = findReadingVerseLine(sel.verse);
   if (verseEl) {
     verseEl.scrollIntoView({ behavior: "smooth", block: "center" });
     verseEl.classList.add("verse-highlight");
@@ -2781,11 +2802,12 @@ async function renderReading() {
       const line = document.createElement("p");
       line.className = "reading-verse";
       line.dataset.verse = String(verse.v);
+      if (verse.e) line.dataset.verseEnd = String(verse.e);
       line.dataset.text = verse.t;
       if (highlights[verse.v]) line.dataset.hl = highlights[verse.v];
       const num = document.createElement("span");
       num.className = "v-num";
-      num.textContent = verse.v;
+      num.textContent = verseLabel(verse);
       line.append(num, document.createTextNode(verse.t));
       nodes.push(line);
       return nodes;
@@ -2975,9 +2997,15 @@ async function copySelectedVerse() {
   const lines = getSelectedVerseLines(sel);
   const isMulti = lines.length > 1;
   const body = isMulti
-    ? lines.map((el) => `${el.dataset.verse} ${el.dataset.text || ""}`).join("\n")
+    ? lines.map((el) => `${verseLineLabel(el)} ${el.dataset.text || ""}`).join("\n")
     : lines[0]?.dataset.text || "";
-  const sortedVerses = lines.map((el) => Number(el.dataset.verse));
+  // A combined verse counts as every number it covers, so 시편 92:1-3 is
+  // cited as "1-3" rather than "1".
+  const sortedVerses = lines.flatMap((el) => {
+    const start = Number(el.dataset.verse);
+    const end = Number(el.dataset.verseEnd || start);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  });
   const reference = `${chapter.book} ${chapter.chapter}:${formatVerseRanges(sortedVerses)}`;
   const payload = `${body}\n${reference}`;
 
@@ -3066,7 +3094,7 @@ function renderVerseReader() {
   elements.verseReaderCounter.textContent = `${index + 1} / ${verses.length}`;
   elements.verseReaderHeading.hidden = !(index === 0 && verse.h);
   if (index === 0 && verse.h) elements.verseReaderHeading.textContent = verse.h;
-  elements.verseReaderVerse.textContent = `${verse.v}  ${verse.t}`;
+  elements.verseReaderVerse.textContent = `${verseLabel(verse)}  ${verse.t}`;
   elements.verseReaderQuizBtn.hidden = !isLast;
 }
 
@@ -3822,9 +3850,7 @@ async function openPendingMomentVerseLink() {
   await renderReading();
 
   if (!verseNum) return;
-  const verseEl = Array.from(elements.readingText.querySelectorAll(".reading-verse")).find(
-    (line) => line.querySelector(".v-num")?.textContent === String(verseNum)
-  );
+  const verseEl = findReadingVerseLine(verseNum);
   if (verseEl) {
     verseEl.scrollIntoView({ behavior: "smooth", block: "center" });
     verseEl.classList.add("verse-highlight");
