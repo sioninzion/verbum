@@ -843,6 +843,47 @@ function getBookMeta(bookName) {
   return DATA.books.find((book) => book.name === bookName);
 }
 
+// ── 퀴즈 회차 ──────────────────────────────────────────────────────────
+// A finished read-through bumps progress.cycles and wipes `completed`, so the
+// 회차 follows cycles with nothing extra to store: first 통독 gets 1회차
+// (data/bible-data.js), the next gets 2회차 (data/quiz-round2.js), then they
+// alternate. `?round=2` forces a 회차, for checking questions without an
+// account that has finished a read-through (works in guest mode).
+const QUIZ_ROUND2 = window.BIBLE_QUIZ_ROUND2 || null;
+const QUIZ_ROUND_COUNT = QUIZ_ROUND2 ? 2 : 1;
+const QUIZ_ROUND_OVERRIDE = Number(new URLSearchParams(location.search).get("round")) || 0;
+
+function getQuizRound() {
+  if (QUIZ_ROUND_OVERRIDE >= 1 && QUIZ_ROUND_OVERRIDE <= QUIZ_ROUND_COUNT) return QUIZ_ROUND_OVERRIDE;
+  return ((state.progress.cycles || 0) % QUIZ_ROUND_COUNT) + 1;
+}
+
+// The question to show for a chapter in the current 회차. 2회차 has no written
+// hint — its hint points at the verses the answer comes from instead.
+function getQuiz(chapter) {
+  const entry = getQuizRound() === 2 ? QUIZ_ROUND2[chapter.id] : null;
+  if (!entry) {
+    return {
+      round: 1,
+      question: chapter.question,
+      hint: chapter.hint,
+      options: chapter.options,
+      answer: chapter.answer,
+      answerText: chapter.answerText,
+    };
+  }
+  const [from, to] = entry.r;
+  const verses = from === to ? `${from}절` : `${from}–${to}절`;
+  return {
+    round: 2,
+    question: entry.q,
+    hint: `힌트: ${chapterFullLabel(chapter.book, chapter.chapter)} ${verses}을 다시 읽어 보세요.`,
+    options: entry.o,
+    answer: entry.a,
+    answerText: entry.o[entry.a - 1],
+  };
+}
+
 // 시편은 "장"이 아니라 "편"으로 센다(시편 23편, not 시편 23장) — 다른 65권은 전부 "장".
 function chapterUnitLabel(bookName, count = 1) {
   return bookName === "시편" ? `${count}편` : `${count}장`;
@@ -1956,17 +1997,21 @@ function renderQuiz() {
   // solving it upgrades the yellow chapter to a green, quiz-verified one.
   const registered = isRegistered(chapter.id);
   const complete = isComplete(chapter.id) && !registered;
-  const attempt = state.progress.attempts[chapter.id];
+  const quiz = getQuiz(chapter);
+  // A wrong try on another 회차's question says nothing about this one.
+  const savedAttempt = state.progress.attempts[chapter.id];
+  const attempt = savedAttempt && (savedAttempt.round || 1) === quiz.round ? savedAttempt : null;
 
-  elements.chapterKicker.textContent = chapterFullLabel(chapter.book, chapter.chapter);
+  const chapterLabel = chapterFullLabel(chapter.book, chapter.chapter);
+  elements.chapterKicker.textContent = quiz.round > 1 ? `${chapterLabel} · ${quiz.round}회차` : chapterLabel;
   elements.chapterStatus.textContent = complete ? "완료" : registered ? "등록 (퀴즈 전)" : "미완료";
   elements.chapterStatus.classList.toggle("done", complete);
-  elements.questionText.textContent = chapter.question;
-  elements.hintText.textContent = chapter.hint;
+  elements.questionText.textContent = quiz.question;
+  elements.hintText.textContent = quiz.hint;
   elements.hintText.hidden = true;
   elements.hintBtn.textContent = "힌트 보기";
   elements.feedback.textContent = complete
-    ? `정답입니다. ${chapter.answerText}`
+    ? `정답입니다. ${quiz.answerText}`
     : attempt
       ? "아직 정답이 아닙니다. 힌트와 핵심내용을 다시 확인해 보세요."
       : "";
@@ -1974,7 +2019,7 @@ function renderQuiz() {
   elements.feedback.classList.toggle("wrong", !complete && Boolean(attempt));
 
   elements.optionsList.replaceChildren(
-    ...chapter.options.map((option, index) => {
+    ...quiz.options.map((option, index) => {
       const answerNumber = index + 1;
       const button = document.createElement("button");
       button.type = "button";
@@ -1982,7 +2027,7 @@ function renderQuiz() {
       button.textContent = `${OPTION_MARKS[index]} ${option}`;
       button.disabled = complete;
 
-      if (complete && answerNumber === chapter.answer) {
+      if (complete && answerNumber === quiz.answer) {
         button.classList.add("correct");
       } else if (attempt?.selected === answerNumber && !attempt.correct) {
         button.classList.add("wrong");
@@ -3071,12 +3116,16 @@ async function answerQuiz(selected) {
   }
   refreshToday();
   const chapter = getCurrentChapter();
-  const correct = selected === chapter.answer;
+  const quiz = getQuiz(chapter);
+  const correct = selected === quiz.answer;
   state.progress.attempts[chapter.id] = {
     selected,
     correct,
     date: TODAY,
   };
+  // 1회차 attempts keep their original shape; later ones say which question
+  // set `selected` refers to (see renderQuiz).
+  if (quiz.round > 1) state.progress.attempts[chapter.id].round = quiz.round;
 
   let newlyUnlocked = [];
   if (correct) {

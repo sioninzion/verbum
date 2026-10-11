@@ -16,7 +16,8 @@
 ## 구성
 
 - `index.html` / `styles.css` / `app.js`: 화면, 스타일, 앱 로직 전체(진행도 저장, 로그인, 읽기, 퀴즈, 알림 설정 등)
-- `data/bible-data.js`: 66권 1,189장의 메타데이터와 퀴즈
+- `data/bible-data.js`: 66권 1,189장의 메타데이터와 1회차 퀴즈
+- `data/quiz-round2.js`: 2회차 퀴즈(장 ID별 질문·보기·정답·근거 절). 성경 전체를 한 번 완독하면 다음 통독부터 2회차 문제가 나오고, 그 뒤로는 회독마다 1회차와 번갈아 나옵니다. `?round=2`를 주소에 붙이면 완독 여부와 상관없이 2회차 문제를 볼 수 있습니다
 - `data/bible-text/{책코드}/{장}.json`: 장별 개역개정 본문(읽을 때 필요한 장만 불러옴)
 - `data/bible-search-index.json`: 본문검색(단어 검색)용 전체 구절 인덱스(책코드별 장·절·본문 한 파일), `tools/build_search_index.js`가 생성
 - `data/achievements.js`: 칭호 목록과 달성 조건
