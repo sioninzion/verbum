@@ -1,0 +1,21 @@
+{
+  "totalQuestions": 1189,
+  "questionsChanged": 730,
+  "optionsChanged": 645,
+  "referencesChanged": 1056,
+  "difficultyReplacements": 75,
+  "answerIndexChanged": 0,
+  "duplicateQuestionStrings": 0,
+  "nonFourChoiceQuestions": 0,
+  "answerIndexMismatches": 0,
+  "invalidVerseRanges": 0,
+  "answerNotLiteralInCitedRange": 86,
+  "distractorLiteralInCitedRange": 45,
+  "answerPositionCounts": {
+    "1": 298,
+    "2": 297,
+    "3": 297,
+    "4": 297
+  },
+  "notes": "answerNotLiteralInCitedRange는 숫자 표기(7일↔이레)나 어미 차이로 글자 그대로 일치하지 않는 경우로, 모두 본문과 대조해 확인함. distractorLiteralInCitedRange는 본문이 정답과 오답을 직접 대비하는 경우(예: 축복은 그리심 산, 저주는 에발 산)로 의도된 것임. 근거 절 번호는 앱의 data/bible-text 기준."
+}

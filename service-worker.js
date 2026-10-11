@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v169";
+const CACHE_VERSION = "v170";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 // --- Firebase Cloud Messaging -----------------------------------------
@@ -84,6 +84,7 @@ const PRECACHE_URLS = [
   "./app.js",
   "./manifest.json",
   "./data/bible-data.js",
+  "./data/quiz-round2.js",
   "./data/achievements.js",
   "./data/verses.js",
   "./icon-32.png",

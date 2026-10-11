@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2회차 퀴즈 확인용</title>
+<style>
+  :root {
+    --bg: #fbf9f4; --card: #ffffff; --ink: #211c16; --muted: #7a7166; --line: #e7dfcf;
+    --green: #2fae6c; --green-soft: #e2f6ec; --amber: #b7791f; --amber-soft: #fdf3dc; --blue: #2b6cb0; --blue-soft: #e3effb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17140f; --card: #211c16; --ink: #f1ece2; --muted: #a1978a; --line: #3a3228;
+      --green: #4cc38a; --green-soft: #173527; --amber: #e0a94a; --amber-soft: #3a2c12; --blue: #7fb3e6; --blue-soft: #16293d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 -apple-system, "Pretendard", "Apple SD Gothic Neo", sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 880px; margin: 0 auto; }
+  select, input[type=search], button { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  input[type=search] { flex: 1; min-width: 140px; }
+  button { cursor: pointer; }
+  label.chk { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
+  #count { color: var(--muted); font-size: 13px; margin-left: auto; }
+  main { max-width: 880px; margin: 0 auto; padding: 14px 16px 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .top { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .where { font-weight: 700; }
+  .id { color: var(--muted); font-size: 12px; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); }
+  .tag.diff { background: var(--amber-soft); color: var(--amber); }
+  .tag.same { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  .q { font-size: 17px; font-weight: 600; margin: 8px 0 10px; }
+  .opts { display: grid; gap: 6px; }
+  .opt { text-align: left; width: 100%; border-radius: 10px; padding: 8px 12px; }
+  .opt.correct { border-color: var(--green); background: var(--green-soft); }
+  .opt.wrong { border-color: #c0564b; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .meta button { padding: 3px 9px; font-size: 13px; }
+  .box { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; }
+  .box .v { margin: 2px 0; }
+  .box .v.cited { background: var(--green-soft); border-radius: 6px; padding: 1px 4px; }
+  .box .n { color: var(--muted); font-size: 12px; margin-right: 4px; }
+  .why { color: var(--muted); }
+  .ans { font-weight: 700; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <select id="book"></select>
+    <select id="filter">
+      <option value="all">전체</option>
+      <option value="diff">난이도 교체 (75)</option>
+      <option value="replaced">문제 교체·정답 변경</option>
+      <option value="q">질문 수정</option>
+      <option value="o">보기 수정</option>
+      <option value="same">원본 그대로</option>
+    </select>
+    <input id="search" type="search" placeholder="질문·보기 검색 또는 #번호" />
+    <label class="chk"><input id="hide" type="checkbox" /> 정답 가리기</label>
+    <span id="count"></span>
+  </div>
+</header>
+<main id="list"><p class="empty">불러오는 중…</p></main>
+
+<script>
+const MARKS = ["①", "②", "③", "④"];
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const state = { rev: [], orig: new Map(), patches: {}, textCache: new Map() };
+
+async function load() {
+  const [rev, orig, patches] = await Promise.all(
+    ["verbum-round2-1189.json", "verbum-round2-1189.original.json", "patches.json"].map((f) => fetch(f).then((r) => r.json()))
+  );
+  state.rev = rev.chapters;
+  orig.chapters.forEach((c) => state.orig.set(c.id, c));
+  state.patches = patches;
+  const book = document.querySelector("#book");
+  book.append(new Option("모든 책 (검색·필터용)", ""));
+  rev.books.forEach((b) => book.append(new Option(`${b.name} (${b.chapters})`, b.name)));
+  book.value = rev.books[0].name;
+  ["book", "filter", "hide"].forEach((id) => document.querySelector("#" + id).addEventListener("change", render));
+  document.querySelector("#search").addEventListener("input", render);
+  render();
+}
+
+function kindOf(c) {
+  const o = state.orig.get(c.id), why = state.patches[c.id]?.w || "";
+  const q = c.question !== o.question, opts = JSON.stringify(c.options) !== JSON.stringify(o.options);
+  const answerMoved = c.answerText !== o.answerText && !c.answerText.includes(o.answerText) && !o.answerText.includes(c.answerText);
+  return { q, opts, diff: why.startsWith("난이도"), replaced: q && answerMoved, same: !q && !opts, why };
+}
+
+function matches(c, k) {
+  const book = document.querySelector("#book").value, filter = document.querySelector("#filter").value;
+  const term = document.querySelector("#search").value.trim();
+  if (book && c.book !== book) return false;
+  if (filter === "diff" && !k.diff) return false;
+  if (filter === "replaced" && !k.replaced) return false;
+  if (filter === "q" && !k.q) return false;
+  if (filter === "o" && !k.opts) return false;
+  if (filter === "same" && !k.same) return false;
+  if (term) {
+    if (term.startsWith("#")) return String(c.id) === term.slice(1);
+    return (c.question + c.options.join(" ") + c.book).includes(term);
+  }
+  return true;
+}
+
+async function versesOf(c) {
+  const key = `${c.reference.bookCode}/${c.chapter}`;
+  if (!state.textCache.has(key)) {
+    state.textCache.set(key, fetch(`../../data/bible-text/${key}.json`).then((r) => r.json()));
+  }
+  return state.textCache.get(key);
+}
+
+function card(c, k, hide) {
+  const node = el("article", "card");
+  const top = el("div", "top");
+  top.append(el("span", "where", `${c.book} ${c.chapter}장`), el("span", "id", `#${c.id}`));
+  if (k.diff) top.append(el("span", "tag diff", "난이도 교체"));
+  else if (k.replaced) top.append(el("span", "tag", "문제 교체"));
+  else if (k.q || k.opts) top.append(el("span", "tag", [k.q && "질문", k.opts && "보기"].filter(Boolean).join("·") + " 수정"));
+  else top.append(el("span", "tag same", "원본 그대로"));
+  node.append(top, el("div", "q", c.question));
+
+  const opts = el("div", "opts");
+  c.options.forEach((text, i) => {
+    const b = el("button", "opt", `${MARKS[i]} ${text}`);
+    b.type = "button";
+    if (!hide && i === c.answer - 1) b.classList.add("correct");
+    b.addEventListener("click", () => {
+      opts.querySelectorAll(".opt").forEach((x, j) => x.classList.toggle("correct", j === c.answer - 1));
+      if (i !== c.answer - 1) b.classList.add("wrong");
+    });
+    opts.append(b);
+  });
+  node.append(opts);
+
+  const meta = el("div", "meta");
+  meta.append(el("span", null, `근거: ${c.reference.label}`));
+  const textBtn = el("button", null, "본문 보기"), origBtn = el("button", null, "원본 보기");
+  textBtn.type = origBtn.type = "button";
+  meta.append(textBtn);
+  if (!k.same) meta.append(origBtn);
+  node.append(meta);
+
+  let textBox = null, origBox = null;
+  textBtn.addEventListener("click", async () => {
+    if (textBox) { textBox.remove(); textBox = null; return; }
+    textBox = el("div", "box", "불러오는 중…");
+    node.append(textBox);
+    try {
+      const vs = await versesOf(c), { verseStart: s, verseEnd: e } = c.reference;
+      textBox.textContent = "";
+      vs.filter((v) => v.v >= s - 2 && v.v <= e + 2).forEach((v) => {
+        const row = el("div", "v" + (v.v >= s && v.v <= e ? " cited" : ""));
+        row.append(el("span", "n", v.v), document.createTextNode(v.t));
+        textBox.append(row);
+      });
+    } catch { textBox.textContent = "본문을 불러오지 못했습니다. 저장소 루트에서 서버를 띄웠는지 확인하세요."; }
+  });
+  origBtn.addEventListener("click", () => {
+    if (origBox) { origBox.remove(); origBox = null; return; }
+    const o = state.orig.get(c.id);
+    origBox = el("div", "box");
+    origBox.append(el("div", null, `원본: ${o.question}`));
+    const line = el("div");
+    o.options.forEach((text, i) => {
+      line.append(el("span", i === o.answer - 1 ? "ans" : null, `${MARKS[i]} ${text}`), document.createTextNode("  "));
+    });
+    origBox.append(line, el("div", "why", `원본 근거: ${o.reference.label}`));
+    if (k.why) origBox.append(el("div", "why", `수정 이유 — ${k.why}`));
+    node.append(origBox);
+  });
+  return node;
+}
+
+function render() {
+  const list = document.querySelector("#list"), hide = document.querySelector("#hide").checked;
+  const rows = state.rev.map((c) => [c, kindOf(c)]).filter(([c, k]) => matches(c, k));
+  document.querySelector("#count").textContent = `${rows.length}문항`;
+  const shown = rows.slice(0, 200);
+  list.replaceChildren(...shown.map(([c, k]) => card(c, k, hide)));
+  if (!rows.length) list.append(el("p", "empty", "조건에 맞는 문항이 없습니다."));
+  if (rows.length > shown.length) list.append(el("p", "empty", `처음 200문항만 표시했습니다. 책을 고르거나 검색어를 좁혀 주세요.`));
+}
+
+load().catch(() => { document.querySelector("#list").textContent = "데이터를 불러오지 못했습니다. 저장소 루트에서 로컬 서버를 띄운 뒤 이 주소로 열어 주세요."; });
+</script>
+</body>
+</html>

@@ -16,7 +16,8 @@
 ## 구성
 
 - `index.html` / `styles.css` / `app.js`: 화면, 스타일, 앱 로직 전체(진행도 저장, 로그인, 읽기, 퀴즈, 알림 설정 등)
-- `data/bible-data.js`: 66권 1,189장의 메타데이터와 퀴즈
+- `data/bible-data.js`: 66권 1,189장의 메타데이터와 1회차 퀴즈
+- `data/quiz-round2.js`: 2회차 퀴즈(장 ID별 질문·보기·정답·근거 절). 성경 전체를 한 번 완독하면 다음 통독부터 2회차 문제가 나오고, 그 뒤로는 회독마다 1회차와 번갈아 나옵니다. `?round=2`를 주소에 붙이면 완독 여부와 상관없이 2회차 문제를 볼 수 있습니다
 - `data/bible-text/{책코드}/{장}.json`: 장별 개역개정 본문(읽을 때 필요한 장만 불러옴)
 - `data/bible-search-index.json`: 본문검색(단어 검색)용 전체 구절 인덱스(책코드별 장·절·본문 한 파일), `tools/build_search_index.js`가 생성
 - `data/achievements.js`: 칭호 목록과 달성 조건
@@ -26,6 +27,7 @@
 - `functions/`: Cloud Functions (순간의 말씀 일정 생성과 발송)
 - `tools/`: 데이터 생성·검증 스크립트
   - `export_bible_data.py`: 엑셀의 퀴즈 데이터를 `data/bible-data.js`로 변환
+  - `build_quiz_round2.js`: `tools/quiz-round2/verbum-round2-1189.json`(검토를 마친 2회차 문항 원본)에서 `data/quiz-round2.js`를 만듦(문항을 고치면 다시 실행). 같은 폴더의 `CHANGES.md`·`REVIEW.md`는 원본 대비 수정 내역, `preview.html`은 문항 확인용 페이지
   - `regenerate_bible_text.js`: 대한성서공회 개역개정 페이지에서 `data/bible-text`를 다시 생성
   - `build_search_index.js`: `data/bible-text`에서 `data/bible-search-index.json`을 만듦(본문이 바뀌면 다시 실행)
   - `verify_bible_text.js`: 본문 데이터를 대한성서공회 페이지와 대조해 장/절 수 차이를 찾음
