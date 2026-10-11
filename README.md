@@ -17,7 +17,7 @@
 
 - `index.html` / `styles.css` / `app.js`: 화면, 스타일, 앱 로직 전체(진행도 저장, 로그인, 읽기, 퀴즈, 알림 설정 등)
 - `data/bible-data.js`: 66권 1,189장의 메타데이터와 퀴즈
-- `data/bible-text/{책코드}/{장}.json`: 장별 개역개정 본문(읽을 때 필요한 장만 불러옴)
+- `data/bible-text/{책코드}/{장}.json`: 장별 개역개정 본문(읽을 때 필요한 장만 불러옴). 절마다 `v`(절 번호)·`t`(본문)·`h`(소제목)이고, 개역개정이 여러 절을 한 덩어리로 인쇄한 곳은 `e`에 끝 절 번호를 넣어 "1-3"처럼 표시(현재 시편 92:1-3)
 - `data/bible-search-index.json`: 본문검색(단어 검색)용 전체 구절 인덱스(책코드별 장·절·본문 한 파일), `tools/build_search_index.js`가 생성
 - `data/achievements.js`: 칭호 목록과 달성 조건
 - `data/verses.js`: 앱에서 무작위로 보여주는 "오늘의 말씀" 구절 목록

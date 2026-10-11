@@ -1,5 +1,5 @@
 // Builds data/bible-search-index.json: every book code's verses (chapter →
-// [{v,t}]) in one file, so the app's 본문검색 (full-text verse search) can
+// [{v,t}], plus e on a combined verse) in one file, so the app's 본문검색 (full-text verse search) can
 // scan the whole Bible without fetching all 1,189 data/bible-text/*.json
 // files one at a time. Re-run this whenever data/bible-text changes (e.g.
 // after regenerate_bible_text.js).
@@ -17,7 +17,7 @@ for (const chapter of chapters) {
   const code = getBookCode(chapter);
   if (!code) continue;
   const filePath = path.join(PROJECT_ROOT, 'data', 'bible-text', code, `${chapter.chapter}.json`);
-  const verses = JSON.parse(fs.readFileSync(filePath, 'utf-8')).map(({ v, t }) => ({ v, t }));
+  const verses = JSON.parse(fs.readFileSync(filePath, 'utf-8')).map(({ v, e, t }) => (e ? { v, e, t } : { v, t }));
   if (!index[code]) index[code] = [];
   index[code][chapter.chapter - 1] = verses;
 }
