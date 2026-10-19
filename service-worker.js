@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v171";
+const CACHE_VERSION = "v172";
 const CACHE_NAME = `verbum-${CACHE_VERSION}`;
 
 // --- Firebase Cloud Messaging -----------------------------------------
@@ -133,6 +133,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // Videos (the /install guide) are streamed with Range requests; let the
+  // browser talk to the network directly so playback/seeking keeps working.
+  if (url.pathname.endsWith(".mp4")) return;
 
   if (isEntryDocument(request, url)) {
     event.respondWith(

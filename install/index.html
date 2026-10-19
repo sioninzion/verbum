@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Verbum을 휴대폰 홈 화면에 설치하는 방법을 기기에 맞게 안내해요." />
+    <meta name="theme-color" content="#fbf9f4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Verbum" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta property="og:title" content="Verbum 홈 화면에 설치하기" />
+    <meta property="og:description" content="링크를 열면 내 휴대폰에 맞는 설치 방법을 알려드려요." />
+    <meta property="og:image" content="https://verbum-sandy.vercel.app/icon-512.png" />
+    <title>Verbum 설치하기</title>
+    <link rel="icon" href="/icon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <!-- Same manifest as the app itself, so installing from this page installs
+         Verbum (start_url ./index.html), not this guide page. -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #fbf9f4;
+        --card: #ffffff;
+        --ink: #221a14;
+        --sub: #75685d;
+        --line: #ece4d8;
+        --accent: #b85a2a;
+        --accent-ink: #ffffff;
+        --soft: #f4ece1;
+        --ok: #2f9e63;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171411;
+          --card: #221e1a;
+          --ink: #f3ece4;
+          --sub: #b3a598;
+          --line: #352e27;
+          --accent: #e0814c;
+          --accent-ink: #1b120c;
+          --soft: #2b241e;
+          --ok: #5cc68c;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: var(--bg); color: var(--ink); }
+      body {
+        font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.55;
+        -webkit-text-size-adjust: 100%;
+        padding: max(20px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+      }
+      main { max-width: 440px; margin: 0 auto; }
+      [hidden] { display: none !important; }
+
+      .brand { display: flex; align-items: center; gap: 12px; margin: 8px 0 22px; }
+      .brand img { width: 52px; height: 52px; border-radius: 13px; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.12); }
+      .brand strong { display: block; font-size: 20px; letter-spacing: 0.02em; }
+      .brand span { font-size: 13px; color: var(--sub); }
+
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12.5px; font-weight: 700; color: var(--accent);
+        background: var(--soft); border-radius: 999px; padding: 5px 11px; margin-bottom: 12px;
+      }
+      h1 { font-size: 26px; line-height: 1.35; margin: 0 0 10px; font-weight: 800; word-break: keep-all; }
+      .lead { margin: 0 0 22px; color: var(--sub); font-size: 15.5px; word-break: keep-all; }
+
+      .btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; min-height: 56px; border: 0; border-radius: 16px;
+        font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; text-decoration: none;
+        background: var(--accent); color: var(--accent-ink);
+        box-shadow: 0 6px 18px rgba(184, 90, 42, 0.28);
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn.secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); box-shadow: none; font-weight: 700; }
+      .btn + .btn { margin-top: 10px; }
+      .hint { font-size: 13px; color: var(--sub); text-align: center; margin: 10px 0 0; word-break: keep-all; }
+
+      .steps { list-style: none; counter-reset: step; padding: 0; margin: 0 0 20px; }
+      .steps li {
+        counter-increment: step; position: relative;
+        background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+        padding: 13px 14px 13px 54px; margin-bottom: 8px; font-size: 15.5px; word-break: keep-all;
+      }
+      .steps li::before {
+        content: counter(step); position: absolute; left: 14px; top: 12px;
+        width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+        font-size: 14px; font-weight: 800; display: grid; place-items: center;
+      }
+      .steps b { font-weight: 800; }
+      .share-ic svg { vertical-align: -2px; }
+      .key {
+        display: inline-block; min-width: 24px; padding: 0 6px; border-radius: 6px;
+        background: var(--soft); border: 1px solid var(--line); font-weight: 800; text-align: center;
+      }
+
+      .video-wrap {
+        background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+        padding: 10px; margin: 0 0 20px;
+      }
+      .video-wrap video { display: block; width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; background: var(--soft); }
+      .video-wrap p { margin: 8px 4px 2px; font-size: 13px; color: var(--sub); text-align: center; }
+
+      details { margin: 0 0 20px; }
+      summary {
+        cursor: pointer; font-weight: 700; font-size: 15px; color: var(--accent);
+        list-style: none; padding: 6px 0; text-align: center;
+      }
+      summary::-webkit-details-marker { display: none; }
+      details[open] summary { margin-bottom: 10px; }
+
+      .copy-row {
+        display: flex; gap: 8px; align-items: center;
+        background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 8px 8px 14px; margin-top: 12px;
+      }
+      .copy-row code { flex: 1; min-width: 0; font-family: inherit; font-size: 14px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .copy-row button {
+        border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 800;
+        background: var(--soft); color: var(--ink); cursor: pointer; white-space: nowrap;
+      }
+
+      .done { text-align: center; padding: 8px 0 4px; }
+      .done .check {
+        width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
+        background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 38px; font-weight: 800;
+      }
+
+      .qr { background: #fff; border-radius: 18px; padding: 18px; width: 230px; margin: 0 auto 14px; border: 1px solid var(--line); }
+      .qr img { display: block; width: 100%; height: auto; }
+
+      .other {
+        margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line);
+        text-align: center; font-size: 13.5px; color: var(--sub);
+      }
+      .other a { color: var(--accent); font-weight: 700; text-decoration: none; margin: 0 8px; }
+      .toast {
+        position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+        background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="brand">
+        <img src="/icon-180.png" alt="" />
+        <div>
+          <strong>VERBUM</strong>
+          <span>홈 화면에 설치하고 앱처럼 쓰세요</span>
+        </div>
+      </header>
+
+      <!-- Exactly one of these sections is shown, picked by detectScenario(). -->
+
+      <!-- 이미 설치된 앱(standalone)으로 이 페이지를 연 경우 -->
+      <section data-scenario="standalone" hidden>
+        <div class="done">
+          <div class="check">✓</div>
+          <h1>이미 앱으로 열려 있어요</h1>
+          <p class="lead">설치가 끝난 상태예요. 바로 시작하세요.</p>
+        </div>
+        <a class="btn" href="/index.html">Verbum 시작하기</a>
+      </section>
+
+      <!-- Android Chrome 등에서 설치까지 끝난 경우 -->
+      <section data-scenario="installed" hidden>
+        <div class="done">
+          <div class="check">✓</div>
+          <h1>설치됐어요!</h1>
+          <p class="lead">홈 화면의 <b>Verbum</b> 아이콘으로 열면 앱처럼 실행돼요.</p>
+        </div>
+        <a class="btn" id="openAppBtn" href="/index.html">앱 열기</a>
+        <p class="hint" data-os="android">홈 화면에 아이콘이 없다면 앱 목록(앱스 화면)에서 Verbum을 찾아<br />길게 눌러 ‘홈 화면에 추가’를 눌러 주세요.</p>
+      </section>
+
+      <!-- Android 인앱 브라우저(카카오톡·인스타그램 등) -->
+      <section data-scenario="inapp-android" hidden>
+        <span class="chip" data-app-chip></span>
+        <h1>Chrome에서 열어 주세요</h1>
+        <p class="lead"><span data-app-name></span> 안에서는 홈 화면 설치가 안 돼요. 아래 버튼을 누르면 Chrome으로 이동해요.</p>
+        <a class="btn" data-open-chrome href="#">Chrome에서 열기</a>
+        <details>
+          <summary>버튼을 눌러도 안 열리나요?</summary>
+          <ol class="steps">
+            <li>화면 오른쪽 위 <span class="key">⋮</span> 또는 <span class="key">···</span> 메뉴를 눌러요</li>
+            <li><b>‘다른 브라우저로 열기’</b>를 눌러요</li>
+            <li>Chrome이 열리면 이 화면에서 이어서 설치해요</li>
+          </ol>
+          <div class="copy-row"><code data-url></code><button type="button" data-copy>주소 복사</button></div>
+        </details>
+      </section>
+
+      <!-- iOS 인앱 브라우저 -->
+      <section data-scenario="inapp-ios" hidden>
+        <span class="chip" data-app-chip></span>
+        <h1>Safari에서 열어 주세요</h1>
+        <p class="lead"><span data-app-name></span> 안에서는 홈 화면에 추가할 수 없어요. Safari로 옮겨서 이어서 해요.</p>
+        <a class="btn" data-open-external href="#" hidden>Safari로 열기</a>
+        <ol class="steps" data-ios-escape-steps>
+          <li>화면 <span data-menu-spot>오른쪽 아래</span> <span class="key">···</span> 또는 공유 버튼을 눌러요</li>
+          <li><b>‘Safari로 열기’</b> 또는 <b>‘기본 브라우저로 열기’</b>를 눌러요</li>
+          <li>Safari가 열리면 이 화면에서 이어서 설치해요</li>
+        </ol>
+        <p class="hint">메뉴를 찾기 어렵다면 주소를 복사해서 Safari 주소창에 붙여넣으세요.</p>
+        <div class="copy-row"><code data-url></code><button type="button" data-copy>주소 복사</button></div>
+      </section>
+
+      <!-- Android: 설치 버튼(beforeinstallprompt)을 쓸 수 있는 브라우저 -->
+      <section data-scenario="android-prompt" hidden>
+        <span class="chip">Android · <span data-browser-name>Chrome</span></span>
+        <h1>버튼 한 번이면 설치돼요</h1>
+        <p class="lead">설치하면 홈 화면에서 바로 열 수 있고, 주소창 없이 앱처럼 실행돼요.</p>
+        <button class="btn" type="button" id="installBtn">Verbum 설치하기</button>
+        <p class="hint">설치 확인 창이 뜨면 <b>‘설치’</b>를 눌러 주세요.</p>
+        <details>
+          <summary>영상으로 보기</summary>
+          <div class="video-wrap"><video data-src="/install/android-chrome.mp4" poster="/install/android-chrome.jpg" controls muted playsinline preload="none"></video></div>
+        </details>
+      </section>
+
+      <!-- Android Chrome: 설치 버튼이 없을 때(수동 안내) -->
+      <section data-scenario="android-chrome" hidden>
+        <span class="chip">Android · Chrome</span>
+        <h1>Chrome 메뉴에서 설치해요</h1>
+        <p class="lead">아래 순서대로 누르면 1분이면 끝나요.</p>
+        <ol class="steps">
+          <li>오른쪽 위 <span class="key">⋮</span> 메뉴를 눌러요</li>
+          <li>메뉴를 아래로 내려 <b>‘설치 및 바로가기 만들기’</b> (또는 <b>‘앱 설치’</b>, <b>‘홈 화면에 추가’</b>)를 눌러요</li>
+          <li><b>‘설치’</b>를 누르고, 확인 창에서 한 번 더 <b>‘설치’</b>를 눌러요</li>
+          <li>홈 화면에 아이콘이 없다면 앱 목록에서 Verbum을 <b>길게 눌러 ‘홈 화면에 추가’</b></li>
+        </ol>
+        <div class="video-wrap"><video data-src="/install/android-chrome.mp4" poster="/install/android-chrome.jpg" controls muted playsinline preload="none"></video><p>실제 설치 과정 (56초)</p></div>
+      </section>
+
+      <!-- Android 삼성 인터넷 -->
+      <section data-scenario="android-samsung" hidden>
+        <span class="chip">Android · 삼성 인터넷</span>
+        <h1>삼성 인터넷 메뉴에서 추가해요</h1>
+        <ol class="steps">
+          <li>아래쪽 <span class="key">≡</span> 메뉴를 눌러요</li>
+          <li><b>‘현재 페이지 추가’</b> 또는 <b>‘앱 설치’</b>를 눌러요</li>
+          <li><b>‘홈 화면’</b>을 선택하고 <b>‘추가’</b>를 눌러요</li>
+        </ol>
+        <p class="hint">Chrome에서 설치하면 더 간단해요.</p>
+        <a class="btn secondary" data-open-chrome href="#" style="margin-top: 12px">Chrome에서 열기</a>
+      </section>
+
+      <!-- Android 기타 브라우저 -->
+      <section data-scenario="android-other" hidden>
+        <span class="chip">Android</span>
+        <h1>Chrome에서 설치해 주세요</h1>
+        <p class="lead">지금 브라우저에서는 설치가 어려울 수 있어요. Chrome으로 열면 버튼 한 번으로 설치돼요.</p>
+        <a class="btn" data-open-chrome href="#">Chrome에서 열기</a>
+        <div class="copy-row"><code data-url></code><button type="button" data-copy>주소 복사</button></div>
+      </section>
+
+      <!-- iPhone Safari -->
+      <section data-scenario="ios-safari" hidden>
+        <span class="chip">iPhone · Safari</span>
+        <h1>홈 화면에 추가해요</h1>
+        <p class="lead">아래 순서대로 누르면 30초면 끝나요.</p>
+        <ol class="steps">
+          <li>화면 아래 <span class="key">···</span> 버튼을 눌러요<br /><small style="color: var(--sub)">(공유 버튼 <span class="key share-ic" aria-label="공유"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5"/><path d="M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2"/></svg></span>이 보이면 바로 눌러도 돼요)</small></li>
+          <li><b>‘공유’</b>를 눌러요</li>
+          <li>메뉴를 펼쳐 <b>‘홈 화면에 추가’</b>를 눌러요</li>
+          <li>오른쪽 위 <b>‘추가’</b>를 누르면 끝!</li>
+        </ol>
+        <div class="video-wrap"><video data-src="/install/ios-safari.mp4" poster="/install/ios-safari.jpg" controls muted playsinline preload="none"></video><p>실제 설치 과정 (40초)</p></div>
+      </section>
+
+      <!-- iPhone Chrome -->
+      <section data-scenario="ios-chrome" hidden>
+        <span class="chip">iPhone · Chrome</span>
+        <h1>Chrome에서도 추가할 수 있어요</h1>
+        <ol class="steps">
+          <li>주소창 오른쪽 공유 버튼 <span class="key share-ic" aria-label="공유"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5"/><path d="M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2"/></svg></span>을 눌러요</li>
+          <li>메뉴를 내려 <b>‘홈 화면에 추가’</b>를 눌러요</li>
+          <li>오른쪽 위 <b>‘추가’</b>를 누르면 끝!</li>
+        </ol>
+        <p class="hint">메뉴에 ‘홈 화면에 추가’가 없다면 Safari에서 열어 주세요.</p>
+        <div class="copy-row"><code data-url></code><button type="button" data-copy>주소 복사</button></div>
+      </section>
+
+      <!-- iPhone 기타 브라우저 -->
+      <section data-scenario="ios-other" hidden>
+        <span class="chip">iPhone</span>
+        <h1>Safari에서 열어 주세요</h1>
+        <p class="lead">iPhone에서는 Safari에서 홈 화면에 추가하는 게 가장 확실해요.</p>
+        <ol class="steps">
+          <li>아래 <b>‘주소 복사’</b>를 눌러요</li>
+          <li>Safari를 열고 주소창에 붙여넣어 이동해요</li>
+          <li>이 화면의 안내대로 홈 화면에 추가해요</li>
+        </ol>
+        <div class="copy-row"><code data-url></code><button type="button" data-copy>주소 복사</button></div>
+      </section>
+
+      <!-- PC -->
+      <section data-scenario="desktop" hidden>
+        <span class="chip">PC에서 열었어요</span>
+        <h1>휴대폰으로 열어 주세요</h1>
+        <p class="lead">휴대폰 카메라로 QR 코드를 비추면 설치 안내가 열려요.</p>
+        <div class="qr"><img src="/install/qr.svg" alt="Verbum 설치 페이지 QR 코드" /></div>
+        <a class="btn secondary" href="/index.html">PC에서 바로 사용하기</a>
+      </section>
+
+      <nav class="other">
+        다른 기기 안내 보기
+        <div style="margin-top: 8px">
+          <a href="?as=ios-safari">iPhone</a>
+          <a href="?as=android-chrome">Android</a>
+          <a href="?as=desktop">PC</a>
+        </div>
+      </nav>
+    </main>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var PAGE_URL = location.origin + location.pathname;
+        var ua = navigator.userAgent || "";
+        var isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+        var isAndroid = /Android/i.test(ua);
+
+        // In-app browsers ("웹뷰") can't install a PWA on either OS, so these
+        // are checked before anything else. Order matters only where tokens
+        // overlap (e.g. NAVER's app also carries "Whale").
+        var IN_APPS = [
+          { re: /KAKAOTALK/i, name: "카카오톡", id: "kakao" },
+          { re: /Instagram/i, name: "인스타그램", id: "instagram" },
+          { re: /FBAN|FBAV|FB_IAB|FBIOS/i, name: "페이스북", id: "facebook" },
+          { re: /\bLine\//i, name: "라인", id: "line" },
+          { re: /NAVER\(inapp|NAVER\//i, name: "네이버 앱", id: "naver" },
+          { re: /BAND\//i, name: "밴드", id: "band" },
+          { re: /DaumApps|DaumDevice/i, name: "다음 앱", id: "daum" },
+          { re: /everytimeApp/i, name: "에브리타임", id: "everytime" },
+          { re: /Threads|Barcelona/i, name: "스레드", id: "threads" },
+          { re: /Twitter|TwitterAndroid/i, name: "X(트위터)", id: "twitter" },
+        ];
+
+        function detectInApp() {
+          for (var i = 0; i < IN_APPS.length; i++) if (IN_APPS[i].re.test(ua)) return IN_APPS[i];
+          // Generic Android WebView marker ("; wv)") — some apps send no name.
+          if (isAndroid && /; wv\)/.test(ua)) return { name: "지금 앱", id: "webview" };
+          return null;
+        }
+
+        function isStandalone() {
+          return (
+            (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+            navigator.standalone === true
+          );
+        }
+
+        function detectScenario() {
+          var forced = new URLSearchParams(location.search).get("as");
+          if (forced && document.querySelector('[data-scenario="' + forced + '"]')) return forced;
+
+          if (isStandalone()) return "standalone";
+          var inApp = detectInApp();
+          if (inApp && isIOS) return "inapp-ios";
+          if (inApp && isAndroid) return "inapp-android";
+          if (isIOS) {
+            if (/CriOS/.test(ua)) return "ios-chrome";
+            if (/FxiOS|EdgiOS|OPiOS|Whale|YaBrowser|DuckDuckGo/i.test(ua)) return "ios-other";
+            return "ios-safari";
+          }
+          if (isAndroid) {
+            if (/SamsungBrowser/i.test(ua)) return "android-samsung";
+            if (/Chrome\//.test(ua) && !/EdgA|OPR|Whale|Firefox|YaBrowser|UCBrowser|MiuiBrowser|HeyTap/i.test(ua)) {
+              return "android-chrome";
+            }
+            return "android-other";
+          }
+          return "desktop";
+        }
+
+        var current = null;
+        function show(name) {
+          current = name;
+          var sections = document.querySelectorAll("[data-scenario]");
+          for (var i = 0; i < sections.length; i++) sections[i].hidden = sections[i].getAttribute("data-scenario") !== name;
+          var section = document.querySelector('[data-scenario="' + name + '"]');
+          // Videos load only once their section is actually on screen.
+          var videos = section.querySelectorAll("video[data-src]");
+          for (var j = 0; j < videos.length; j++) {
+            if (!videos[j].getAttribute("src")) videos[j].setAttribute("src", videos[j].getAttribute("data-src"));
+          }
+        }
+
+        function toast(text) {
+          var el = document.getElementById("toast");
+          el.textContent = text;
+          el.hidden = false;
+          clearTimeout(toast.t);
+          toast.t = setTimeout(function () { el.hidden = true; }, 2000);
+        }
+
+        // ── Shared bits: page URL, copy buttons, "open in Chrome/Safari" ──
+        var hostAndPath = location.host + location.pathname;
+        var chromeIntent = "intent://" + hostAndPath + "#Intent;scheme=" + location.protocol.replace(":", "") +
+          ";package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(PAGE_URL) + ";end";
+
+        Array.prototype.forEach.call(document.querySelectorAll("[data-url]"), function (el) { el.textContent = PAGE_URL; });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-open-chrome]"), function (el) { el.href = chromeIntent; });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (btn) {
+          btn.addEventListener("click", function () {
+            var done = function () { toast("주소를 복사했어요"); };
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(PAGE_URL).then(done, fallbackCopy);
+            } else fallbackCopy();
+            function fallbackCopy() {
+              var t = document.createElement("textarea");
+              t.value = PAGE_URL;
+              t.setAttribute("readonly", "");
+              t.style.position = "fixed";
+              t.style.opacity = "0";
+              document.body.appendChild(t);
+              t.select();
+              t.setSelectionRange(0, PAGE_URL.length);
+              try { document.execCommand("copy"); done(); } catch (e) { toast("길게 눌러 직접 복사해 주세요"); }
+              document.body.removeChild(t);
+            }
+          });
+        });
+
+        var inApp = detectInApp();
+        if (inApp) {
+          Array.prototype.forEach.call(document.querySelectorAll("[data-app-name]"), function (el) { el.textContent = inApp.name; });
+          Array.prototype.forEach.call(document.querySelectorAll("[data-app-chip]"), function (el) { el.textContent = inApp.name + "에서 열었어요"; });
+        } else {
+          Array.prototype.forEach.call(document.querySelectorAll("[data-app-name]"), function (el) { el.textContent = "앱"; });
+          Array.prototype.forEach.call(document.querySelectorAll("[data-app-chip]"), function (el) { el.textContent = "앱 안에서 열었어요"; });
+        }
+
+        // KakaoTalk and LINE both expose a documented way to hand a URL to
+        // the system browser, so those get a real button (and one automatic
+        // attempt per session); every other app only gets the menu steps.
+        var externalUrl = null;
+        if (inApp && inApp.id === "kakao") externalUrl = "kakaotalk://web/openExternal?url=" + encodeURIComponent(PAGE_URL);
+        if (inApp && inApp.id === "line") externalUrl = PAGE_URL + (location.search ? "&" : "?") + "openExternalBrowser=1";
+        var externalBtn = document.querySelector("[data-open-external]");
+        if (externalUrl) {
+          externalBtn.href = externalUrl;
+          externalBtn.hidden = false;
+        }
+        if (inApp && inApp.id === "kakao") {
+          var spot = document.querySelector("[data-menu-spot]");
+          if (spot) spot.textContent = "오른쪽 아래";
+        }
+        if (inApp && /instagram|facebook|threads/.test(inApp.id)) {
+          var spot2 = document.querySelector("[data-menu-spot]");
+          if (spot2) spot2.textContent = "오른쪽 위";
+        }
+
+        function tryAutoEscape() {
+          var key = "verbum-install-escape-tried";
+          try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch (e) { return; }
+          if (externalUrl) location.href = externalUrl;
+          else if (isAndroid) location.href = chromeIntent;
+        }
+
+        // ── Android install prompt ──
+        var deferredPrompt = null;
+        window.addEventListener("beforeinstallprompt", function (event) {
+          event.preventDefault();
+          deferredPrompt = event;
+          if (current === "android-chrome" || current === "android-samsung" || current === "android-other") {
+            var name = current === "android-samsung" ? "삼성 인터넷" : current === "android-other" ? "브라우저" : "Chrome";
+            document.querySelector("[data-browser-name]").textContent = name;
+            show("android-prompt");
+          }
+        });
+
+        document.getElementById("installBtn").addEventListener("click", function () {
+          if (!deferredPrompt) { show("android-chrome"); return; }
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function (choice) {
+            deferredPrompt = null;
+            if (choice && choice.outcome === "accepted") show("installed");
+          });
+        });
+
+        window.addEventListener("appinstalled", function () { show("installed"); });
+
+        // "앱 열기" on Android: an intent without a package lets the system
+        // hand the URL to the installed WebAPK instead of reopening a tab.
+        var openApp = document.getElementById("openAppBtn");
+        if (isAndroid) {
+          openApp.href = "intent://" + location.host + "/index.html#Intent;scheme=" + location.protocol.replace(":", "") +
+            ";S.browser_fallback_url=" + encodeURIComponent(location.origin + "/index.html") + ";end";
+        } else {
+          Array.prototype.forEach.call(document.querySelectorAll('[data-os="android"]'), function (el) { el.hidden = true; });
+        }
+
+        // ── Boot ──
+        var scenario = detectScenario();
+        show(scenario);
+
+        if ((scenario === "inapp-android" || scenario === "inapp-ios") && !new URLSearchParams(location.search).get("as")) {
+          setTimeout(tryAutoEscape, 600);
+        }
+
+        // Already installed? Chrome on Android can tell, via the manifest's
+        // related_applications entry pointing back at this same web app.
+        if (scenario.indexOf("android") === 0 && navigator.getInstalledRelatedApps) {
+          navigator.getInstalledRelatedApps().then(function (apps) {
+            if (apps && apps.length && current !== "android-prompt") show("installed");
+          }).catch(function () {});
+        }
+
+        // Chrome's install criteria include a registered service worker on
+        // older versions, and it lets the installed app work offline from
+        // the first launch. Same worker as the app — scope is the site root.
+        if ("serviceWorker" in navigator && !isStandalone()) {
+          navigator.serviceWorker.register("/service-worker.js").catch(function () {});
+        }
+      })();
+    </script>
+  </body>
+</html>
