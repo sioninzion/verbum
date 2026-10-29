@@ -5119,3 +5119,78 @@ body {
 .register-modal-card .primary-button[hidden] {
   display: none;
 }
+
+/* Home share button + share modal */
+.home-panel .home-hero {
+  position: relative;
+  padding-right: 48px;
+}
+
+.home-share-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.home-share-btn .icon-mask {
+  width: 20px;
+  height: 20px;
+}
+
+.share-modal-card h2 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.share-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.share-link-row > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.share-link-row span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-modal-card .share-link-row .ghost-button {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.share-license-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--orange-pale);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+:root[data-theme="dark"] .share-license-note {
+  background: var(--line);
+}

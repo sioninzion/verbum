@@ -23,7 +23,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20261003-1" />
+    <link rel="stylesheet" href="styles.css?v=20261030-1" />
   </head>
   <body>
     <div class="rotate-overlay" aria-hidden="true">
@@ -201,6 +201,9 @@
               <p class="eyebrow" id="homeTitle">성경 통독자</p>
               <h2 id="homeGreeting">방문자님, 오늘도 한 장씩 가볼까요?</h2>
             </div>
+            <button class="home-share-btn" id="homeShareBtn" type="button" aria-label="공유하기">
+              <span class="icon-mask" style="--icon-src:url('icon-assets/glyphs/share.png')" aria-hidden="true"></span>
+            </button>
           </div>
 
           <!-- Wide-screen layout only (styles.css hides this by default;
@@ -672,6 +675,29 @@
       </div>
     </div>
 
+    <div class="calendar-modal-overlay" id="shareModal" hidden>
+      <div class="calendar-modal-card share-modal-card" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+        <h2 id="shareTitle">Verbum 공유하기</h2>
+        <div class="share-link-row">
+          <div>
+            <strong>Verbum 바로가기</strong>
+            <span>https://verbum-sandy.vercel.app/</span>
+          </div>
+          <button class="ghost-button" type="button" data-share-url="https://verbum-sandy.vercel.app/" data-share-title="Verbum">공유</button>
+        </div>
+        <div class="share-link-row">
+          <div>
+            <strong>설치 안내</strong>
+            <span>https://verbum-sandy.vercel.app/install/</span>
+          </div>
+          <button class="ghost-button" type="button" data-share-url="https://verbum-sandy.vercel.app/install/" data-share-title="Verbum 설치 안내">공유</button>
+        </div>
+        <p class="share-license-note">Verbum의 성경 본문(개역개정)은 자양교회 성도분들만 사용하도록 허락받은 것이에요. 교회 밖으로는 공유하지 말아 주세요.</p>
+        <p class="register-message" id="shareMessage" role="status" aria-live="polite"></p>
+        <button class="ghost-button" id="shareCloseBtn" type="button">닫기</button>
+      </div>
+    </div>
+
     <div class="calendar-modal-overlay" id="registerModal" hidden>
       <div class="calendar-modal-card register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
         <div class="register-head">
@@ -800,6 +826,6 @@
     <script src="data/quiz-round2.js?v=20261012-2"></script>
     <script src="data/achievements.js?v=20260917-1"></script>
     <script src="data/verses.js?v=20260824-1"></script>
-    <script src="app.js?v=20261012-2"></script>
+    <script src="app.js?v=20261030-1"></script>
   </body>
 </html>

@@ -542,6 +542,10 @@ const elements = {
   calendarGrid: document.querySelector("#calendarGrid"),
   registerOpenBtn: document.querySelector("#registerOpenBtn"),
   registerModal: document.querySelector("#registerModal"),
+  shareModal: document.querySelector("#shareModal"),
+  homeShareBtn: document.querySelector("#homeShareBtn"),
+  shareCloseBtn: document.querySelector("#shareCloseBtn"),
+  shareMessage: document.querySelector("#shareMessage"),
   registerBackBtn: document.querySelector("#registerBackBtn"),
   registerTitle: document.querySelector("#registerTitle"),
   registerHint: document.querySelector("#registerHint"),
@@ -3479,6 +3483,47 @@ async function resetProgress() {
 }
 
 elements.achievementModalCloseBtn.addEventListener("click", showNextAchievementModal);
+
+function openShareModal() {
+  elements.shareMessage.textContent = "";
+  elements.shareModal.hidden = false;
+}
+
+function closeShareModal() {
+  elements.shareModal.hidden = true;
+}
+
+// Prefer the native share sheet (KakaoTalk etc.); fall back to copying the link.
+async function shareLink(url, title) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url });
+      return;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    elements.shareMessage.textContent = "링크를 복사했어요.";
+  } catch {
+    elements.shareMessage.textContent = url;
+  }
+}
+
+elements.homeShareBtn.addEventListener("click", openShareModal);
+elements.shareCloseBtn.addEventListener("click", closeShareModal);
+elements.shareModal.addEventListener("click", (event) => {
+  if (event.target === elements.shareModal) {
+    closeShareModal();
+    return;
+  }
+  const button = event.target.closest("[data-share-url]");
+  if (button) shareLink(button.dataset.shareUrl, button.dataset.shareTitle);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !elements.shareModal.hidden) closeShareModal();
+});
 
 elements.registerOpenBtn.addEventListener("click", openRegisterModal);
 elements.registerCloseBtn.addEventListener("click", closeRegisterModal);
