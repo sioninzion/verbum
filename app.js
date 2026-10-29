@@ -3903,6 +3903,35 @@ async function openPendingMomentVerseLink() {
   }
 }
 
+// The splash stays up until the first auth callback has decided which screen
+// to show. A fixed timer alone let the login gate flash for returning users
+// while Firebase restored their session and their profile loaded.
+const SPLASH_MIN_MS = 1200;
+const SPLASH_MAX_MS = 8000;
+let splashMinElapsed = false;
+let initialAuthSettled = false;
+
+function hideSplashIfReady() {
+  if (splashMinElapsed && initialAuthSettled) {
+    elements.splashScreen.classList.add("splash-hidden");
+  }
+}
+
+function settleInitialAuth() {
+  initialAuthSettled = true;
+  hideSplashIfReady();
+}
+
+setTimeout(() => {
+  splashMinElapsed = true;
+  hideSplashIfReady();
+}, SPLASH_MIN_MS);
+
+// Offline or a stalled Firestore read shouldn't trap the user on the logo.
+setTimeout(() => {
+  elements.splashScreen.classList.add("splash-hidden");
+}, SPLASH_MAX_MS);
+
 async function handleAuthStateChange(firebaseUser) {
   try {
     if (state.creatingAccount) return;
@@ -3944,9 +3973,11 @@ async function handleAuthStateChange(firebaseUser) {
     resetHighlights();
     adoptLoadedProfile(await loadUserProfile(firebaseUser));
     await saveProgress();
-    await refreshLeaderboard().catch(() => {});
     setView("home");
     render();
+    // The leaderboard reads every shared user, so fetch it after home is on
+    // screen instead of holding the splash until it arrives.
+    refreshLeaderboard().then(render, () => {});
     if (!state.user.hasSeenTutorial) {
       showTutorial();
     }
@@ -3955,6 +3986,8 @@ async function handleAuthStateChange(firebaseUser) {
     setAuthBanner(getAuthErrorMessage(error));
     state.isAuthenticated = false;
     render();
+  } finally {
+    settleInitialAuth();
   }
 }
 
@@ -3970,10 +4003,6 @@ let deferredInstallPrompt = null;
 
 render();
 document.documentElement.dataset.appReady = "true";
-
-setTimeout(() => {
-  elements.splashScreen.classList.add("splash-hidden");
-}, 1200);
 
 updateLeaderboardCountdown();
 setInterval(updateLeaderboardCountdown, 1000);
